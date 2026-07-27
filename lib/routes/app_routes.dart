@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_transitions.dart';
 
 // ── Onboarding ──
 import '../screens/onboarding/splash_screen.dart';
@@ -128,54 +129,70 @@ class AppRoutes {
   static const String errorTreatment = '/errors/treatment';
   static const String errorGeneric = '/errors/generic';
 
-  static Map<String, WidgetBuilder> get routes => {
-    splash: (_) => const SplashScreen(),
-    onboarding: (_) => const OnboardingFlowScreen(),
-    onboarding1: (_) => const OnboardingFlowScreen(),
-    vitalIdLogin: (_) => const VitalIdLoginScreen(),
-    vitalIdRegister: (_) => const VitalIdRegisterScreen(),
-    vitalIdOtp: (_) => const VitalIdOtpScreen(),
-    vitalIdForgot: (_) => const VitalIdForgotScreen(),
-    vitalIdReset: (_) => const VitalIdResetScreen(),
-    vitalIdSecurity: (_) => const VitalIdSecurityScreen(),
-    login: (_) => const LoginScreen(),
-    completeProfile: (_) => const CompleteProfileScreen(),
-    firstPatient: (_) => const FirstPatientScreen(),
-    selfCareProfile: (_) => const SelfCareProfileScreen(),
-    linkDevice: (_) => const LinkDeviceScreen(),
-    wifiSetup: (_) => const WifiSetupScreen(),
-    registerPatient: (_) => const RegisterPatientScreen(),
-    sendRequests: (_) => const SendRequestsScreen(),
-    dashboard: (_) => const MainShell(),
-    patientList: (_) => const PatientListScreen(),
-    patientDetail: (_) => const PatientDetailScreen(),
-    editPatient: (_) => const EditPatientScreen(),
-    medications: (_) => const MainShell(), // MainShell with tab 1
-    treatmentDetail: (_) => const TreatmentDetailScreen(),
-    addMedication: (_) => const AddMedicationScreen(),
-    configureDispenser: (_) => const ConfigureDispenserScreen(),
-    history: (_) => const HistoryScreen(),
-    notifications: (_) => const NotificationsScreen(),
-    scheduleConfig: (_) => const ScheduleConfigScreen(),
-    schedule: (_) => const ScheduleScreen(),
-    voiceMessages: (_) => const VoiceMessagesScreen(),
-    sosEmergency: (_) => const SosEmergencyScreen(),
-    selfCare: (_) => const SelfCareScreen(),
-    myProfile: (_) => const MyProfileScreen(),
-    settings: (_) => const MainShell(), // MainShell with tab 2
-    myVitalGuard: (_) => const MyVitalGuardScreen(),
-    notificationsConfig: (_) => const NotificationsConfigScreen(),
-    voiceAssistant: (_) => const VoiceAssistantScreen(),
-    sosConfig: (_) => const SosConfigScreen(),
-    helpSupport: (_) => const HelpSupportScreen(),
-    familyMembers: (_) => const FamilyMembersScreen(),
-    securitySettings: (_) => const SecuritySettingsScreen(),
-    sosAlarm: (_) => const SosAlarmScreen(),
-    errorNetwork: (_) => const ErrorNetworkScreen(),
-    errorServer: (_) => const ErrorServerScreen(),
-    errorAuth: (_) => const ErrorAuthScreen(),
-    errorDevice: (_) => const ErrorDeviceScreen(),
-    errorTreatment: (_) => const ErrorTreatmentScreen(),
-    errorGeneric: (_) => const ErrorGenericScreen(),
-  };
+  static Route<dynamic> onGenerateRoute(RouteSettings routeSettings) {
+    Widget page;
+    switch (routeSettings.name) {
+      case splash: page = const SplashScreen(); break;
+      case onboarding:
+      case onboarding1: page = const OnboardingFlowScreen(); break;
+      case vitalIdLogin: page = const VitalIdLoginScreen(); break;
+      case vitalIdRegister: page = const VitalIdRegisterScreen(); break;
+      case vitalIdOtp: page = const VitalIdOtpScreen(); break;
+      case vitalIdForgot: page = const VitalIdForgotScreen(); break;
+      case vitalIdReset: page = const VitalIdResetScreen(); break;
+      case vitalIdSecurity: page = const VitalIdSecurityScreen(); break;
+      case login: page = const LoginScreen(); break;
+      case completeProfile: page = const CompleteProfileScreen(); break;
+      case firstPatient: page = const FirstPatientScreen(); break;
+      case selfCareProfile: page = const SelfCareProfileScreen(); break;
+      case linkDevice: page = const LinkDeviceScreen(); break;
+      case wifiSetup: page = const WifiSetupScreen(); break;
+      case registerPatient: page = const RegisterPatientScreen(); break;
+      case sendRequests: page = const SendRequestsScreen(); break;
+      case dashboard:
+      case medications:
+      case settings: page = const MainShell(); break;
+      case patientList: page = const PatientListScreen(); break;
+      case patientDetail: page = const PatientDetailScreen(); break;
+      case editPatient: page = const EditPatientScreen(); break;
+      case treatmentDetail: page = const TreatmentDetailScreen(); break;
+      case addMedication: page = const AddMedicationScreen(); break;
+      case configureDispenser: page = const ConfigureDispenserScreen(); break;
+      case history: page = const HistoryScreen(); break;
+      case notifications: page = const NotificationsScreen(); break;
+      case scheduleConfig: page = const ScheduleConfigScreen(); break;
+      case schedule: page = const ScheduleScreen(); break;
+      case voiceMessages: page = const VoiceMessagesScreen(); break;
+      case sosEmergency: page = const SosEmergencyScreen(); break;
+      case selfCare: page = const SelfCareScreen(); break;
+      case myProfile: page = const MyProfileScreen(); break;
+      case myVitalGuard: page = const MyVitalGuardScreen(); break;
+      case notificationsConfig: page = const NotificationsConfigScreen(); break;
+      case voiceAssistant: page = const VoiceAssistantScreen(); break;
+      case sosConfig: page = const SosConfigScreen(); break;
+      case helpSupport: page = const HelpSupportScreen(); break;
+      case familyMembers: page = const FamilyMembersScreen(); break;
+      case securitySettings: page = const SecuritySettingsScreen(); break;
+      case sosAlarm: page = const SosAlarmScreen(); break;
+      case errorNetwork: page = const ErrorNetworkScreen(); break;
+      case errorServer: page = const ErrorServerScreen(); break;
+      case errorAuth: page = const ErrorAuthScreen(); break;
+      case errorDevice: page = const ErrorDeviceScreen(); break;
+      case errorTreatment: page = const ErrorTreatmentScreen(); break;
+      case errorGeneric: page = const ErrorGenericScreen(); break;
+      default: page = const ErrorGenericScreen(); break;
+    }
+
+    final name = routeSettings.name ?? '';
+    if (name == sosAlarm || name.startsWith('/errors/')) {
+      return AppTransitions.scale(routeSettings, (_) => page);
+    }
+    if (name.startsWith('/settings/') || name.startsWith('/utilities/')) {
+      return AppTransitions.fade(routeSettings, (_) => page);
+    }
+    if (name.startsWith('/patients/') || name.startsWith('/medications/') || name.startsWith('/profile/') || name.startsWith('/setup/')) {
+      return AppTransitions.slideRight(routeSettings, (_) => page);
+    }
+    return AppTransitions.slideUp(routeSettings, (_) => page);
+  }
 }

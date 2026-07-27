@@ -55,29 +55,13 @@ class OnboardingPage1 extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    RichText(
+                    Text(
+                      'Organiza y dispensa tus medicamentos\nde forma automática y segura.',
                       textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
-                          height: 1.6,
-                        ),
-                        children: [
-                          const TextSpan(text: 'VitalGuard es un dispositivo con '),
-                          TextSpan(
-                            text: '5 compartimentos',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1E293B),
-                              height: 1.6,
-                            ),
-                          ),
-                          const TextSpan(
-                            text: ' que administra tus medicamentos de forma automática y segura.',
-                          ),
-                        ],
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: const Color(0xFF64748B),
+                        height: 1.6,
                       ),
                     ),
                   ],

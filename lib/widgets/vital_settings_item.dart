@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dimensions.dart';
@@ -28,7 +29,10 @@ class VitalSettingsItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: onTap == null ? null : () {
+        HapticFeedback.lightImpact();
+        onTap!();
+      },
       borderRadius: BorderRadius.circular(0),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

@@ -57,7 +57,7 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                   children: [
                     _buildProfileCard(),
                     const SizedBox(height: 20),
-                    _buildSection('Cuenta', [
+                    _buildSection('Cuenta', AppColors.primary, [
                       _SettingsItem(
                         icon: LucideIcons.user,
                         iconBg: AppColors.primaryLight,
@@ -84,7 +84,7 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                       ),
                     ]),
                     const SizedBox(height: 20),
-                    _buildSection('Dispositivo', [
+                    _buildSection('Dispositivo', AppColors.accent, [
                       _SettingsItem(
                         icon: LucideIcons.monitor,
                         iconBg: AppColors.primaryLight,
@@ -105,7 +105,7 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                       ),
                     ]),
                     const SizedBox(height: 20),
-                    _buildSection('Preferencias', [
+                    _buildSection('Preferencias', AppColors.warning, [
                       _SettingsItem(
                         icon: LucideIcons.bell,
                         iconBg: AppColors.warningBg,
@@ -132,7 +132,7 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                       ),
                     ]),
                     const SizedBox(height: 20),
-                    _buildSection('Soporte', [
+                    _buildSection('Soporte', AppColors.textMuted, [
                       _SettingsItem(
                         icon: LucideIcons.helpCircle,
                         iconBg: AppColors.iconGrayBg,
@@ -222,11 +222,17 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
     );
   }
 
-  Widget _buildSection(String title, List<Widget> items) {
+  Widget _buildSection(String title, Color color, List<Widget> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+        Row(
+          children: [
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+            const SizedBox(width: 8),
+            Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+          ],
+        ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(

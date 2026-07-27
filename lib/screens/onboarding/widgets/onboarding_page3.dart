@@ -55,19 +55,10 @@ class OnboardingPage3 extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    RichText(
+                    Text(
+                      'Comparte tu progreso con tu médico\npara ajustar tu tratamiento.',
                       textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), height: 1.6),
-                        children: [
-                          const TextSpan(text: 'Genera '),
-                          TextSpan(
-                            text: 'reportes de adherencia',
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF1E293B), height: 1.6),
-                          ),
-                          const TextSpan(text: ' detallados que tu médico puede revisar para ajustar tu tratamiento.'),
-                        ],
-                      ),
+                      style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), height: 1.6),
                     ),
                   ],
                 ),

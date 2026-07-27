@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
-import 'theme/app_transitions.dart';
 import 'routes/app_routes.dart';
 import 'services/auth_service.dart';
+import 'services/theme_provider.dart';
 import 'screens/main_shell.dart';
 
 class VitalGuardApp extends StatelessWidget {
@@ -11,37 +11,39 @@ class VitalGuardApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'VitalGuard',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: Consumer<AuthService>(
-        builder: (context, auth, _) {
-          if (auth.isLoading) {
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF4A90E2),
-                  strokeWidth: 2.5,
-                ),
-              ),
-            );
-          }
+    return Consumer<ThemeProvider>(
+      builder: (context, theme, _) {
+        return MaterialApp(
+          title: 'VitalGuard',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: theme.mode,
+          home: Consumer<AuthService>(
+            builder: (context, auth, _) {
+              if (auth.isLoading) {
+                return const Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF4A90E2),
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                );
+              }
 
-          if (auth.isLoggedIn) {
-            if (!auth.isProfileComplete) {
-              return const _ProfileRedirect();
-            }
-            return const MainShell();
-          }
+              if (auth.isLoggedIn) {
+                if (!auth.isProfileComplete) {
+                  return const _ProfileRedirect();
+                }
+                return const MainShell();
+              }
 
-          return const LoginRedirect();
-        },
-      ),
-      onGenerateRoute: (settings) {
-        final builder = AppRoutes.routes[settings.name];
-        if (builder == null) return null;
-        return AppTransitions.slideUp(settings, builder);
+              return const LoginRedirect();
+            },
+          ),
+          onGenerateRoute: AppRoutes.onGenerateRoute,
+        );
       },
     );
   }

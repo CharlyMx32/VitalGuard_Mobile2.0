@@ -10,6 +10,7 @@ class VitalCard extends StatelessWidget {
   final Color? backgroundColor;
   final double? borderRadius;
   final VoidCallback? onTap;
+  final Color? borderColor;
 
   const VitalCard({
     super.key,
@@ -19,11 +20,12 @@ class VitalCard extends StatelessWidget {
     this.backgroundColor,
     this.borderRadius,
     this.onTap,
+    this.borderColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
+    Widget card = Container(
       margin: margin ?? const EdgeInsets.symmetric(
         horizontal: AppDimensions.cardMarginHorizontal,
       ) + const EdgeInsets.only(bottom: AppDimensions.cardMarginBottom),
@@ -34,9 +36,16 @@ class VitalCard extends StatelessWidget {
         ),
         boxShadow: AppDimensions.cardShadow,
       ),
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(AppDimensions.cardPadding),
-        child: child,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(
+          borderRadius ?? AppDimensions.radiusCard,
+        ),
+        child: borderColor != null
+            ? _BorderedCard(borderColor: borderColor!, child: child)
+            : Padding(
+                padding: padding ?? const EdgeInsets.all(AppDimensions.cardPadding),
+                child: child,
+              ),
       ),
     );
 
@@ -44,6 +53,39 @@ class VitalCard extends StatelessWidget {
       return VitalTap(onTap: onTap, child: card);
     }
     return card;
+  }
+}
+
+class _BorderedCard extends StatelessWidget {
+  final Widget child;
+  final Color borderColor;
+  const _BorderedCard({required this.child, required this.borderColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: 4,
+            decoration: BoxDecoration(
+              color: borderColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(AppDimensions.radiusCard),
+                bottomLeft: Radius.circular(AppDimensions.radiusCard),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(AppDimensions.cardPadding),
+              child: child,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

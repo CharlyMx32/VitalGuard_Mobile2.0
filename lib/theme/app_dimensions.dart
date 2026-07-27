@@ -59,7 +59,6 @@ class AppDimensions {
   static const double toggleKnob = 22;
 
   // ── Bottom Nav ──
-  static const double bottomNavHeight = 64;
   static const double navIconSize = 24;
 
   // ── Input ──

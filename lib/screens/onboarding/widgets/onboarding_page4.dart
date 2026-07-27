@@ -76,16 +76,10 @@ class _OnboardingPage4State extends State<OnboardingPage4>
                       style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, color: const Color(0xFF1E293B)),
                     ),
                     const SizedBox(height: 12),
-                    RichText(
+                    Text(
+                      'Pregunta a Alexa cuándo tomar tu\npróxima dosis, todo con tu voz.',
                       textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), height: 1.6),
-                        children: [
-                          const TextSpan(text: 'Compatible con '),
-                          TextSpan(text: 'Amazon Alexa', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF1E293B), height: 1.6)),
-                          const TextSpan(text: '. Consulta dosis, confirma tomas y envía mensajes usando solo tu voz.'),
-                        ],
-                      ),
+                      style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), height: 1.6),
                     ),
                   ],
                 ),

@@ -56,29 +56,13 @@ class OnboardingPage2 extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    RichText(
+                    Text(
+                      'Tu familia recibe alertas al instante\ncuando tomas tu medicación.',
                       textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
-                          height: 1.6,
-                        ),
-                        children: [
-                          const TextSpan(text: 'Recibe alertas en '),
-                          TextSpan(
-                            text: 'tiempo real',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1E293B),
-                              height: 1.6,
-                            ),
-                          ),
-                          const TextSpan(
-                            text: ' sobre la medicación de tus seres queridos. Confirma tomas, omisiones y emergencias.',
-                          ),
-                        ],
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: const Color(0xFF64748B),
+                        height: 1.6,
                       ),
                     ),
                   ],

@@ -15,8 +15,32 @@ class ScheduleScreen extends StatelessWidget {
   }
 }
 
-class ScheduleContent extends StatelessWidget {
+class ScheduleContent extends StatefulWidget {
   const ScheduleContent({super.key});
+  @override
+  State<ScheduleContent> createState() => _ScheduleContentState();
+}
+
+class _ScheduleContentState extends State<ScheduleContent> {
+  int _selectedDayIndex = 0;
+
+  List<_DayData> _days() {
+    final now = DateTime.now();
+    return List.generate(7, (i) {
+      final d = now.add(Duration(days: i));
+      return _DayData(
+        day: _shortDay(d.weekday),
+        date: d.day,
+        isToday: i == 0,
+        isSelected: i == _selectedDayIndex,
+        fullDate: d,
+      );
+    });
+  }
+
+  String _shortDay(int weekday) {
+    return ['', 'L', 'M', 'X', 'J', 'V', 'S', 'D'][weekday];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +58,7 @@ class ScheduleContent extends StatelessWidget {
                 children: [
                   _buildDaySelector(),
                   const SizedBox(height: 20),
-                  _buildTimeSection(
+                  _buildTimelineSection(
                     label: 'Mañana',
                     icon: LucideIcons.sunrise,
                     iconColor: AppColors.warning,
@@ -43,7 +67,7 @@ class ScheduleContent extends StatelessWidget {
                       _ScheduleMed(
                         name: 'Losartan 50mg',
                         dose: '1 pastilla',
-                        time: '08:00 AM',
+                        time: '08:00',
                         patient: 'Juan García',
                         status: _MedStatus.completed,
                         iconColor: AppColors.primaryLight,
@@ -52,7 +76,7 @@ class ScheduleContent extends StatelessWidget {
                       _ScheduleMed(
                         name: 'Metformina 850mg',
                         dose: '1 pastilla',
-                        time: '08:00 AM',
+                        time: '08:00',
                         patient: 'Juan García',
                         status: _MedStatus.completed,
                         iconColor: AppColors.accentLight,
@@ -61,7 +85,7 @@ class ScheduleContent extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildTimeSection(
+                  _buildTimelineSection(
                     label: 'Tarde',
                     icon: LucideIcons.sun,
                     iconColor: AppColors.primary,
@@ -70,7 +94,7 @@ class ScheduleContent extends StatelessWidget {
                       _ScheduleMed(
                         name: 'Atorvastatina 20mg',
                         dose: '1 pastilla',
-                        time: '02:00 PM',
+                        time: '14:00',
                         patient: 'Juan García',
                         status: _MedStatus.pending,
                         iconColor: AppColors.primaryLight,
@@ -79,7 +103,7 @@ class ScheduleContent extends StatelessWidget {
                       _ScheduleMed(
                         name: 'Omeprazol 20mg',
                         dose: '1 pastilla',
-                        time: '03:00 PM',
+                        time: '15:00',
                         patient: 'Rosa García',
                         status: _MedStatus.pending,
                         iconColor: AppColors.iconOrangeBg,
@@ -88,7 +112,7 @@ class ScheduleContent extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildTimeSection(
+                  _buildTimelineSection(
                     label: 'Noche',
                     icon: LucideIcons.moon,
                     iconColor: AppColors.iconPurpleFg,
@@ -97,7 +121,7 @@ class ScheduleContent extends StatelessWidget {
                       _ScheduleMed(
                         name: 'Melatonina 3mg',
                         dose: '1 pastilla',
-                        time: '09:00 PM',
+                        time: '21:00',
                         patient: 'Rosa García',
                         status: _MedStatus.pending,
                         iconColor: AppColors.iconPurpleBg,
@@ -135,35 +159,19 @@ class ScheduleContent extends StatelessWidget {
         children: [
           const Text(
             'Horario',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white),
           ),
           const SizedBox(height: 4),
           Text(
             _getDateLabel(),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              color: Colors.white70,
-            ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400, color: Colors.white70),
           ),
           const SizedBox(height: 16),
           const Row(
             children: [
-              _SummaryChip(
-                icon: LucideIcons.checkCircle,
-                label: '2 completadas',
-                color: AppColors.accent,
-              ),
+              _SummaryChip(icon: LucideIcons.checkCircle, label: '2 ¡Bien hecho!', color: AppColors.accent),
               SizedBox(width: 12),
-              _SummaryChip(
-                icon: LucideIcons.clock,
-                label: '3 pendientes',
-                color: Colors.white70,
-              ),
+              _SummaryChip(icon: LucideIcons.clock, label: '3 te esperan', color: Colors.white70),
             ],
           ),
         ],
@@ -172,29 +180,65 @@ class ScheduleContent extends StatelessWidget {
   }
 
   Widget _buildDaySelector() {
+    final days = _days();
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      height: 72,
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
         boxShadow: AppDimensions.cardShadow,
       ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _DayItem(day: 'L', date: 14, isSelected: false),
-          _DayItem(day: 'M', date: 15, isSelected: false),
-          _DayItem(day: 'X', date: 16, isSelected: true),
-          _DayItem(day: 'J', date: 17, isSelected: false),
-          _DayItem(day: 'V', date: 18, isSelected: false),
-          _DayItem(day: 'S', date: 19, isSelected: false),
-          _DayItem(day: 'D', date: 20, isSelected: false),
-        ],
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        itemCount: days.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 4),
+        itemBuilder: (context, index) {
+          final d = days[index];
+          return GestureDetector(
+            onTap: () => setState(() => _selectedDayIndex = index),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 48,
+              decoration: BoxDecoration(
+                color: d.isSelected ? AppColors.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(d.day,
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: d.isSelected ? Colors.white70 : AppColors.textMuted)),
+                  const SizedBox(height: 4),
+                  Text('${d.date}',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: d.isSelected ? Colors.white : AppColors.textDark)),
+                  if (d.isToday)
+                    Container(
+                      margin: const EdgeInsets.only(top: 3),
+                      width: 4,
+                      height: 4,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildTimeSection({
+  Widget _buildTimelineSection({
     required String label,
     required IconData icon,
     required Color iconColor,
@@ -204,119 +248,130 @@ class ScheduleContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(10),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 30, height: 30,
+                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, size: 16, color: iconColor),
               ),
-              child: Icon(icon, size: 16, color: iconColor),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${items.length} ${items.length == 1 ? 'medicamento' : 'medicamentos'}',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textMuted,
-              ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Text(label,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+              const SizedBox(width: 8),
+              Text('${items.length} ${items.length == 1 ? 'med' : 'meds'}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            ],
+          ),
         ),
-        const SizedBox(height: 10),
-        ...items.map((med) => _buildMedCard(med)),
+        ...List.generate(items.length, (i) {
+          final med = items[i];
+          final isLast = i == items.length - 1;
+          return _buildTimelineItem(med, isLast);
+        }),
       ],
     );
   }
 
-  Widget _buildMedCard(_ScheduleMed med) {
+  Widget _buildTimelineItem(_ScheduleMed med, bool isLast) {
     final isCompleted = med.status == _MedStatus.completed;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: AppDimensions.cardShadow,
-        border: isCompleted
-            ? Border.all(color: AppColors.accent.withValues(alpha: 0.3), width: 1.5)
-            : null,
-      ),
+    return IntrinsicHeight(
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: med.iconColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(LucideIcons.pill, size: 18, color: med.iconFg),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
+          SizedBox(
+            width: 40,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  med.name,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                    decoration: isCompleted ? TextDecoration.lineThrough : null,
+                Container(
+                  width: 12, height: 12,
+                  margin: const EdgeInsets.only(top: 16),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isCompleted ? AppColors.accent : AppColors.warning,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isCompleted ? AppColors.accent : AppColors.warning).withValues(alpha: 0.3),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${med.dose} · ${med.patient}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textMuted,
+                if (!isLast)
+                  Expanded(
+                    child: Container(width: 2, color: AppColors.borderLight),
                   ),
-                ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                med.time,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textMuted,
-                ),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: AppDimensions.cardShadow,
+                border: isCompleted
+                    ? Border.all(color: AppColors.accent.withValues(alpha: 0.3), width: 1.5)
+                    : null,
               ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isCompleted ? AppColors.accentLight : AppColors.warningBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  isCompleted ? 'Listo' : 'Pendiente',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: isCompleted ? AppColors.accent : AppColors.warning,
+              child: Row(
+                children: [
+                  Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      color: med.iconColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(LucideIcons.pill, size: 18, color: med.iconFg),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(med.name,
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textDark,
+                                decoration: isCompleted ? TextDecoration.lineThrough : null)),
+                        const SizedBox(height: 2),
+                        Text(med.patient,
+                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(med.time,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isCompleted ? AppColors.accent : AppColors.textDark)),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isCompleted ? AppColors.accentLight : AppColors.warningBg,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(med.dose,
+                            style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: isCompleted ? AppColors.accent : AppColors.warning)),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -344,12 +399,7 @@ class _SummaryChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-
-  const _SummaryChip({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
+  const _SummaryChip({required this.icon, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -364,14 +414,7 @@ class _SummaryChip extends StatelessWidget {
         children: [
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: color,
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
         ],
       ),
     );
@@ -386,7 +429,6 @@ class _ScheduleMed {
   final _MedStatus status;
   final Color iconColor;
   final Color iconFg;
-
   const _ScheduleMed({
     required this.name,
     required this.dose,
@@ -398,48 +440,17 @@ class _ScheduleMed {
   });
 }
 
-class _DayItem extends StatelessWidget {
+class _DayData {
   final String day;
   final int date;
+  final bool isToday;
   final bool isSelected;
-
-  const _DayItem({
+  final DateTime fullDate;
+  const _DayData({
     required this.day,
     required this.date,
+    required this.isToday,
     required this.isSelected,
+    required this.fullDate,
   });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 56,
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.primary : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            day,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: isSelected ? Colors.white70 : AppColors.textMuted,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$date',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: isSelected ? Colors.white : AppColors.textDark,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

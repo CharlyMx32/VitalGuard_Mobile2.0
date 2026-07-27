@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dimensions.dart';
 
@@ -58,6 +59,14 @@ class VitalButton extends StatelessWidget {
     this.width,
   }) : type = VitalButtonType.danger;
 
+  VoidCallback? get _onTap {
+    if (isLoading || onPressed == null) return null;
+    return () {
+      HapticFeedback.lightImpact();
+      onPressed!();
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -74,7 +83,7 @@ class VitalButton extends StatelessWidget {
 
   Widget _buildPrimary() {
     return ElevatedButton(
-      onPressed: isLoading ? null : onPressed,
+      onPressed: _onTap,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -89,7 +98,7 @@ class VitalButton extends StatelessWidget {
 
   Widget _buildOutline() {
     return OutlinedButton(
-      onPressed: isLoading ? null : onPressed,
+      onPressed: _onTap,
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
         side: const BorderSide(color: AppColors.primary, width: 1.5),
@@ -103,7 +112,7 @@ class VitalButton extends StatelessWidget {
 
   Widget _buildGhost() {
     return OutlinedButton(
-      onPressed: isLoading ? null : onPressed,
+      onPressed: _onTap,
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.textMuted,
         side: const BorderSide(color: AppColors.borderLight),
@@ -117,7 +126,7 @@ class VitalButton extends StatelessWidget {
 
   Widget _buildDanger() {
     return ElevatedButton(
-      onPressed: isLoading ? null : onPressed,
+      onPressed: _onTap,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.dangerBg,
         foregroundColor: AppColors.dangerDark,

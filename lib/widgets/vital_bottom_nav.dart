@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_dimensions.dart';
+
 
 class VitalBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -17,7 +17,6 @@ class VitalBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: AppDimensions.bottomNavHeight,
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -27,7 +26,7 @@ class VitalBottomNav extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
