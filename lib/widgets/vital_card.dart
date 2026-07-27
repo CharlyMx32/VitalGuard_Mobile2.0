@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dimensions.dart';
+import 'vital_tap.dart';
 
 class VitalCard extends StatelessWidget {
   final Widget child;
@@ -40,7 +41,7 @@ class VitalCard extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: card);
+      return VitalTap(onTap: onTap, child: card);
     }
     return card;
   }
@@ -79,7 +80,7 @@ class VitalCompactCard extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: card);
+      return VitalTap(onTap: onTap, child: card);
     }
     return card;
   }

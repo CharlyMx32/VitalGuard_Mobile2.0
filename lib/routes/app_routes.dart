@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 // ── Onboarding ──
 import '../screens/onboarding/splash_screen.dart';
 import '../screens/onboarding/onboarding_flow_screen.dart';
-import '../screens/onboarding/onboarding_2_screen.dart';
-import '../screens/onboarding/onboarding_3_screen.dart';
-import '../screens/onboarding/onboarding_4_screen.dart';
 
 // ── Auth ──
 import '../screens/auth/vital_id_login_screen.dart';
@@ -18,6 +15,7 @@ import '../screens/auth/login_screen.dart';
 
 // ── Profile ──
 import '../screens/profile/complete_profile_screen.dart';
+import '../screens/profile/first_patient_screen.dart';
 import '../screens/profile/self_care_profile_screen.dart';
 
 // ── Setup ──
@@ -41,6 +39,7 @@ import '../screens/treatments/configure_dispenser_screen.dart';
 import '../screens/treatments/history_screen.dart';
 import '../screens/treatments/notifications_screen.dart';
 import '../screens/treatments/schedule_config_screen.dart';
+import '../screens/treatments/schedule_screen.dart';
 
 // ── Utilities ──
 import '../screens/utilities/voice_messages_screen.dart';
@@ -74,9 +73,6 @@ class AppRoutes {
   static const String splash = '/splash';
   static const String onboarding = '/onboarding';
   static const String onboarding1 = '/onboarding/1';
-  static const String onboarding2 = '/onboarding/2';
-  static const String onboarding3 = '/onboarding/3';
-  static const String onboarding4 = '/onboarding/4';
 
   static const String vitalIdLogin = '/vital-id/login';
   static const String vitalIdRegister = '/vital-id/register';
@@ -87,6 +83,7 @@ class AppRoutes {
   static const String login = '/login';
 
   static const String completeProfile = '/profile/complete';
+  static const String firstPatient = '/profile/first-patient';
   static const String selfCareProfile = '/profile/self-care';
 
   static const String linkDevice = '/setup/link-device';
@@ -106,6 +103,7 @@ class AppRoutes {
   static const String history = '/medications/history';
   static const String notifications = '/medications/notifications';
   static const String scheduleConfig = '/medications/schedule';
+  static const String schedule = '/schedule';
 
   static const String voiceMessages = '/utilities/voice';
   static const String sosEmergency = '/utilities/sos';
@@ -134,9 +132,6 @@ class AppRoutes {
     splash: (_) => const SplashScreen(),
     onboarding: (_) => const OnboardingFlowScreen(),
     onboarding1: (_) => const OnboardingFlowScreen(),
-    onboarding2: (_) => const Onboarding2Screen(),
-    onboarding3: (_) => const Onboarding3Screen(),
-    onboarding4: (_) => const Onboarding4Screen(),
     vitalIdLogin: (_) => const VitalIdLoginScreen(),
     vitalIdRegister: (_) => const VitalIdRegisterScreen(),
     vitalIdOtp: (_) => const VitalIdOtpScreen(),
@@ -145,6 +140,7 @@ class AppRoutes {
     vitalIdSecurity: (_) => const VitalIdSecurityScreen(),
     login: (_) => const LoginScreen(),
     completeProfile: (_) => const CompleteProfileScreen(),
+    firstPatient: (_) => const FirstPatientScreen(),
     selfCareProfile: (_) => const SelfCareProfileScreen(),
     linkDevice: (_) => const LinkDeviceScreen(),
     wifiSetup: (_) => const WifiSetupScreen(),
@@ -161,6 +157,7 @@ class AppRoutes {
     history: (_) => const HistoryScreen(),
     notifications: (_) => const NotificationsScreen(),
     scheduleConfig: (_) => const ScheduleConfigScreen(),
+    schedule: (_) => const ScheduleScreen(),
     voiceMessages: (_) => const VoiceMessagesScreen(),
     sosEmergency: (_) => const SosEmergencyScreen(),
     selfCare: (_) => const SelfCareScreen(),

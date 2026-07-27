@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
@@ -8,7 +9,7 @@ class AppTheme {
   static ThemeData get light {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: 'Inter',
+      fontFamily: GoogleFonts.inter().fontFamily,
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.bgSecondary,
       colorScheme: const ColorScheme.light(
@@ -34,7 +35,6 @@ class AppTheme {
         centerTitle: true,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
-          fontFamily: 'Inter',
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
@@ -50,7 +50,6 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           textStyle: const TextStyle(
-            fontFamily: 'Inter',
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -65,7 +64,6 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           textStyle: const TextStyle(
-            fontFamily: 'Inter',
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -100,7 +98,6 @@ class AppTheme {
           ),
         ),
         hintStyle: const TextStyle(
-          fontFamily: 'Inter',
           fontSize: 14,
           fontWeight: FontWeight.w400,
           color: AppColors.textPlaceholder,

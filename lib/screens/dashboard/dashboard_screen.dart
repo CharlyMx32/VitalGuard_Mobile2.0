@@ -3,6 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
+import '../../widgets/vital_tap.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -11,263 +12,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            _buildContent(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(AppDimensions.radiusHeaderBottom),
-          bottomRight: Radius.circular(AppDimensions.radiusHeaderBottom),
-        ),
-      ),
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 16,
-        left: AppDimensions.paddingHorizontal,
-        right: AppDimensions.paddingHorizontal,
-        bottom: AppDimensions.paddingHeaderBottom,
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Buenos días,',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'María García',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, AppRoutes.notifications);
-                    },
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(
-                          AppDimensions.iconContainerRadius,
-                        ),
-                      ),
-                      child: const Icon(
-                        LucideIcons.bell,
-                        size: 20,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.white24,
-                    child: Text(
-                      'MG',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              _StatCard(value: '2', label: 'Pacientes'),
-              const SizedBox(width: 12),
-              _StatCard(value: '87%', label: 'Adherencia'),
-              const SizedBox(width: 12),
-              _StatCard(value: '5', label: 'Dosis hoy'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.paddingHorizontal,
-      ) + const EdgeInsets.only(top: 20, bottom: 80),
-      child: Column(
-        children: [
-          _buildQuickActions(context),
-          const SizedBox(height: 20),
-          _buildSectionHeader(
-            title: 'Mis Pacientes',
-            actionLabel: 'Ver todos',
-            onAction: () {
-              Navigator.pushNamed(context, AppRoutes.patientList);
-            },
-          ),
-          const SizedBox(height: 12),
-          _PatientCard(
-            initials: 'JG',
-            name: 'Juan García',
-            relation: 'Padre - 68 años',
-            adherence: '92%',
-            adherenceColor: AppColors.accent,
-            avatarGradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF4A90E2), Color(0xFF3A7BD5)],
-            ),
-            onTap: () {
-              Navigator.pushNamed(context, AppRoutes.patientDetail);
-            },
-          ),
-          _PatientCard(
-            initials: 'RG',
-            name: 'Rosa García',
-            relation: 'Madre - 72 años',
-            adherence: '81%',
-            adherenceColor: AppColors.warning,
-            avatarGradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF6FCF97), Color(0xFF27AE60)],
-            ),
-            onTap: () {
-              Navigator.pushNamed(context, AppRoutes.patientDetail);
-            },
-          ),
-          const SizedBox(height: 20),
-          _buildSectionHeader(
-            title: 'Próximas Dosis',
-            actionLabel: 'Ver horario',
-            onAction: () => Navigator.pushNamed(context, AppRoutes.medications),
-          ),
-          const SizedBox(height: 12),
-          _DoseCard(
-            time: '08:00 AM - Mañana',
-            status: _DoseStatus.pending,
-            items: const [
-              _DoseItem(
-                name: 'Losartan 50mg',
-                dose: '1 pastilla',
-                iconColor: AppColors.primaryLight,
-                iconFg: AppColors.primary,
-              ),
-              _DoseItem(
-                name: 'Metformina 850mg',
-                dose: '1 pastilla',
-                iconColor: AppColors.accentLight,
-                iconFg: AppColors.accent,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _DoseCard(
-            time: '02:00 PM - Tarde',
-            status: _DoseStatus.completed,
-            items: const [
-              _DoseItem(
-                name: 'Atorvastatina 20mg',
-                dose: '1 pastilla',
-                iconColor: AppColors.primaryLight,
-                iconFg: AppColors.primary,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(BuildContext context) {
-    return Row(
-      children: [
-        _QuickAction(
-          icon: LucideIcons.plus,
-          label: 'Agregar',
-          iconBg: AppColors.primaryLight,
-          iconColor: AppColors.primary,
-          onTap: () => Navigator.pushNamed(context, AppRoutes.addMedication),
-        ),
-        const SizedBox(width: 12),
-        _QuickAction(
-          icon: LucideIcons.activity,
-          label: 'Historial',
-          iconBg: AppColors.accentLight,
-          iconColor: AppColors.accent,
-          onTap: () => Navigator.pushNamed(context, AppRoutes.history),
-        ),
-        const SizedBox(width: 12),
-        _QuickAction(
-          icon: LucideIcons.alertTriangle,
-          label: 'SOS',
-          iconBg: AppColors.warningBg,
-          iconColor: AppColors.warning,
-          onTap: () => Navigator.pushNamed(context, AppRoutes.sosEmergency),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required String title,
-    String? actionLabel,
-    VoidCallback? onAction,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-          ),
-        ),
-        if (actionLabel != null)
-          GestureDetector(
-            onTap: onAction,
-            child: Text(
-              actionLabel,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-      ],
+      body: const DashboardContent(),
     );
   }
 }
@@ -331,7 +76,7 @@ class _QuickAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: GestureDetector(
+      child: VitalTap(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -389,7 +134,7 @@ class _PatientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return VitalTap(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: AppDimensions.cardMarginBottom),
@@ -726,7 +471,7 @@ class DashboardContent extends StatelessWidget {
             children: [
               const Text('Próximas Dosis', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
               GestureDetector(
-                onTap: () {},
+                onTap: () => Navigator.pushNamed(context, AppRoutes.schedule),
                 child: const Text('Ver horario', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
               ),
             ],
