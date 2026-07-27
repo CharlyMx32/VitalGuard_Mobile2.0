@@ -29,6 +29,9 @@ class VitalGuardApp extends StatelessWidget {
           }
 
           if (auth.isLoggedIn) {
+            if (!auth.isProfileComplete) {
+              return const _ProfileRedirect();
+            }
             return const MainShell();
           }
 
@@ -51,6 +54,25 @@ class LoginRedirect extends StatelessWidget {
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Navigator.pushReplacementNamed(context, AppRoutes.login);
+    });
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF4A90E2),
+          strokeWidth: 2.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileRedirect extends StatelessWidget {
+  const _ProfileRedirect();
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.pushReplacementNamed(context, AppRoutes.completeProfile);
     });
     return const Scaffold(
       body: Center(

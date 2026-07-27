@@ -59,7 +59,8 @@ class _VitalIdWebViewScreenState extends State<VitalIdWebViewScreen> {
 
     if (token != null && mounted) {
       context.read<AuthService>().login(token, refreshToken: refreshToken);
-      Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      // New users go to complete profile, existing users go to dashboard
+      Navigator.pushReplacementNamed(context, AppRoutes.completeProfile);
     }
   }
 

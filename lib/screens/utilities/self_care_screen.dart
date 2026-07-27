@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../routes/app_routes.dart';
 
 class SelfCareScreen extends StatelessWidget {
   const SelfCareScreen({super.key});
@@ -26,11 +27,11 @@ class SelfCareScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   _buildSectionTitle('Acciones'),
                   const SizedBox(height: 8),
-                  _buildActionCard(LucideIcons.pill, AppColors.accentLight, AppColors.accent, 'Mis tratamientos', 'Ver y gestionar mis medicamentos'),
+                  _buildActionCard(LucideIcons.pill, AppColors.accentLight, AppColors.accent, 'Mis tratamientos', 'Ver y gestionar mis medicamentos', () => Navigator.pushNamed(context, AppRoutes.medications)),
                   const SizedBox(height: 8),
-                  _buildActionCard(LucideIcons.history, AppColors.accentLight, AppColors.primary, 'Mi historial', 'Revisar historial de dosis'),
+                  _buildActionCard(LucideIcons.history, AppColors.accentLight, AppColors.primary, 'Mi historial', 'Revisar historial de dosis', () => Navigator.pushNamed(context, AppRoutes.history)),
                   const SizedBox(height: 8),
-                  _buildActionCard(LucideIcons.bell, AppColors.warningBg, AppColors.warning, 'Notificaciones', 'Configurar alertas y recordatorios'),
+                  _buildActionCard(LucideIcons.bell, AppColors.warningBg, AppColors.warning, 'Notificaciones', 'Configurar alertas y recordatorios', () => Navigator.pushNamed(context, AppRoutes.notificationsConfig)),
                 ],
               ),
             ),
@@ -103,19 +104,22 @@ class SelfCareScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(IconData icon, Color bg, Color fg, String title, String desc) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
-      child: Row(children: [
-        Container(width: 40, height: 40, decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)), child: Icon(icon, size: 18, color: fg)),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
-          Text(desc, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-        ])),
-        const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
-      ]),
+  Widget _buildActionCard(IconData icon, Color bg, Color fg, String title, String desc, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
+        child: Row(children: [
+          Container(width: 40, height: 40, decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)), child: Icon(icon, size: 18, color: fg)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
+            Text(desc, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+          ])),
+          const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
+        ]),
+      ),
     );
   }
 }

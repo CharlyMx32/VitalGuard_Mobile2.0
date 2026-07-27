@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../routes/app_routes.dart';
+import '../../services/auth_service.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -40,17 +43,27 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           ),
         ],
       ),
-      bottomSheet: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal, vertical: 16),
-        color: AppColors.bg,
+      bottomSheet: GestureDetector(
+        onTap: () {
+          context.read<AuthService>().completeProfile();
+          if (_selectedRole == 0) {
+            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.firstPatient, (route) => false);
+          } else {
+            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.dashboard, (route) => false);
+          }
+        },
         child: Container(
-          width: double.infinity, height: 48,
-          decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
-          child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(LucideIcons.check, size: 18, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Continuar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-          ]),
+          padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal, vertical: 16),
+          color: AppColors.bg,
+          child: Container(
+            width: double.infinity, height: 48,
+            decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
+            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(LucideIcons.check, size: 18, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Continuar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+            ]),
+          ),
         ),
       ),
     );

@@ -83,34 +83,67 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
   Widget _buildCodeInputs() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(6, (i) => Container(
-        width: 48, height: 56, margin: const EdgeInsets.symmetric(horizontal: 5),
-        decoration: BoxDecoration(
-          color: _controllers[i].text.isNotEmpty ? AppColors.accentLight : AppColors.bg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _controllers[i].text.isNotEmpty ? AppColors.primary : AppColors.borderLight, width: 2),
+      children: [
+        ...List.generate(3, (i) => Container(
+          width: 48, height: 56, margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: BoxDecoration(
+            color: _controllers[i].text.isNotEmpty ? AppColors.accentLight : AppColors.bg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _controllers[i].text.isNotEmpty ? AppColors.primary : AppColors.borderLight, width: 2),
+          ),
+          child: TextField(
+            controller: _controllers[i],
+            textAlign: TextAlign.center,
+            maxLength: 1,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textDark),
+            decoration: const InputDecoration(counterText: '', border: InputBorder.none),
+            onChanged: (v) {
+              setState(() {});
+              if (v.isNotEmpty && i < 5) { FocusScope.of(context).nextFocus(); }
+            },
+          ),
+        )),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Text('-', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textMuted)),
         ),
-        child: TextField(
-          controller: _controllers[i],
-          textAlign: TextAlign.center,
-          maxLength: 1,
-          keyboardType: TextInputType.number,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textDark),
-          decoration: const InputDecoration(counterText: '', border: InputBorder.none),
-          onChanged: (v) {
-            setState(() {});
-            if (v.isNotEmpty && i < 5) { FocusScope.of(context).nextFocus(); }
-          },
-        ),
-      )),
+        ...List.generate(3, (i) => Container(
+          width: 48, height: 56, margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: BoxDecoration(
+            color: _controllers[i + 3].text.isNotEmpty ? AppColors.accentLight : AppColors.bg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _controllers[i + 3].text.isNotEmpty ? AppColors.primary : AppColors.borderLight, width: 2),
+          ),
+          child: TextField(
+            controller: _controllers[i + 3],
+            textAlign: TextAlign.center,
+            maxLength: 1,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textDark),
+            decoration: const InputDecoration(counterText: '', border: InputBorder.none),
+            onChanged: (v) {
+              setState(() {});
+              if (v.isNotEmpty && i + 3 < 5) { FocusScope.of(context).nextFocus(); }
+            },
+          ),
+        )),
+      ],
     );
   }
 
   Widget _buildVerifyButton() {
-    return Container(
-      width: 200, height: 48,
-      decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
-      child: const Center(child: Text('Verificar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
+    return GestureDetector(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Dispositivo verificado correctamente'), backgroundColor: AppColors.accent),
+        );
+      },
+      child: Container(
+        width: 200, height: 48,
+        decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
+        child: const Center(child: Text('Verificar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
+      ),
     );
   }
 
@@ -123,7 +156,7 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
         const SizedBox(width: 8),
         const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Formato del código', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-          Text('Ejemplo: VG-123456', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+          Text('Ejemplo: VG-123-456', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ])),
       ]),
     );

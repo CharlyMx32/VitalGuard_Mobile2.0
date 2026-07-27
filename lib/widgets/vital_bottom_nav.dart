@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dimensions.dart';
@@ -35,28 +36,40 @@ class VitalBottomNav extends StatelessWidget {
                 activeIcon: LucideIcons.home,
                 label: 'Inicio',
                 isActive: currentIndex == 0,
-                onTap: () => onTap(0),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onTap(0);
+                },
               ),
               _NavItem(
                 icon: LucideIcons.calendar,
                 activeIcon: LucideIcons.calendar,
                 label: 'Horario',
                 isActive: currentIndex == 1,
-                onTap: () => onTap(1),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onTap(1);
+                },
               ),
               _NavItem(
                 icon: LucideIcons.bookmark,
                 activeIcon: LucideIcons.bookmark,
                 label: 'Tratamientos',
                 isActive: currentIndex == 2,
-                onTap: () => onTap(2),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onTap(2);
+                },
               ),
               _NavItem(
                 icon: LucideIcons.settings,
                 activeIcon: LucideIcons.settings,
                 label: 'Ajustes',
                 isActive: currentIndex == 3,
-                onTap: () => onTap(3),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onTap(3);
+                },
               ),
             ],
           ),
@@ -83,32 +96,49 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? AppColors.primary : AppColors.textLight;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              size: AppDimensions.navIconSize,
-              color: color,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: color,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          width: 64,
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.primaryLight : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isActive ? activeIcon : icon,
+                  size: 15,
+                  color: isActive ? Colors.white : AppColors.textLight,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 250),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  color: isActive ? AppColors.primary : AppColors.textLight,
+                ),
+                child: Text(label),
+              ),
+            ],
+          ),
         ),
-      ),
     );
   }
 }

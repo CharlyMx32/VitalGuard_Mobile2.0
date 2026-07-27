@@ -76,7 +76,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             child: Text('Notificaciones', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textDark)),
           ),
           GestureDetector(
-            onTap: () {},
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Todas las notificaciones marcadas como leídas'), backgroundColor: AppColors.accent),
+              );
+            },
             child: const Text('Marcar todo leído', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.primary)),
           ),
         ],
@@ -160,7 +164,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 if (item.action != null) ...[
                   const SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Acción: ${item.action}'), backgroundColor: AppColors.primary),
+                      );
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(20)),

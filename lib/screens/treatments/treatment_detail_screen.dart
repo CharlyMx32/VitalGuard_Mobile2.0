@@ -85,7 +85,11 @@ class TreatmentDetailScreen extends StatelessWidget {
                         child: SizedBox(
                           height: 40,
                           child: OutlinedButton.icon(
-                            onPressed: () {},
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Tratamiento pausado'), backgroundColor: AppColors.warning),
+                              );
+                            },
                             icon: const Icon(LucideIcons.pause, size: 14),
                             label: const Text('Pausar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
                             style: OutlinedButton.styleFrom(
@@ -101,7 +105,11 @@ class TreatmentDetailScreen extends StatelessWidget {
                         child: SizedBox(
                           height: 40,
                           child: ElevatedButton.icon(
-                            onPressed: () {},
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Tratamiento finalizado'), backgroundColor: AppColors.dangerDark),
+                              );
+                            },
                             icon: const Icon(LucideIcons.x, size: 14),
                             label: const Text('Finalizar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
                             style: ElevatedButton.styleFrom(

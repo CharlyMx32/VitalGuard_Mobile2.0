@@ -139,7 +139,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () => Navigator.pushNamed(context, AppRoutes.registerPatient),
                 child: Container(
                   width: 32,
                   height: 32,
@@ -350,7 +350,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () {},
+                    onTap: () => Navigator.pushNamed(context, AppRoutes.history),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(

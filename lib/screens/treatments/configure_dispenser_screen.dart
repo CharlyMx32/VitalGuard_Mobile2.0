@@ -210,7 +210,14 @@ class ConfigureDispenserScreen extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () {},
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(assigned ? 'Editando compartmento' : 'Asignando medicamento al compartimento'),
+                  backgroundColor: AppColors.primary,
+                ),
+              );
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -287,8 +294,8 @@ class ConfigureDispenserScreen extends StatelessWidget {
       width: double.infinity, height: 48,
       child: ElevatedButton.icon(
         onPressed: () => Navigator.of(context).pushNamed(AppRoutes.scheduleConfig),
-        icon: const Icon(LucideIcons.plus, size: 18),
-        label: const Text('Agregar medicamento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        icon: const Icon(LucideIcons.search, size: 18),
+        label: const Text('Seleccionar medicamento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,

@@ -14,7 +14,6 @@ class ScheduleConfigScreen extends StatefulWidget {
 class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   int _selectedCatalogIndex = 0;
   int _selectedType = 0;
-  int _selectedFreq = 2;
   TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
 
   final List<Map<String, String>> _catalog = [
@@ -22,17 +21,6 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
     {'name': 'Metformina 850mg', 'detail': 'Tabletas - Antidiabético'},
     {'name': 'Vitamina D 5000UI', 'detail': 'Cápsulas - Suplemento'},
     {'name': 'AAS 100mg', 'detail': 'Tabletas - Antitrombótico'},
-  ];
-
-  final List<Map<String, String>> _frequencies = [
-    {'hours': '3h', 'label': '8/día'},
-    {'hours': '6h', 'label': '4/día'},
-    {'hours': '8h', 'label': '3/día'},
-    {'hours': '12h', 'label': '2/día'},
-    {'hours': '24h', 'label': '1/día'},
-    {'hours': '48h', 'label': '1/2d'},
-    {'hours': '72h', 'label': '1/3d'},
-    {'hours': '...', 'label': 'Otro'},
   ];
 
   @override
@@ -192,20 +180,22 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () {},
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.warningBg,
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Row(
             children: [
-              Container(
-                width: 20, height: 20,
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.primary, width: 1.5),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(LucideIcons.plus, size: 12, color: AppColors.primary),
-              ),
+              const Icon(LucideIcons.info, size: 14, color: AppColors.warning),
               const SizedBox(width: 8),
-              const Text('Crear medicamento nuevo', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.primary)),
+              Expanded(
+                child: Text(
+                  'Si no encuentras tu medicamento, contacta a tu médico o soporte',
+                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                ),
+              ),
             ],
           ),
         ),
@@ -347,7 +337,7 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   Widget _buildScheduleSection() {
     return Column(
       children: [
-        _buildFormLabel('Hora de primera toma'),
+        _buildFormLabel('Hora de toma'),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
@@ -372,49 +362,7 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
         const SizedBox(height: 4),
         const Align(
           alignment: Alignment.centerLeft,
-          child: Text('A partir de qué hora sonará la primera alarma', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-        ),
-        const SizedBox(height: 12),
-        _buildFormLabel('Frecuencia'),
-        const SizedBox(height: 6),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 1.2,
-          ),
-          itemCount: _frequencies.length,
-          itemBuilder: (context, index) {
-            final freq = _frequencies[index];
-            final isSelected = _selectedFreq == index;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedFreq = index),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFF0F7FF) : Colors.white,
-                  border: Border.all(color: isSelected ? AppColors.primary : AppColors.borderLight, width: 1.5),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(freq['hours']!, style: TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700,
-                      color: isSelected ? AppColors.primary : AppColors.textDark,
-                    )),
-                    const SizedBox(height: 1),
-                    Text(freq['label']!, style: TextStyle(
-                      fontSize: 8, fontWeight: FontWeight.w500,
-                      color: isSelected ? AppColors.primary : AppColors.textMuted,
-                    )),
-                  ],
-                ),
-              ),
-            );
-          },
+          child: Text('Selecciona la hora en que el paciente debe tomar este medicamento', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ),
       ],
     );

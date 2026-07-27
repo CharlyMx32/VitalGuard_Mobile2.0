@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../routes/app_routes.dart';
 
 class SosEmergencyScreen extends StatelessWidget {
   const SosEmergencyScreen({super.key});
@@ -18,7 +19,7 @@ class SosEmergencyScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 20),
               child: Column(
                 children: [
-                  _buildActivateButton(),
+                  _buildActivateButton(context),
                   const SizedBox(height: 20),
                   _buildSectionTitle('Contactos de emergencia'),
                   const SizedBox(height: 12),
@@ -68,19 +69,24 @@ class SosEmergencyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActivateButton() {
-    return Container(
-      width: double.infinity, height: 64,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [AppColors.dangerDark, Color(0xFFFF8A65)]),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: AppColors.dangerDark.withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 8))],
+  Widget _buildActivateButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, AppRoutes.sosAlarm);
+      },
+      child: Container(
+        width: double.infinity, height: 64,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [AppColors.dangerDark, Color(0xFFFF8A65)]),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: AppColors.dangerDark.withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 8))],
+        ),
+        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(LucideIcons.phone, size: 24, color: Colors.white),
+          SizedBox(width: 12),
+          Text('Activar SOS', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+        ]),
       ),
-      child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(LucideIcons.phone, size: 24, color: Colors.white),
-        SizedBox(width: 12),
-        Text('Activar SOS', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
-      ]),
     );
   }
 

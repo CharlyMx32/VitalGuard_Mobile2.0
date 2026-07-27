@@ -53,7 +53,6 @@ class _MedicationsContentState extends State<MedicationsContent> {
                       ('Dosis', '1 pastilla'),
                       ('Frecuencia', 'Cada 2 días'),
                       ('Compartimento', '#1 - Mañana'),
-                      ('Stock', '45 pastillas'),
                     ],
                     schedule: ['8:00 AM'],
                   ),
@@ -68,7 +67,6 @@ class _MedicationsContentState extends State<MedicationsContent> {
                       ('Dosis', '1 pastilla'),
                       ('Frecuencia', 'Cada 2 días'),
                       ('Compartimento', '#2 - Almuerzo'),
-                      ('Stock', '30 pastillas'),
                     ],
                     schedule: ['12:00 PM', '8:00 PM'],
                   ),
@@ -83,7 +81,6 @@ class _MedicationsContentState extends State<MedicationsContent> {
                       ('Dosis', '1 pastilla'),
                       ('Frecuencia', 'Cada 2 días'),
                       ('Compartimento', '#3 - Noche'),
-                      ('Stock', '28 pastillas'),
                     ],
                     schedule: ['8:00 PM'],
                   ),
@@ -234,7 +231,11 @@ class _MedicationsContentState extends State<MedicationsContent> {
                   child: SizedBox(
                     height: 36,
                     child: OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Medicamento pausado'), backgroundColor: AppColors.warning),
+                        );
+                      },
                       style: OutlinedButton.styleFrom(
                         backgroundColor: AppColors.bg,
                         foregroundColor: AppColors.textDark,

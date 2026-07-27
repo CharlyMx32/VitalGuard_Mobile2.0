@@ -100,6 +100,7 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                         label: 'WiFi',
                         description: 'Casa_Maria',
                         value: 'Conectado',
+                        showChevron: false,
                         onTap: () {},
                       ),
                     ]),
@@ -247,6 +248,7 @@ class _SettingsItem extends StatelessWidget {
   final String label;
   final String description;
   final String? value;
+  final bool showChevron;
   final VoidCallback onTap;
 
   const _SettingsItem({
@@ -256,6 +258,7 @@ class _SettingsItem extends StatelessWidget {
     required this.label,
     required this.description,
     this.value,
+    this.showChevron = true,
     required this.onTap,
   });
 
@@ -292,7 +295,7 @@ class _SettingsItem extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 8),
                 child: Text(value!, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
               ),
-            const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
+            if (showChevron) const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
           ],
         ),
       ),

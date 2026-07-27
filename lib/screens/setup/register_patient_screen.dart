@@ -30,7 +30,7 @@ class RegisterPatientScreen extends StatelessWidget {
               ),
             ),
           ),
-          _buildFooter(),
+          _buildFooter(context),
         ],
       ),
     );
@@ -118,14 +118,22 @@ class RegisterPatientScreen extends StatelessWidget {
     ]);
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(children: [
-        Container(
-          width: double.infinity, height: 48,
-          decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
-          child: const Center(child: Text('Guardar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
+        GestureDetector(
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Paciente registrado correctamente'), backgroundColor: AppColors.accent),
+            );
+            Navigator.pop(context);
+          },
+          child: Container(
+            width: double.infinity, height: 48,
+            decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
+            child: const Center(child: Text('Guardar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
+          ),
         ),
         const SizedBox(height: 12),
         const Text('Completar después', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),

@@ -84,7 +84,28 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
           ),
           const Spacer(),
           GestureDetector(
-            onTap: () {},
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Eliminar paciente'),
+                  content: const Text('¿Estás seguro de que quieres eliminar este paciente?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Paciente eliminado'), backgroundColor: AppColors.dangerDark),
+                        );
+                      },
+                      child: const Text('Eliminar', style: TextStyle(color: AppColors.dangerDark)),
+                    ),
+                  ],
+                ),
+              );
+            },
             child: const SizedBox(
               width: 32,
               height: 32,
@@ -192,7 +213,17 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
                 controller: _fechaNacimientoController,
                 hintText: 'Fecha',
                 readOnly: true,
-                onTap: () {},
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime(1958, 5, 15),
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime.now(),
+                  );
+                  if (date != null) {
+                    _fechaNacimientoController.text = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                  }
+                },
               ),
             ),
           ],
