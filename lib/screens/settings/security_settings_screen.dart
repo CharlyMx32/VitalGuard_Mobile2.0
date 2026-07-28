@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/vital_shimmer.dart';
 
 class SecuritySettingsScreen extends StatefulWidget {
   const SecuritySettingsScreen({super.key});
@@ -53,9 +54,24 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 WebViewWidget(controller: _controller),
                 if (_isLoading)
                   const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.vitalGreen,
-                      strokeWidth: 2.5,
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SkeletonLine(width: 200, height: 18),
+                          SizedBox(height: 12),
+                          SkeletonLine(width: 160, height: 14),
+                          SizedBox(height: 24),
+                          SkeletonBlock(height: 120),
+                          SizedBox(height: 16),
+                          SkeletonLine(width: 140, height: 14),
+                          SizedBox(height: 8),
+                          SkeletonLine(width: 180, height: 12),
+                          SizedBox(height: 8),
+                          SkeletonLine(width: 120, height: 12),
+                        ],
+                      ),
                     ),
                   ),
                 if (_error != null)

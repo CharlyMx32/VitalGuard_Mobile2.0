@@ -5,6 +5,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../../routes/app_routes.dart';
+import '../../widgets/vital_shimmer.dart';
 
 class VitalIdWebViewScreen extends StatefulWidget {
   const VitalIdWebViewScreen({super.key});
@@ -90,9 +91,24 @@ class _VitalIdWebViewScreenState extends State<VitalIdWebViewScreen> {
           WebViewWidget(controller: _controller),
           if (_isLoading)
             const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.vitalGreen,
-                strokeWidth: 2.5,
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SkeletonCircle(size: 56),
+                    SizedBox(height: 20),
+                    SkeletonLine(width: 180, height: 16),
+                    SizedBox(height: 12),
+                    SkeletonLine(width: 140, height: 12),
+                    SizedBox(height: 24),
+                    SkeletonBlock(height: 100),
+                    SizedBox(height: 16),
+                    SkeletonLine(width: 200, height: 14),
+                    SizedBox(height: 8),
+                    SkeletonLine(width: 160, height: 12),
+                  ],
+                ),
               ),
             ),
           if (_error != null)

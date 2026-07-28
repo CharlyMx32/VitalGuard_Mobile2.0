@@ -90,25 +90,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildFilterTabs() {
     final tabs = ['Todas (7)', 'Dosis (4)', 'Alertas (1)', 'Sistema (2)'];
-    return Row(
-      children: List.generate(tabs.length, (i) {
-        final isActive = _selectedFilter == i;
-        return Padding(
-          padding: EdgeInsets.only(right: i < tabs.length - 1 ? 8 : 0),
-          child: GestureDetector(
-            onTap: () => setState(() => _selectedFilter = i),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isActive ? AppColors.primary : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: isActive ? AppColors.primary : AppColors.borderLight),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: List.generate(tabs.length, (i) {
+          final isActive = _selectedFilter == i;
+          return Padding(
+            padding: EdgeInsets.only(right: i < tabs.length - 1 ? 8 : 0),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedFilter = i),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: isActive ? AppColors.primary : AppColors.borderLight),
+                ),
+                child: Text(tabs[i], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isActive ? Colors.white : AppColors.textSecondary)),
               ),
-              child: Text(tabs[i], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isActive ? Colors.white : AppColors.textSecondary)),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 

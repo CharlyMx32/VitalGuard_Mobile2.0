@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
+import '../../services/patient_service.dart';
+import '../../widgets/vital_shimmer.dart';
 
 class PatientListScreen extends StatefulWidget {
   const PatientListScreen({super.key});
@@ -73,26 +76,35 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final patientService = context.watch<PatientService>();
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.paddingHorizontal,
-              ) + const EdgeInsets.only(top: 16, bottom: 80),
-              child: Column(
-                children: [
-                  _buildFilters(),
-                  const SizedBox(height: 16),
-                  ..._patients.map((p) => _buildPatientCard(p)),
-                ],
+      body: FutureBuilder(
+        future: patientService.getPatients(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SkeletonList(itemCount: 5);
+          }
+          return Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.paddingHorizontal,
+                  ) + const EdgeInsets.only(top: 16, bottom: 80),
+                  child: Column(
+                    children: [
+                      _buildFilters(),
+                      const SizedBox(height: 16),
+                      ..._patients.map((p) => _buildPatientCard(p)),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

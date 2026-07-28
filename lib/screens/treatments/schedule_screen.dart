@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../widgets/vital_shimmer.dart';
 
 class ScheduleScreen extends StatelessWidget {
   const ScheduleScreen({super.key});
@@ -23,6 +24,9 @@ class ScheduleContent extends StatefulWidget {
 
 class _ScheduleContentState extends State<ScheduleContent> {
   int _selectedDayIndex = 0;
+  int _scheduleRefreshKey = 0;
+
+  Future<void> _loadDelay() => Future.delayed(const Duration(milliseconds: 500));
 
   List<_DayData> _days() {
     final now = DateTime.now();
@@ -44,97 +48,113 @@ class _ScheduleContentState extends State<ScheduleContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.bg,
-      child: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.paddingHorizontal,
-              ) + const EdgeInsets.only(top: 16, bottom: 80),
-              child: Column(
-                children: [
-                  _buildDaySelector(),
-                  const SizedBox(height: 20),
-                  _buildTimelineSection(
-                    label: 'Mañana',
-                    icon: LucideIcons.sunrise,
-                    iconColor: AppColors.warning,
-                    iconBg: AppColors.warningBg,
-                    items: const [
-                      _ScheduleMed(
-                        name: 'Losartan 50mg',
-                        dose: '1 pastilla',
-                        time: '08:00',
-                        patient: 'Juan García',
-                        status: _MedStatus.completed,
-                        iconColor: AppColors.primaryLight,
-                        iconFg: AppColors.primary,
-                      ),
-                      _ScheduleMed(
-                        name: 'Metformina 850mg',
-                        dose: '1 pastilla',
-                        time: '08:00',
-                        patient: 'Juan García',
-                        status: _MedStatus.completed,
-                        iconColor: AppColors.accentLight,
-                        iconFg: AppColors.accent,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTimelineSection(
-                    label: 'Tarde',
-                    icon: LucideIcons.sun,
-                    iconColor: AppColors.primary,
-                    iconBg: AppColors.primaryLight,
-                    items: const [
-                      _ScheduleMed(
-                        name: 'Atorvastatina 20mg',
-                        dose: '1 pastilla',
-                        time: '14:00',
-                        patient: 'Juan García',
-                        status: _MedStatus.pending,
-                        iconColor: AppColors.primaryLight,
-                        iconFg: AppColors.primary,
-                      ),
-                      _ScheduleMed(
-                        name: 'Omeprazol 20mg',
-                        dose: '1 pastilla',
-                        time: '15:00',
-                        patient: 'Rosa García',
-                        status: _MedStatus.pending,
-                        iconColor: AppColors.iconOrangeBg,
-                        iconFg: AppColors.iconOrangeFg,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTimelineSection(
-                    label: 'Noche',
-                    icon: LucideIcons.moon,
-                    iconColor: AppColors.iconPurpleFg,
-                    iconBg: AppColors.iconPurpleBg,
-                    items: const [
-                      _ScheduleMed(
-                        name: 'Melatonina 3mg',
-                        dose: '1 pastilla',
-                        time: '21:00',
-                        patient: 'Rosa García',
-                        status: _MedStatus.pending,
-                        iconColor: AppColors.iconPurpleBg,
-                        iconFg: AppColors.iconPurpleFg,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+    return RefreshIndicator(
+      onRefresh: () async {
+        final newKey = _scheduleRefreshKey + 1;
+        setState(() => _scheduleRefreshKey = newKey);
+      },
+      child: FutureBuilder<void>(
+        key: ValueKey('schedule_$_scheduleRefreshKey'),
+        future: _loadDelay(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: SkeletonSchedule(),
+            );
+          }
+          return SingleChildScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                _buildHeader(context),
+                _buildDaySelectorSection(),
+                const SizedBox(height: 80),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildDaySelectorSection() {
+    return Column(
+      children: [
+        _buildDaySelector(),
+        const SizedBox(height: 20),
+        _buildTimelineSection(
+          label: 'Mañana',
+          icon: LucideIcons.sunrise,
+          iconColor: AppColors.warning,
+          iconBg: AppColors.warningBg,
+          items: const [
+            _ScheduleMed(
+              name: 'Losartan 50mg',
+              dose: '1 pastilla',
+              time: '08:00',
+              patient: 'Juan García',
+              status: _MedStatus.completed,
+              iconColor: AppColors.primaryLight,
+              iconFg: AppColors.primary,
+            ),
+            _ScheduleMed(
+              name: 'Metformina 850mg',
+              dose: '1 pastilla',
+              time: '08:00',
+              patient: 'Juan García',
+              status: _MedStatus.completed,
+              iconColor: AppColors.accentLight,
+              iconFg: AppColors.accent,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildTimelineSection(
+          label: 'Tarde',
+          icon: LucideIcons.sun,
+          iconColor: AppColors.primary,
+          iconBg: AppColors.primaryLight,
+          items: const [
+            _ScheduleMed(
+              name: 'Atorvastatina 20mg',
+              dose: '1 pastilla',
+              time: '14:00',
+              patient: 'Juan García',
+              status: _MedStatus.pending,
+              iconColor: AppColors.primaryLight,
+              iconFg: AppColors.primary,
+            ),
+            _ScheduleMed(
+              name: 'Omeprazol 20mg',
+              dose: '1 pastilla',
+              time: '15:00',
+              patient: 'Rosa García',
+              status: _MedStatus.pending,
+              iconColor: AppColors.iconOrangeBg,
+              iconFg: AppColors.iconOrangeFg,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildTimelineSection(
+          label: 'Noche',
+          icon: LucideIcons.moon,
+          iconColor: AppColors.iconPurpleFg,
+          iconBg: AppColors.iconPurpleBg,
+          items: const [
+            _ScheduleMed(
+              name: 'Melatonina 3mg',
+              dose: '1 pastilla',
+              time: '21:00',
+              patient: 'Rosa García',
+              status: _MedStatus.pending,
+              iconColor: AppColors.iconPurpleBg,
+              iconFg: AppColors.iconPurpleFg,
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -169,7 +189,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
           const SizedBox(height: 16),
           const Row(
             children: [
-              _SummaryChip(icon: LucideIcons.checkCircle, label: '2 ¡Bien hecho!', color: AppColors.accent),
+              _SummaryChip(icon: LucideIcons.checkCircle, label: '2 ¡Bien hecho!', color: Colors.white),
               SizedBox(width: 12),
               _SummaryChip(icon: LucideIcons.clock, label: '3 te esperan', color: Colors.white70),
             ],

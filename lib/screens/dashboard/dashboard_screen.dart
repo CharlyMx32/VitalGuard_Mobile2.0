@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
+import '../../services/treatment_service.dart';
 import '../../widgets/vital_tap.dart';
 import '../../widgets/vital_card.dart';
+import '../../widgets/vital_shimmer.dart';
+import '../../models/treatment.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -28,6 +32,7 @@ class DashboardContent extends StatefulWidget {
 class _DashboardContentState extends State<DashboardContent>
     with SingleTickerProviderStateMixin {
   late AnimationController _glowController;
+  int _dashboardRefreshKey = 0;
 
   @override
   void initState() {
@@ -46,15 +51,32 @@ class _DashboardContentState extends State<DashboardContent>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.bg,
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            _buildContent(context),
-          ],
-        ),
+    final treatmentService = context.watch<TreatmentService>();
+    return RefreshIndicator(
+      onRefresh: () async {
+        final newKey = _dashboardRefreshKey + 1;
+        setState(() => _dashboardRefreshKey = newKey);
+      },
+      child: FutureBuilder<List<Treatment>>(
+        key: ValueKey('dashboard_$_dashboardRefreshKey'),
+        future: treatmentService.getTreatments(1),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: SkeletonDashboard(),
+            );
+          }
+          return SingleChildScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                _buildHeader(context),
+                _buildContent(context),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

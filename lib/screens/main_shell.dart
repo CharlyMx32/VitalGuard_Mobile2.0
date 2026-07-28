@@ -16,10 +16,10 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = const [
-    DashboardContent(),      // 0 - Inicio
-    ScheduleContent(),       // 1 - Horario
-    MedicationsContent(),    // 2 - Tratamientos
-    SettingsContent(),       // 3 - Ajustes
+    DashboardContent(key: ValueKey('dashboard')),
+    ScheduleContent(key: ValueKey('schedule')),
+    MedicationsContent(key: ValueKey('medications')),
+    SettingsContent(key: ValueKey('settings')),
   ];
 
   @override

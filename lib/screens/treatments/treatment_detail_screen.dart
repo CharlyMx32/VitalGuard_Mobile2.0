@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../services/treatment_service.dart';
+import '../../widgets/vital_shimmer.dart';
 
 
 class TreatmentDetailScreen extends StatelessWidget {
@@ -9,125 +12,136 @@ class TreatmentDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final treatmentService = context.watch<TreatmentService>();
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.paddingHorizontal,
-              ) + const EdgeInsets.only(top: 16, bottom: 80),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeroCard(),
-                  const SizedBox(height: 16),
-                  _buildProgressCard(),
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('Medicamentos (3)'),
-                  const SizedBox(height: 8),
-                  _buildMedCard(
-                    iconBg: AppColors.primaryLight,
-                    iconFg: AppColors.primary,
-                    name: 'Losartan 50mg',
-                    subtitle: 'Potásico - En pastillero',
-                    status: 'Activo',
-                    statusType: _MedStatus.active,
-                    details: [
-                      ('Compartimento', '#1 - Mañana'),
-                      ('Fecha fin', '7 Jul 2026'),
-                      ('Frecuencia', 'Diario'),
-                      ('Horario', '8:00 AM'),
-                    ],
-                    progress: '6 / 14 días',
-                    progressPercent: 0.43,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMedCard(
-                    iconBg: AppColors.primaryLight,
-                    iconFg: AppColors.primary,
-                    name: 'Metformina 850mg',
-                    subtitle: 'Clorhidrato - En pastillero',
-                    status: 'Activo',
-                    statusType: _MedStatus.active,
-                    details: [
-                      ('Compartimento', '#2 - Almuerzo'),
-                      ('Fecha fin', '14 Jul 2026'),
-                      ('Frecuencia', '2 veces al día'),
-                      ('Horarios', '12PM, 8PM'),
-                    ],
-                    progress: '6 / 21 días',
-                    progressPercent: 0.29,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMedCard(
-                    iconBg: AppColors.warningBg,
-                    iconFg: AppColors.warning,
-                    name: 'Vitamina D 5000UI',
-                    subtitle: 'Colecalciferol - Manual',
-                    status: 'Activo',
-                    statusType: _MedStatus.active,
-                    details: [
-                      ('Tipo', 'Fuera del dispositivo'),
-                      ('Fecha fin', '30 Jun 2026'),
-                      ('Frecuencia', 'Diario'),
-                      ('Horario', '9:00 AM'),
-                    ],
-                    progress: '13 / 14 días',
-                    progressPercent: 0.93,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
+      body: FutureBuilder(
+        future: treatmentService.getTreatments(1),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SingleChildScrollView(
+              child: SkeletonDetail(),
+            );
+          }
+          return Column(
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.paddingHorizontal,
+                  ) + const EdgeInsets.only(top: 16, bottom: 80),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 40,
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Tratamiento pausado'), backgroundColor: AppColors.warning),
-                              );
-                            },
-                            icon: const Icon(LucideIcons.pause, size: 14),
-                            label: const Text('Pausar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.textDark,
-                              side: const BorderSide(color: AppColors.borderLight),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                        ),
+                      _buildHeroCard(),
+                      const SizedBox(height: 16),
+                      _buildProgressCard(),
+                      const SizedBox(height: 16),
+                      _buildSectionHeader('Medicamentos (3)'),
+                      const SizedBox(height: 8),
+                      _buildMedCard(
+                        iconBg: AppColors.primaryLight,
+                        iconFg: AppColors.primary,
+                        name: 'Losartan 50mg',
+                        subtitle: 'Potásico - En pastillero',
+                        status: 'Activo',
+                        statusType: _MedStatus.active,
+                        details: [
+                          ('Compartimento', '#1 - Mañana'),
+                          ('Fecha fin', '7 Jul 2026'),
+                          ('Frecuencia', 'Diario'),
+                          ('Horario', '8:00 AM'),
+                        ],
+                        progress: '6 / 14 días',
+                        progressPercent: 0.43,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: SizedBox(
-                          height: 40,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Tratamiento finalizado'), backgroundColor: AppColors.dangerDark),
-                              );
-                            },
-                            icon: const Icon(LucideIcons.x, size: 14),
-                            label: const Text('Finalizar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.dangerBg,
-                              foregroundColor: AppColors.dangerDark,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(height: 8),
+                      _buildMedCard(
+                        iconBg: AppColors.primaryLight,
+                        iconFg: AppColors.primary,
+                        name: 'Metformina 850mg',
+                        subtitle: 'Clorhidrato - En pastillero',
+                        status: 'Activo',
+                        statusType: _MedStatus.active,
+                        details: [
+                          ('Compartimento', '#2 - Almuerzo'),
+                          ('Fecha fin', '14 Jul 2026'),
+                          ('Frecuencia', '2 veces al día'),
+                          ('Horarios', '12PM, 8PM'),
+                        ],
+                        progress: '6 / 21 días',
+                        progressPercent: 0.29,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildMedCard(
+                        iconBg: AppColors.warningBg,
+                        iconFg: AppColors.warning,
+                        name: 'Vitamina D 5000UI',
+                        subtitle: 'Colecalciferol - Manual',
+                        status: 'Activo',
+                        statusType: _MedStatus.active,
+                        details: [
+                          ('Tipo', 'Fuera del dispositivo'),
+                          ('Fecha fin', '30 Jun 2026'),
+                          ('Frecuencia', 'Diario'),
+                          ('Horario', '9:00 AM'),
+                        ],
+                        progress: '13 / 14 días',
+                        progressPercent: 0.93,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 40,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Tratamiento pausado'), backgroundColor: AppColors.warning),
+                                  );
+                                },
+                                icon: const Icon(LucideIcons.pause, size: 14),
+                                label: const Text('Pausar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.textDark,
+                                  side: const BorderSide(color: AppColors.borderLight),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: SizedBox(
+                              height: 40,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Tratamiento finalizado'), backgroundColor: AppColors.dangerDark),
+                                  );
+                                },
+                                icon: const Icon(LucideIcons.x, size: 14),
+                                label: const Text('Finalizar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.dangerBg,
+                                  foregroundColor: AppColors.dangerDark,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

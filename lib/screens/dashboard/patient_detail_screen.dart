@@ -1,23 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
+import '../../services/patient_service.dart';
+import '../../widgets/vital_charts.dart';
+import '../../widgets/vital_shimmer.dart';
 
 class PatientDetailScreen extends StatelessWidget {
   const PatientDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final patientService = context.watch<PatientService>();
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            _buildContent(context),
-          ],
-        ),
+      body: FutureBuilder(
+        future: patientService.getPatient(1),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SingleChildScrollView(
+              child: SkeletonDetail(),
+            );
+          }
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildHeader(context),
+                _buildContent(context),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -176,6 +191,9 @@ class PatientDetailScreen extends StatelessWidget {
           const SizedBox(height: 20),
           _buildQuickActions(context),
           const SizedBox(height: 20),
+          _buildWeeklyChart(),
+          const SizedBox(height: 20),
+          const SizedBox(height: 20),
           _buildSectionHeader('Medicamentos'),
           const SizedBox(height: 12),
           _buildMedicationItem(
@@ -247,6 +265,51 @@ class PatientDetailScreen extends StatelessWidget {
           valueColor: AppColors.dangerDark,
         ),
       ],
+    );
+  }
+
+  Widget _buildWeeklyChart() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+        boxShadow: AppDimensions.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Adherencia Semanal',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDark)),
+              Text('87%',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accent)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const AdherenceBarChart(
+            data: {
+              'Lun': 92,
+              'Mar': 85,
+              'Mié': 78,
+              'Jue': 90,
+              'Vie': 95,
+              'Sáb': 82,
+              'Dom': 88,
+            },
+            height: 140,
+          ),
+        ],
+      ),
     );
   }
 

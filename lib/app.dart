@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
+import 'theme/app_colors.dart';
 import 'routes/app_routes.dart';
 import 'services/auth_service.dart';
 import 'services/theme_provider.dart';
 import 'screens/main_shell.dart';
+import 'widgets/vital_shimmer.dart';
 
 class VitalGuardApp extends StatelessWidget {
   const VitalGuardApp({super.key});
@@ -22,14 +24,7 @@ class VitalGuardApp extends StatelessWidget {
           home: Consumer<AuthService>(
             builder: (context, auth, _) {
               if (auth.isLoading) {
-                return const Scaffold(
-                  body: Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF4A90E2),
-                      strokeWidth: 2.5,
-                    ),
-                  ),
-                );
+                return _buildSplashSkeleton();
               }
 
               if (auth.isLoggedIn) {
@@ -47,6 +42,24 @@ class VitalGuardApp extends StatelessWidget {
       },
     );
   }
+
+  Widget _buildSplashSkeleton() {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SkeletonCircle(size: 72),
+            const SizedBox(height: 20),
+            const SkeletonLine(width: 180, height: 16),
+            const SizedBox(height: 8),
+            const SkeletonLine(width: 120, height: 12),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class LoginRedirect extends StatelessWidget {
@@ -59,10 +72,7 @@ class LoginRedirect extends StatelessWidget {
     });
     return const Scaffold(
       body: Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF4A90E2),
-          strokeWidth: 2.5,
-        ),
+        child: SkeletonLine(width: 180, height: 16),
       ),
     );
   }
@@ -78,10 +88,7 @@ class _ProfileRedirect extends StatelessWidget {
     });
     return const Scaffold(
       body: Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF4A90E2),
-          strokeWidth: 2.5,
-        ),
+        child: SkeletonLine(width: 180, height: 16),
       ),
     );
   }
