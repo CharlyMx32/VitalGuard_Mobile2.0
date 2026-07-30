@@ -56,6 +56,7 @@ import '../screens/settings/sos_config_screen.dart';
 import '../screens/settings/help_support_screen.dart';
 import '../screens/settings/family_members_screen.dart';
 import '../screens/settings/security_settings_screen.dart';
+import '../screens/settings/avatar_picker_screen.dart';
 
 // ── SOS ──
 import '../screens/sos/sos_alarm_screen.dart';
@@ -119,6 +120,7 @@ class AppRoutes {
   static const String helpSupport = '/settings/help';
   static const String familyMembers = '/settings/family';
   static const String securitySettings = '/settings/security';
+  static const String avatarPicker = '/settings/avatar';
 
   static const String sosAlarm = '/sos/alarm';
 
@@ -173,6 +175,7 @@ class AppRoutes {
       case helpSupport: page = const HelpSupportScreen(); break;
       case familyMembers: page = const FamilyMembersScreen(); break;
       case securitySettings: page = const SecuritySettingsScreen(); break;
+      case avatarPicker: page = const AvatarPickerScreen(); break;
       case sosAlarm: page = const SosAlarmScreen(); break;
       case errorNetwork: page = const ErrorNetworkScreen(); break;
       case errorServer: page = const ErrorServerScreen(); break;

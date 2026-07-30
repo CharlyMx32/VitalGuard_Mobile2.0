@@ -6,7 +6,10 @@ import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../services/treatment_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/avatar_service.dart';
+import '../../data/avatar_data.dart';
 import '../../widgets/vital_tap.dart';
+import '../../widgets/vital_avatar.dart';
 import '../../widgets/vital_card.dart';
 import '../../widgets/vital_shimmer.dart';
 import '../../widgets/vital_empty_state.dart';
@@ -56,6 +59,7 @@ class _DashboardContentState extends State<DashboardContent>
   Widget build(BuildContext context) {
     final treatmentService = context.read<TreatmentService>();
     final auth = context.read<AuthService>();
+    final avatarService = context.watch<AvatarService>();
     final isSelfCare = auth.isSelfCare;
     return RefreshIndicator(
       onRefresh: () async {
@@ -77,7 +81,7 @@ class _DashboardContentState extends State<DashboardContent>
             physics: AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
-                _buildHeader(context),
+                _buildHeader(context, avatarService.config),
                 _buildContent(context, treatments: treatments, isSelfCare: isSelfCare),
               ],
             ),
@@ -87,7 +91,7 @@ class _DashboardContentState extends State<DashboardContent>
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, AvatarConfig avatarConfig) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -137,13 +141,16 @@ class _DashboardContentState extends State<DashboardContent>
             ),
           ),
           const SizedBox(width: 12),
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
+          GestureDetector(
+            onTap: () => showAvatarPreview(context, config: avatarConfig, onChangeTap: () => Navigator.pushNamed(context, AppRoutes.avatarPicker)),
+            child: Hero(
+              tag: 'avatar_hero',
+              child: VitalAvatar(
+                style: avatarConfig.style,
+                seed: avatarConfig.seed,
+                size: 44,
+              ),
             ),
-            child: const Icon(LucideIcons.user, color: Colors.white, size: 22),
           ),
         ],
       ),

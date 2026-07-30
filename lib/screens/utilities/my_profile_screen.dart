@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../routes/app_routes.dart';
+import '../../services/avatar_service.dart';
+import '../../widgets/vital_avatar.dart';
 
 class MyProfileScreen extends StatelessWidget {
   const MyProfileScreen({super.key});
@@ -18,7 +22,7 @@ class MyProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 16),
               child: Column(
                 children: [
-                  _buildProfileCard(),
+                  _buildProfileCard(context),
                   const SizedBox(height: 20),
                   _buildSectionTitle('Información personal'),
                   const SizedBox(height: 8),
@@ -53,23 +57,27 @@ class MyProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.primary, AppColors.accent]), borderRadius: BorderRadius.circular(20)),
-      child: Row(children: [
-        Container(
-          width: 60, height: 60,
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.3))),
-          child: const Center(child: Text('--', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.white))),
-        ),
-        const SizedBox(width: 14),
-        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Sin perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
-          SizedBox(height: 2),
-          Text('Completa tu información', style: TextStyle(fontSize: 12, color: Colors.white70)),
-        ])),
-      ]),
+  Widget _buildProfileCard(BuildContext context) {
+    final avatarConfig = context.watch<AvatarService>().config;
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, AppRoutes.avatarPicker),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.primary, AppColors.accent]), borderRadius: BorderRadius.circular(20)),
+        child: Row(children: [
+          GestureDetector(
+            onTap: () => showAvatarPreview(context, config: avatarConfig, onChangeTap: () => Navigator.pushNamed(context, AppRoutes.avatarPicker)),
+            child: Hero(tag: 'avatar_hero', child: VitalAvatar(style: avatarConfig.style, seed: avatarConfig.seed, size: 60)),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Sin perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+            SizedBox(height: 2),
+            Text('Toca para personalizar', style: TextStyle(fontSize: 12, color: Colors.white70)),
+          ])),
+          const Icon(LucideIcons.chevronRight, size: 18, color: Colors.white54),
+        ]),
+      ),
     );
   }
 

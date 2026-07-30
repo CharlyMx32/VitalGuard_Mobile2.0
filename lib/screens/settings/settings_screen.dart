@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
+import '../../services/avatar_service.dart';
+import '../../widgets/vital_avatar.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -165,48 +168,55 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
   }
 
   Widget _buildProfileCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment(1.61, -0.50),
-          end: Alignment(-1.61, 0.50),
-          colors: [Color(0xFF4A90E2), Color(0xFF6FCF97)],
+    final avatarConfig = context.watch<AvatarService>().config;
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, AppRoutes.myProfile),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment(1.61, -0.50),
+            end: Alignment(-1.61, 0.50),
+            colors: [Color(0xFF4A90E2), Color(0xFF6FCF97)],
+          ),
+          borderRadius: BorderRadius.circular(20),
         ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60, height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
-            ),
-            child: const Icon(LucideIcons.user, color: Colors.white, size: 28),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('---', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
-                const SizedBox(height: 2),
-                const Text('---', style: TextStyle(fontSize: 12, color: Colors.white70)),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text('Sin perfil', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => showAvatarPreview(context, config: avatarConfig, onChangeTap: () => Navigator.pushNamed(context, AppRoutes.avatarPicker)),
+              child: Hero(
+                tag: 'avatar_hero',
+                child: VitalAvatar(
+                  style: avatarConfig.style,
+                  seed: avatarConfig.seed,
+                  size: 60,
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('---', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                  const SizedBox(height: 2),
+                  const Text('---', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text('Sin perfil', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(LucideIcons.chevronRight, size: 18, color: Colors.white54),
+          ],
+        ),
       ),
     );
   }
