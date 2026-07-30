@@ -23,15 +23,11 @@ class MyProfileScreen extends StatelessWidget {
                   _buildSectionTitle('Información personal'),
                   const SizedBox(height: 8),
                   _buildInfoGroup([
-                    ('Nombre completo', 'María García'),
-                    ('Correo electrónico', 'maria.garcia@email.com'),
-                    ('Teléfono', '+506 8888 8888'),
-                    ('Fecha de nacimiento', '15/03/1985'),
+                    ('Nombre completo', '---'),
+                    ('Correo electrónico', '---'),
+                    ('Teléfono', '---'),
+                    ('Fecha de nacimiento', '---'),
                   ]),
-                  const SizedBox(height: 20),
-                  _buildSectionTitle('Foto de perfil'),
-                  const SizedBox(height: 8),
-                  _buildPhotoOption(),
                   const SizedBox(height: 20),
                   _buildButton('Guardar cambios', AppColors.primary, Colors.white),
                   const SizedBox(height: 12),
@@ -60,30 +56,19 @@ class MyProfileScreen extends StatelessWidget {
   Widget _buildProfileCard() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [AppColors.primary, AppColors.accent]),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.primary, AppColors.accent]), borderRadius: BorderRadius.circular(20)),
       child: Row(children: [
         Container(
           width: 60, height: 60,
           decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.3))),
-          child: const Center(child: Text('MG', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.white))),
+          child: const Center(child: Text('--', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.white))),
         ),
         const SizedBox(width: 14),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('María García', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
-            const SizedBox(height: 2),
-            Text('maria.garcia@email.com', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
-              child: const Text('Cuidadora', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
-            ),
-          ]),
-        ),
+        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Sin perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+          SizedBox(height: 2),
+          Text('Completa tu información', style: TextStyle(fontSize: 12, color: Colors.white70)),
+        ])),
       ]),
     );
   }
@@ -111,25 +96,6 @@ class MyProfileScreen extends StatelessWidget {
             ]),
           );
         }),
-      ),
-    );
-  }
-
-  Widget _buildPhotoOption() {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(children: [
-          Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(10)), child: const Icon(LucideIcons.camera, size: 18, color: AppColors.primary)),
-          const SizedBox(width: 12),
-          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Cambiar foto', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
-            SizedBox(height: 2),
-            Text('Subir imagen o tomar foto', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-          ])),
-          const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
-        ]),
       ),
     );
   }

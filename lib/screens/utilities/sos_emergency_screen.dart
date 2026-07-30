@@ -3,9 +3,29 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
+import '../../widgets/vital_empty_state.dart';
 
-class SosEmergencyScreen extends StatelessWidget {
+class SosEmergencyScreen extends StatefulWidget {
   const SosEmergencyScreen({super.key});
+  @override
+  State<SosEmergencyScreen> createState() => _SosEmergencyScreenState();
+}
+
+class _SosEmergencyScreenState extends State<SosEmergencyScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,11 +43,11 @@ class SosEmergencyScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   _buildSectionTitle('Contactos de emergencia'),
                   const SizedBox(height: 12),
-                  _buildContactCard('MG', 'María García', 'Hija - Cuidadora principal', AppColors.primary),
-                  const SizedBox(height: 8),
-                  _buildContactCard('CG', 'Carlos García', 'Hijo', AppColors.accent),
-                  const SizedBox(height: 8),
-                  _buildContactCard('DM', 'Dr. Martínez', 'Médico tratante', const Color(0xFF9B59B6)),
+                  const VitalEmptyState(
+                    icon: LucideIcons.phoneOff,
+                    title: 'Sin contactos',
+                    description: 'No hay contactos de emergencia registrados.\nAgrega contactos en la configuración de SOS.',
+                  ),
                   const SizedBox(height: 20),
                   _buildLocationInfo(),
                   const SizedBox(height: 20),
@@ -48,18 +68,24 @@ class SosEmergencyScreen extends StatelessWidget {
       decoration: const BoxDecoration(gradient: LinearGradient(colors: [AppColors.dangerDark, Color(0xFFFF8A65)])),
       child: Column(children: [
         Row(children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: Colors.white)),
-          ),
+          GestureDetector(onTap: () => Navigator.of(context).pop(), child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: Colors.white))),
           const Expanded(child: Text('Emergencia SOS', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white))),
           const SizedBox(width: 32),
         ]),
         const SizedBox(height: 20),
-        Container(
-          width: 80, height: 80,
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-          child: const Icon(LucideIcons.alertTriangle, size: 40, color: Colors.white),
+        AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, child) {
+            final val = _pulseController.value;
+            return Transform.scale(
+              scale: 1.0 + val * 0.1,
+              child: Opacity(
+                opacity: 1.0 - val * 0.2,
+                child: Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                  child: const Icon(LucideIcons.alertTriangle, size: 40, color: Colors.white)),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 16),
         const Text('SOS', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white)),
@@ -71,9 +97,7 @@ class SosEmergencyScreen extends StatelessWidget {
 
   Widget _buildActivateButton(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, AppRoutes.sosAlarm);
-      },
+      onTap: () => Navigator.pushNamed(context, AppRoutes.sosAlarm),
       child: Container(
         width: double.infinity, height: 64,
         decoration: BoxDecoration(
@@ -94,40 +118,16 @@ class SosEmergencyScreen extends StatelessWidget {
     return Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)));
   }
 
-  Widget _buildContactCard(String initials, String name, String relation, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(16)),
-      child: Row(children: [
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          child: Center(child: Text(initials, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-          Text(relation, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-        ])),
-        Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(color: AppColors.accentLight, shape: BoxShape.circle),
-          child: const Icon(LucideIcons.phone, size: 16, color: AppColors.accent),
-        ),
-      ]),
-    );
-  }
-
   Widget _buildLocationInfo() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(16)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Ubicación actual', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+        const Text('Ubicación', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
         const SizedBox(height: 12),
-        _buildInfoRow(LucideIcons.mapPin, 'Dirección', 'Calle Principal 123, Ciudad'),
+        _buildInfoRow(LucideIcons.mapPin, 'Dirección', 'No disponible'),
         const Divider(height: 1, color: AppColors.borderLight),
-        _buildInfoRow(LucideIcons.clock, 'Última conexión', 'Hace 5 minutos'),
+        _buildInfoRow(LucideIcons.clock, 'Última conexión', 'No disponible'),
       ]),
     );
   }
@@ -136,11 +136,7 @@ class SosEmergencyScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(children: [
-        Container(
-          width: 32, height: 32,
-          decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, size: 16, color: AppColors.primary),
-        ),
+        Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 16, color: AppColors.primary)),
         const SizedBox(width: 10),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),

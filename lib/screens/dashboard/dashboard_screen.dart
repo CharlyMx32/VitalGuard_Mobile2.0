@@ -115,7 +115,7 @@ class _DashboardContentState extends State<DashboardContent>
                         fontWeight: FontWeight.w400,
                         color: Colors.white70)),
                 const SizedBox(height: 2),
-                const Text('María García',
+                const Text('---',
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -137,14 +137,13 @@ class _DashboardContentState extends State<DashboardContent>
             ),
           ),
           const SizedBox(width: 12),
-          const CircleAvatar(
-            radius: 22,
-            backgroundColor: Colors.white24,
-            child: Text('MG',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16)),
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(LucideIcons.user, color: Colors.white, size: 22),
           ),
         ],
       ),
@@ -185,6 +184,8 @@ class _DashboardContentState extends State<DashboardContent>
               : _EmptyNextDose(),
           const SizedBox(height: 12),
           _buildStatCards(treatments, isSelfCare: isSelfCare),
+          const SizedBox(height: 16),
+          _QuickActionsGrid(onTapAddMed: () => Navigator.pushNamed(context, AppRoutes.addMedication), onTapHistory: () => Navigator.pushNamed(context, AppRoutes.history), onTapSos: () => Navigator.pushNamed(context, AppRoutes.sosEmergency)),
           const SizedBox(height: 16),
           _SOSGlowButton(
               glowController: _glowController,
@@ -244,7 +245,7 @@ class _DashboardContentState extends State<DashboardContent>
         _MiniStatCard(
             icon: LucideIcons.heartPulse,
             value: hasData ? '${treatments.length}' : '--',
-            label: 'Tratamientos',
+            label: 'Adherencia',
             color: hasData ? AppColors.accent : AppColors.textMuted),
         if (!isSelfCare) ...[
           const SizedBox(width: 10),
@@ -540,6 +541,92 @@ class _MiniStatCard extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionsGrid extends StatelessWidget {
+  final VoidCallback onTapAddMed;
+  final VoidCallback onTapHistory;
+  final VoidCallback onTapSos;
+  const _QuickActionsGrid({
+    required this.onTapAddMed,
+    required this.onTapHistory,
+    required this.onTapSos,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _QuickActionTile(
+          icon: LucideIcons.search,
+          label: 'Seleccionar\nmed.',
+          onTap: onTapAddMed,
+          color: AppColors.primary,
+        )),
+        const SizedBox(width: 12),
+        Expanded(child: _QuickActionTile(
+          icon: LucideIcons.activity,
+          label: 'Historial',
+          onTap: onTapHistory,
+          color: AppColors.accent,
+        )),
+        const SizedBox(width: 12),
+        Expanded(child: _QuickActionTile(
+          icon: LucideIcons.alertTriangle,
+          label: 'Emergencia\nSOS',
+          onTap: onTapSos,
+          color: AppColors.warning,
+        )),
+      ],
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+  const _QuickActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return VitalTap(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: AppDimensions.cardShadow,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 20, color: color),
+            ),
+            const SizedBox(height: 8),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textDark)),
           ],
         ),
       ),

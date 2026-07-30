@@ -3,7 +3,6 @@ import 'api_client.dart';
 import 'storage_service.dart';
 import '../utils/json_utils.dart';
 import '../models/treatment.dart';
-import '../models/medication.dart';
 import '../models/enums.dart';
 
 class TreatmentService {

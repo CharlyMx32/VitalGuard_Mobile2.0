@@ -95,11 +95,10 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                       ),
                       _SettingsItem(
                         icon: LucideIcons.wifi,
-                        iconBg: AppColors.accentLight,
-                        iconFg: AppColors.accent,
+                        iconBg: AppColors.iconGrayBg,
+                        iconFg: AppColors.iconGrayFg,
                         label: 'WiFi',
-                        description: 'Casa_Maria',
-                        value: 'Conectado',
+                        description: 'No disponible',
                         showChevron: false,
                         onTap: () {},
                       ),
@@ -137,16 +136,8 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                         icon: LucideIcons.helpCircle,
                         iconBg: AppColors.iconGrayBg,
                         iconFg: AppColors.iconGrayFg,
-                        label: 'Ayuda',
-                        description: 'Preguntas frecuentes',
-                        onTap: () => Navigator.pushNamed(context, AppRoutes.helpSupport),
-                      ),
-                      _SettingsItem(
-                        icon: LucideIcons.messageSquare,
-                        iconBg: AppColors.iconGrayBg,
-                        iconFg: AppColors.iconGrayFg,
-                        label: 'Contactar soporte',
-                        description: 'Chat, email o teléfono',
+                        label: 'Ayuda y Soporte',
+                        description: 'Preguntas frecuentes y contacto',
                         onTap: () => Navigator.pushNamed(context, AppRoutes.helpSupport),
                       ),
                     ]),
@@ -193,18 +184,16 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
             ),
-            child: const Center(
-              child: Text('MG', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.white)),
-            ),
+            child: const Icon(LucideIcons.user, color: Colors.white, size: 28),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('María García', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                const Text('---', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
                 const SizedBox(height: 2),
-                const Text('maria.garcia@email.com', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                const Text('---', style: TextStyle(fontSize: 12, color: Colors.white70)),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -212,7 +201,7 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text('Cuidadora', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
+                  child: const Text('Sin perfil', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
                 ),
               ],
             ),
@@ -253,7 +242,6 @@ class _SettingsItem extends StatelessWidget {
   final Color iconFg;
   final String label;
   final String description;
-  final String? value;
   final bool showChevron;
   final VoidCallback onTap;
 
@@ -263,7 +251,6 @@ class _SettingsItem extends StatelessWidget {
     required this.iconFg,
     required this.label,
     required this.description,
-    this.value,
     this.showChevron = true,
     required this.onTap,
   });
@@ -296,11 +283,6 @@ class _SettingsItem extends StatelessWidget {
                 ],
               ),
             ),
-            if (value != null)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Text(value!, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-              ),
             if (showChevron) const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
           ],
         ),

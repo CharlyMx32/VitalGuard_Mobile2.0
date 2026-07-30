@@ -3,7 +3,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 
-
 class ScheduleConfigScreen extends StatefulWidget {
   const ScheduleConfigScreen({super.key});
 
@@ -12,16 +11,8 @@ class ScheduleConfigScreen extends StatefulWidget {
 }
 
 class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
-  int _selectedCatalogIndex = 0;
   int _selectedType = 0;
   TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
-
-  final List<Map<String, String>> _catalog = [
-    {'name': 'Losartan 50mg', 'detail': 'Tabletas - Antihipertensivo'},
-    {'name': 'Metformina 850mg', 'detail': 'Tabletas - Antidiabético'},
-    {'name': 'Vitamina D 5000UI', 'detail': 'Cápsulas - Suplemento'},
-    {'name': 'AAS 100mg', 'detail': 'Tabletas - Antitrombótico'},
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -60,20 +51,12 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 12,
-        left: 16, right: 16, bottom: 12,
-      ),
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
       decoration: const BoxDecoration(color: Colors.white),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: AppColors.textDark)),
-          ),
-          const Expanded(
-            child: Text('Agregar Medicamento', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-          ),
+          GestureDetector(onTap: () => Navigator.of(context).pop(), child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: AppColors.textDark))),
+          const Expanded(child: Text('Agregar Medicamento', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark))),
           const SizedBox(width: 32),
         ],
       ),
@@ -83,24 +66,15 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   Widget _buildProgressSection() {
     return Column(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(2),
-          child: LinearProgressIndicator(
-            value: 0.7,
-            minHeight: 4,
-            backgroundColor: AppColors.borderLight,
-            valueColor: const AlwaysStoppedAnimation(AppColors.primary),
-          ),
+        ClipRRect(borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(value: 0.7, minHeight: 4, backgroundColor: AppColors.borderLight, valueColor: const AlwaysStoppedAnimation(AppColors.primary)),
         ),
         const SizedBox(height: 8),
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Tratamiento', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.accent)),
-            Text('Medicamentos', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.primary)),
-            Text('Horarios', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textMuted)),
-          ],
-        ),
+        const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text('Tratamiento', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.accent)),
+          Text('Medicamentos', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.primary)),
+          Text('Horarios', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textMuted)),
+        ]),
       ],
     );
   }
@@ -109,93 +83,43 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Seleccionar medicamento existente', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+        const Text('Seleccionar medicamento', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
         const SizedBox(height: 6),
         TextField(
           decoration: InputDecoration(
             hintText: 'Buscar medicamento...',
             hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
             prefixIcon: const Icon(LucideIcons.search, size: 16, color: AppColors.textMuted),
-            filled: true,
-            fillColor: Colors.white,
+            filled: true, fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderLight),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderLight),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
           ),
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          height: 180,
-          child: ListView.separated(
-            itemCount: _catalog.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 6),
-            itemBuilder: (context, index) {
-              final item = _catalog[index];
-              final isSelected = _selectedCatalogIndex == index;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedCatalogIndex = index),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFF0F7FF) : Colors.white,
-                    border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.borderLight,
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32, height: 32,
-                        decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(LucideIcons.pill, size: 16, color: AppColors.primary),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item['name']!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-                            const SizedBox(height: 2),
-                            Text(item['detail']!, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
+          child: Center(
+            child: Column(children: [
+              Icon(LucideIcons.pill, size: 32, color: AppColors.textMuted.withValues(alpha: 0.5)),
+              const SizedBox(height: 8),
+              const Text('Catálogo de medicamentos no disponible', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+              const SizedBox(height: 4),
+              const Text('Escribe el nombre del medicamento para buscarlo', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            ]),
           ),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.warningBg,
-            borderRadius: BorderRadius.circular(10),
-          ),
+          decoration: BoxDecoration(color: AppColors.warningBg, borderRadius: BorderRadius.circular(10)),
           child: Row(
             children: [
               const Icon(LucideIcons.info, size: 14, color: AppColors.warning),
               const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Si no encuentras tu medicamento, contacta a tu médico o soporte',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                ),
-              ),
+              const Expanded(child: Text('Si no encuentras tu medicamento, contacta a tu médico o soporte', style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
             ],
           ),
         ),
@@ -207,10 +131,7 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
     return Row(
       children: [
         Expanded(child: Container(height: 1, color: AppColors.borderLight)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted, letterSpacing: 0.5)),
-        ),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted, letterSpacing: 0.5))),
         Expanded(child: Container(height: 1, color: AppColors.borderLight)),
       ],
     );
@@ -235,70 +156,39 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
           decoration: InputDecoration(
             hintText: 'Ej: 1 tableta, 5ml',
             hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
-            filled: true,
-            fillColor: Colors.white,
+            filled: true, fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderLight),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderLight),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
           ),
         ),
         const SizedBox(height: 12),
         _buildFormLabel('Compartimento (pastillero)'),
         const SizedBox(height: 6),
         Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: AppColors.borderLight),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Seleccionar', style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
-              Icon(LucideIcons.chevronDown, size: 16, color: AppColors.textMuted),
-            ],
-          ),
+          height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight), borderRadius: BorderRadius.circular(12)),
+          child: const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text('Seleccionar', style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
+            Icon(LucideIcons.chevronDown, size: 16, color: AppColors.textMuted),
+          ]),
         ),
         const SizedBox(height: 12),
         _buildFormLabel('Fecha de fin (opcional)'),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: DateTime(2026, 7, 10),
-              firstDate: DateTime(2024),
-              lastDate: DateTime(2030),
-            );
+            final picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime(2024), lastDate: DateTime(2030));
             if (picked != null) setState(() {});
           },
           child: Container(
-            height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.borderLight),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('10 Jul 2026', style: TextStyle(fontSize: 14, color: AppColors.textDark)),
-                Icon(LucideIcons.calendar, size: 16, color: AppColors.textMuted),
-              ],
-            ),
+            height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight), borderRadius: BorderRadius.circular(12)),
+            child: const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('Seleccionar', style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
+              Icon(LucideIcons.calendar, size: 16, color: AppColors.textMuted),
+            ]),
           ),
         ),
       ],
@@ -316,19 +206,12 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
         onTap: () => setState(() => _selectedType = index),
         child: Container(
           height: 44,
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFF0F7FF) : Colors.white,
-            border: Border.all(color: isSelected ? AppColors.primary : AppColors.borderLight),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 14, color: isSelected ? AppColors.primary : AppColors.textDark),
-              const SizedBox(width: 6),
-              Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isSelected ? AppColors.primary : AppColors.textDark)),
-            ],
-          ),
+          decoration: BoxDecoration(color: isSelected ? const Color(0xFFF0F7FF) : Colors.white, border: Border.all(color: isSelected ? AppColors.primary : AppColors.borderLight), borderRadius: BorderRadius.circular(12)),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(icon, size: 14, color: isSelected ? AppColors.primary : AppColors.textDark),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isSelected ? AppColors.primary : AppColors.textDark)),
+          ]),
         ),
       ),
     );
@@ -346,24 +229,15 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
           },
           child: Container(
             height: 52,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.borderLight, width: 1.5),
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight, width: 1.5), borderRadius: BorderRadius.circular(12)),
             child: Center(
-              child: Text(
-                '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.textDark, letterSpacing: 2),
-              ),
+              child: Text('${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}',
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.textDark, letterSpacing: 2)),
             ),
           ),
         ),
         const SizedBox(height: 4),
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Text('Selecciona la hora en que el paciente debe tomar este medicamento', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-        ),
+        const Align(alignment: Alignment.centerLeft, child: Text('Selecciona la hora en que el paciente debe tomar este medicamento', style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
       ],
     );
   }
@@ -371,29 +245,18 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   Widget _buildFooterButtons() {
     return Column(
       children: [
-        SizedBox(
-          width: double.infinity, height: 48,
+        SizedBox(width: double.infinity, height: 48,
           child: ElevatedButton(
             onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
             child: const Text('Guardar medicamento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity, height: 48,
+        SizedBox(width: double.infinity, height: 48,
           child: OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.borderLight),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+            style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: const BorderSide(color: AppColors.borderLight), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: const Text('Cancelar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           ),
         ),

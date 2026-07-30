@@ -18,13 +18,9 @@ class HelpSupportScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 16),
               child: Column(
                 children: [
-                  _buildSupportCard(LucideIcons.helpCircle, AppColors.accentLight, AppColors.primary, 'Preguntas frecuentes', null),
+                  _buildSupportCard(LucideIcons.mail, AppColors.warningBg, AppColors.warning, 'Enviar mensaje', 'soporte@vitalguard.com'),
                   const SizedBox(height: 12),
-                  _buildSupportCard(LucideIcons.mail, AppColors.warningBg, AppColors.warning, 'Enviar email', 'soporte@vitalguard.com'),
-                  const SizedBox(height: 12),
-                  _buildSupportCard(LucideIcons.phone, const Color(0xFFF3E8FF), const Color(0xFF9B59B6), 'Llamar', '+506 8000 8000'),
-                  const SizedBox(height: 20),
-                  _buildFeedbackLink(),
+                  _buildSupportCard(LucideIcons.helpCircle, AppColors.accentLight, AppColors.primary, 'Preguntas frecuentes', 'Próximamente'),
                 ],
               ),
             ),
@@ -83,14 +79,4 @@ class HelpSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFeedbackLink() {
-    return const Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(LucideIcons.thumbsUp, size: 18, color: AppColors.primary),
-        SizedBox(width: 8),
-        Text('Enviar feedback', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary)),
-      ],
-    );
-  }
 }

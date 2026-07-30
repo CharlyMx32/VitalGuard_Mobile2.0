@@ -198,51 +198,22 @@ class _SosConfigScreenState extends State<SosConfigScreen> {
   }
 
   Widget _buildContacts() {
-    final contacts = [
-      (name: 'María García', role: 'Hija - Cuidadora principal', initials: 'MG', color: AppColors.primary),
-      (name: 'Carlos García', role: 'Hijo', initials: 'CG', color: AppColors.accent),
-      (name: 'Dr. Martínez', role: 'Médico tratante', initials: 'DM', color: const Color(0xFF9B59B6)),
-    ];
     return Container(
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
       child: Column(
         children: [
-          ...contacts.map((c) => Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Container(
-                  width: 44, height: 44, alignment: Alignment.center,
-                  decoration: BoxDecoration(color: c.color, shape: BoxShape.circle),
-                  child: Text(c.initials, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(c.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-                    Text(c.role, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                  ]),
-                ),
-                Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(color: AppColors.accentLight, shape: BoxShape.circle),
-                  child: const Icon(LucideIcons.check, size: 16, color: AppColors.accent),
-                ),
-              ],
-            ),
-          )),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Container(
-              width: double.infinity, height: 44,
-              decoration: BoxDecoration(border: Border.all(color: AppColors.borderLight, width: 1.5), borderRadius: BorderRadius.circular(16)),
-              child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(LucideIcons.plus, size: 16, color: AppColors.textDark),
-                SizedBox(width: 8),
-                Text('Agregar contacto', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textDark)),
-              ]),
-            ),
+          Container(
+            width: 48, height: 48,
+            decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(14)),
+            child: const Icon(LucideIcons.shield, size: 24, color: AppColors.primary),
           ),
+          const SizedBox(height: 12),
+          const Text('Sin cuidadores vinculados',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+          const SizedBox(height: 4),
+          const Text('Los cuidadores registrados recibirán alertas SOS automáticamente.\nAgrega cuidadores desde la sección Cuidadores.',
+            textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.textMuted, height: 1.5)),
         ],
       ),
     );

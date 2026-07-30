@@ -3,6 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
+import '../../widgets/vital_empty_state.dart';
 
 class SelfCareScreen extends StatelessWidget {
   const SelfCareScreen({super.key});
@@ -56,10 +57,7 @@ class SelfCareScreen extends StatelessWidget {
   Widget _buildProfileCard() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [AppColors.accent, AppColors.accentLight]),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.accent, AppColors.accentLight]), borderRadius: BorderRadius.circular(20)),
       child: Row(children: [
         Container(
           width: 56, height: 56,
@@ -67,10 +65,10 @@ class SelfCareScreen extends StatelessWidget {
           child: const Icon(LucideIcons.userCheck, size: 28, color: Colors.white),
         ),
         const SizedBox(width: 14),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('María García', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-          const SizedBox(height: 2),
-          Text('Paciente', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
+        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Mi Perfil', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+          SizedBox(height: 2),
+          Text('Paciente - Autocuidado', style: TextStyle(fontSize: 12, color: Colors.white70)),
         ])),
       ]),
     );
@@ -84,23 +82,11 @@ class SelfCareScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
-      child: Column(children: [
-        _buildInfoRow('Tipo de sangre', 'O+'),
-        const Divider(height: 1, color: AppColors.borderLight),
-        _buildInfoRow('Alergias', 'Penicilina'),
-        const Divider(height: 1, color: AppColors.borderLight),
-        _buildInfoRow('Notas médicas', 'Presión arterial alta'),
-      ]),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textMuted)),
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
-      ]),
+      child: const VitalEmptyState(
+        icon: LucideIcons.heart,
+        title: 'Sin datos médicos',
+        description: 'Completa tu perfil médico para ver esta información.',
+      ),
     );
   }
 

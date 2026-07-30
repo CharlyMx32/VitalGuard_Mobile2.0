@@ -11,7 +11,7 @@ class VoiceAssistantScreen extends StatefulWidget {
 }
 
 class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
-  bool _enabled = true;
+  bool _enabled = false;
 
   final _commands = [
     '"Alexa, toma mis medicamentos"',
@@ -97,7 +97,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
           const SizedBox(height: 12),
           const Text('Amazon Alexa', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark)),
           const SizedBox(height: 4),
-          const Text('Conectado', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          const Text('No vinculado', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
           const SizedBox(height: 12),
           const Text('El mensaje se reproducirá por el altavoz del pastillero',
             textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
