@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
+import 'package:dio/dio.dart';
+import '../../config.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/vital_tap.dart';
+import '../../services/auth_service.dart';
 import 'vital_id_webview_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -260,8 +264,25 @@ class _LoginScreenState extends State<LoginScreen>
                     width: double.infinity,
                     height: 44,
                     child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+                      onPressed: () async {
+                        final dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
+                        try {
+                          // Usar vitalId del cuidador de prueba en el seed
+                          final res = await dio.post('/auth/dev-login', data: {
+                            'vitalId': 'a0000000-0000-0000-0000-000000000002',
+                          });
+                          final token = res.data['token'] as String;
+                          if (context.mounted) {
+                            await context.read<AuthService>().login(token);
+                            Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+                          }
+                        } catch (_) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Error: backend no disponible')),
+                            );
+                          }
+                        }
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textMuted,

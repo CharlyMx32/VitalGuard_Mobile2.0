@@ -30,34 +30,29 @@ void main() {
           create: (context) => ApiClient(context.read<AuthService>()),
           update: (context, auth, previous) => previous!,
         ),
-        ChangeNotifierProxyProvider2<ApiClient, StorageService, PatientService>(
-          create: (context) =>
-              PatientService(context.read<ApiClient>(), context.read<StorageService>()),
-          update: (context, apiClient, storage, previous) => previous!,
+        ProxyProvider2<ApiClient, StorageService, PatientService>(
+          update: (context, apiClient, storage, previous) =>
+              previous ?? PatientService(apiClient, storage),
         ),
-        ChangeNotifierProxyProvider2<ApiClient, StorageService, TreatmentService>(
-          create: (context) =>
-              TreatmentService(context.read<ApiClient>(), context.read<StorageService>()),
-          update: (context, apiClient, storage, previous) => previous!,
+        ProxyProvider2<ApiClient, StorageService, TreatmentService>(
+          update: (context, apiClient, storage, previous) =>
+              previous ?? TreatmentService(apiClient, storage),
         ),
-        ChangeNotifierProxyProvider2<ApiClient, StorageService, DeviceService>(
-          create: (context) =>
-              DeviceService(context.read<ApiClient>(), context.read<StorageService>()),
-          update: (context, apiClient, storage, previous) => previous!,
+        ProxyProvider2<ApiClient, StorageService, DeviceService>(
+          update: (context, apiClient, storage, previous) =>
+              previous ?? DeviceService(apiClient, storage),
         ),
-        ChangeNotifierProxyProvider<ApiClient, SosService>(
-          create: (context) => SosService(context.read<ApiClient>()),
-          update: (context, apiClient, previous) => previous!,
+        ProxyProvider<ApiClient, SosService>(
+          update: (context, apiClient, previous) =>
+              previous ?? SosService(apiClient),
         ),
-        ChangeNotifierProxyProvider2<ApiClient, StorageService, VoiceService>(
-          create: (context) =>
-              VoiceService(context.read<ApiClient>(), context.read<StorageService>()),
-          update: (context, apiClient, storage, previous) => previous!,
+        ProxyProvider2<ApiClient, StorageService, VoiceService>(
+          update: (context, apiClient, storage, previous) =>
+              previous ?? VoiceService(apiClient, storage),
         ),
-        ChangeNotifierProxyProvider2<ApiClient, StorageService, CaregiverService>(
-          create: (context) =>
-              CaregiverService(context.read<ApiClient>(), context.read<StorageService>()),
-          update: (context, apiClient, storage, previous) => previous!,
+        ProxyProvider2<ApiClient, StorageService, CaregiverService>(
+          update: (context, apiClient, storage, previous) =>
+              previous ?? CaregiverService(apiClient, storage),
         ),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],

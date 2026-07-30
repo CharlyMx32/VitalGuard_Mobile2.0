@@ -6,6 +6,8 @@ import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../services/patient_service.dart';
 import '../../widgets/vital_shimmer.dart';
+import '../../widgets/vital_empty_state.dart';
+import '../../models/patient.dart';
 
 class PatientListScreen extends StatefulWidget {
   const PatientListScreen({super.key});
@@ -15,57 +17,27 @@ class PatientListScreen extends StatefulWidget {
 }
 
 class _PatientListScreenState extends State<PatientListScreen> {
-  int _selectedFilter = 0;
   final _searchController = TextEditingController();
+  List<Patient> _allPatients = [];
+  List<Patient> _filteredPatients = [];
 
-  final _filters = ['Todos (3)', 'Activos (2)', 'Inactivo (1)'];
-
-  final _patients = [
-    _PatientData(
-      initials: 'JG',
-      name: 'Juan García',
-      relation: 'Padre - 68 años',
-      online: true,
-      adherence: '92%',
-      adherenceLevel: _AdherenceLevel.good,
-      medications: 5,
-      dosesToday: 3,
-      gradient: const LinearGradient(
+  static const _avatarGradients = [
+    LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF4A90E2), Color(0xFF3A7BD5)],
-      ),
-    ),
-    _PatientData(
-      initials: 'RG',
-      name: 'Rosa García',
-      relation: 'Madre - 72 años',
-      online: true,
-      adherence: '81%',
-      adherenceLevel: _AdherenceLevel.warning,
-      medications: 4,
-      dosesToday: 2,
-      gradient: const LinearGradient(
+        colors: [Color(0xFF4A90E2), Color(0xFF3A7BD5)]),
+    LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF6FCF97), Color(0xFF27AE60)],
-      ),
-    ),
-    _PatientData(
-      initials: 'PM',
-      name: 'Pedro Martínez',
-      relation: 'Abuelo - 78 años',
-      online: false,
-      adherence: '65%',
-      adherenceLevel: _AdherenceLevel.danger,
-      medications: 6,
-      dosesToday: 4,
-      gradient: const LinearGradient(
+        colors: [Color(0xFF6FCF97), Color(0xFF27AE60)]),
+    LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF9B59B6), Color(0xFF8E44AD)],
-      ),
-    ),
+        colors: [Color(0xFF9B59B6), Color(0xFF8E44AD)]),
+    LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFF39C12), Color(0xFFE67E22)]),
   ];
 
   @override
@@ -74,9 +46,20 @@ class _PatientListScreenState extends State<PatientListScreen> {
     super.dispose();
   }
 
+  void _filter(String query) {
+    if (query.isEmpty) {
+      setState(() => _filteredPatients = List.from(_allPatients));
+    } else {
+      setState(() => _filteredPatients = _allPatients
+          .where((p) =>
+              p.fullName.toLowerCase().contains(query.toLowerCase()))
+          .toList());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final patientService = context.watch<PatientService>();
+    final patientService = context.read<PatientService>();
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: FutureBuilder(
@@ -85,6 +68,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SkeletonList(itemCount: 5);
           }
+          final patients = snapshot.data ?? [];
+          _allPatients = patients;
+          _filteredPatients = List.from(patients);
           return Column(
             children: [
               _buildHeader(),
@@ -95,9 +81,18 @@ class _PatientListScreenState extends State<PatientListScreen> {
                   ) + const EdgeInsets.only(top: 16, bottom: 80),
                   child: Column(
                     children: [
-                      _buildFilters(),
+                      _buildSearch(),
                       const SizedBox(height: 16),
-                      ..._patients.map((p) => _buildPatientCard(p)),
+                      if (patients.isNotEmpty)
+                        ..._filteredPatients.asMap().entries.map((e) =>
+                            _buildPatientCard(e.value, e.key))
+                      else
+                        const VitalEmptyState(
+                          icon: LucideIcons.users,
+                          title: 'Sin pacientes',
+                          description:
+                              'Aún no tienes pacientes registrados.\nConecta un nuevo paciente para comenzar.',
+                        ),
                     ],
                   ),
                 ),
@@ -151,7 +146,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () => Navigator.pushNamed(context, AppRoutes.registerPatient),
+                onTap: () =>
+                    Navigator.pushNamed(context, AppRoutes.registerPatient),
                 child: Container(
                   width: 32,
                   height: 32,
@@ -186,6 +182,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    onChanged: _filter,
                     decoration: const InputDecoration(
                       hintText: 'Buscar paciente...',
                       hintStyle: TextStyle(
@@ -210,46 +207,11 @@ class _PatientListScreenState extends State<PatientListScreen> {
     );
   }
 
-  Widget _buildFilters() {
-    return Row(
-      children: List.generate(_filters.length, (i) {
-        final isActive = i == _selectedFilter;
-        return Padding(
-          padding: EdgeInsets.only(right: i < _filters.length - 1 ? 8 : 0),
-          child: GestureDetector(
-            onTap: () => setState(() => _selectedFilter = i),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isActive ? AppColors.primary : Colors.white,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusBadge),
-                border: Border.all(
-                  color: isActive ? AppColors.primary : AppColors.borderLight,
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                _filters[i],
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isActive ? Colors.white : AppColors.textMuted,
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
-    );
+  Widget _buildSearch() {
+    return const SizedBox.shrink();
   }
 
-  Widget _buildPatientCard(_PatientData patient) {
-    final adherenceColor = switch (patient.adherenceLevel) {
-      _AdherenceLevel.good => AppColors.accent,
-      _AdherenceLevel.warning => AppColors.warning,
-      _AdherenceLevel.danger => AppColors.dangerDark,
-    };
-
+  Widget _buildPatientCard(Patient patient, int index) {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, AppRoutes.patientDetail),
       child: Container(
@@ -269,7 +231,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
                   height: 52,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: patient.gradient,
+                    gradient:
+                        _avatarGradients[index % _avatarGradients.length],
                   ),
                   child: Center(
                     child: Text(
@@ -288,7 +251,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        patient.name,
+                        patient.fullName,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -297,7 +260,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        patient.relation,
+                        '${patient.age} años',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textMuted,
@@ -306,55 +269,16 @@ class _PatientListScreenState extends State<PatientListScreen> {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: patient.online ? AppColors.accentLight : AppColors.bg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: patient.online ? AppColors.accent : AppColors.textLight,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        patient.online ? 'En línea' : 'Desconectado',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: patient.online ? AppColors.accent : AppColors.textLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                _StatMini(
-                  value: patient.adherence,
-                  label: 'Adherencia',
-                  color: adherenceColor,
-                ),
+                _StatMini(value: '--', label: 'Adherencia'),
                 const SizedBox(width: 8),
-                _StatMini(
-                  value: '${patient.medications}',
-                  label: 'Medicamentos',
-                ),
+                _StatMini(value: '--', label: 'Medicamentos'),
                 const SizedBox(width: 8),
-                _StatMini(
-                  value: '${patient.dosesToday}',
-                  label: 'Dosis hoy',
-                ),
+                _StatMini(value: '--', label: 'Dosis hoy'),
               ],
             ),
             const SizedBox(height: 12),
@@ -362,7 +286,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.history),
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRoutes.history),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
@@ -384,7 +309,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.patientDetail),
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRoutes.patientDetail),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
@@ -415,12 +341,10 @@ class _PatientListScreenState extends State<PatientListScreen> {
 class _StatMini extends StatelessWidget {
   final String value;
   final String label;
-  final Color? color;
 
   const _StatMini({
     required this.value,
     required this.label,
-    this.color,
   });
 
   @override
@@ -436,10 +360,10 @@ class _StatMini extends StatelessWidget {
           children: [
             Text(
               value,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: color ?? AppColors.textDark,
+                color: AppColors.textMuted,
               ),
             ),
             const SizedBox(height: 2),
@@ -455,30 +379,4 @@ class _StatMini extends StatelessWidget {
       ),
     );
   }
-}
-
-enum _AdherenceLevel { good, warning, danger }
-
-class _PatientData {
-  final String initials;
-  final String name;
-  final String relation;
-  final bool online;
-  final String adherence;
-  final _AdherenceLevel adherenceLevel;
-  final int medications;
-  final int dosesToday;
-  final Gradient gradient;
-
-  const _PatientData({
-    required this.initials,
-    required this.name,
-    required this.relation,
-    required this.online,
-    required this.adherence,
-    required this.adherenceLevel,
-    required this.medications,
-    required this.dosesToday,
-    required this.gradient,
-  });
 }

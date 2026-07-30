@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../routes/app_routes.dart';
+import '../../services/treatment_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/vital_shimmer.dart';
+import '../../widgets/vital_empty_state.dart';
+import '../../models/treatment.dart';
+import '../../models/enums.dart';
 
 class ScheduleScreen extends StatelessWidget {
   const ScheduleScreen({super.key});
@@ -26,8 +33,6 @@ class _ScheduleContentState extends State<ScheduleContent> {
   int _selectedDayIndex = 0;
   int _scheduleRefreshKey = 0;
 
-  Future<void> _loadDelay() => Future.delayed(const Duration(milliseconds: 500));
-
   List<_DayData> _days() {
     final now = DateTime.now();
     return List.generate(7, (i) {
@@ -48,14 +53,16 @@ class _ScheduleContentState extends State<ScheduleContent> {
 
   @override
   Widget build(BuildContext context) {
+    final treatmentService = context.read<TreatmentService>();
+    final patientId = 1;
     return RefreshIndicator(
       onRefresh: () async {
         final newKey = _scheduleRefreshKey + 1;
         setState(() => _scheduleRefreshKey = newKey);
       },
-      child: FutureBuilder<void>(
+      child: FutureBuilder<List<Schedule>>(
         key: ValueKey('schedule_$_scheduleRefreshKey'),
-        future: _loadDelay(),
+        future: treatmentService.getTodaySchedules(patientId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(
@@ -63,12 +70,16 @@ class _ScheduleContentState extends State<ScheduleContent> {
               child: SkeletonSchedule(),
             );
           }
+          final schedules = snapshot.data ?? [];
+          final morning = schedules.where((s) => s.timeOfDay.hour < 12).toList();
+          final afternoon = schedules.where((s) => s.timeOfDay.hour >= 12 && s.timeOfDay.hour < 18).toList();
+          final evening = schedules.where((s) => s.timeOfDay.hour >= 18).toList();
           return SingleChildScrollView(
             physics: AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
-                _buildHeader(context),
-                _buildDaySelectorSection(),
+                _buildHeader(context, schedules),
+                _buildDaySelectorSection(morning, afternoon, evening),
                 const SizedBox(height: 80),
               ],
             ),
@@ -78,87 +89,19 @@ class _ScheduleContentState extends State<ScheduleContent> {
     );
   }
 
-  Widget _buildDaySelectorSection() {
-    return Column(
-      children: [
-        _buildDaySelector(),
-        const SizedBox(height: 20),
-        _buildTimelineSection(
-          label: 'Mañana',
-          icon: LucideIcons.sunrise,
-          iconColor: AppColors.warning,
-          iconBg: AppColors.warningBg,
-          items: const [
-            _ScheduleMed(
-              name: 'Losartan 50mg',
-              dose: '1 pastilla',
-              time: '08:00',
-              patient: 'Juan García',
-              status: _MedStatus.completed,
-              iconColor: AppColors.primaryLight,
-              iconFg: AppColors.primary,
-            ),
-            _ScheduleMed(
-              name: 'Metformina 850mg',
-              dose: '1 pastilla',
-              time: '08:00',
-              patient: 'Juan García',
-              status: _MedStatus.completed,
-              iconColor: AppColors.accentLight,
-              iconFg: AppColors.accent,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildTimelineSection(
-          label: 'Tarde',
-          icon: LucideIcons.sun,
-          iconColor: AppColors.primary,
-          iconBg: AppColors.primaryLight,
-          items: const [
-            _ScheduleMed(
-              name: 'Atorvastatina 20mg',
-              dose: '1 pastilla',
-              time: '14:00',
-              patient: 'Juan García',
-              status: _MedStatus.pending,
-              iconColor: AppColors.primaryLight,
-              iconFg: AppColors.primary,
-            ),
-            _ScheduleMed(
-              name: 'Omeprazol 20mg',
-              dose: '1 pastilla',
-              time: '15:00',
-              patient: 'Rosa García',
-              status: _MedStatus.pending,
-              iconColor: AppColors.iconOrangeBg,
-              iconFg: AppColors.iconOrangeFg,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildTimelineSection(
-          label: 'Noche',
-          icon: LucideIcons.moon,
-          iconColor: AppColors.iconPurpleFg,
-          iconBg: AppColors.iconPurpleBg,
-          items: const [
-            _ScheduleMed(
-              name: 'Melatonina 3mg',
-              dose: '1 pastilla',
-              time: '21:00',
-              patient: 'Rosa García',
-              status: _MedStatus.pending,
-              iconColor: AppColors.iconPurpleBg,
-              iconFg: AppColors.iconPurpleFg,
-            ),
-          ],
-        ),
-      ],
-    );
+  String _getDateLabel() {
+    final d = _days()[_selectedDayIndex];
+    final months = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+    ];
+    return '${d.date} de ${months[d.fullDate.month - 1]}';
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, List<Schedule> schedules) {
+    final completed = schedules.where((s) =>
+        s.logs?.any((l) => l.status == LogStatus.confirmado) ?? false).length;
+    final pending = schedules.length - completed;
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -187,15 +130,70 @@ class _ScheduleContentState extends State<ScheduleContent> {
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400, color: Colors.white70),
           ),
           const SizedBox(height: 16),
-          const Row(
+          Row(
             children: [
-              _SummaryChip(icon: LucideIcons.checkCircle, label: '2 ¡Bien hecho!', color: Colors.white),
-              SizedBox(width: 12),
-              _SummaryChip(icon: LucideIcons.clock, label: '3 te esperan', color: Colors.white70),
+              _SummaryChip(
+                icon: LucideIcons.checkCircle,
+                label: '$completed completadas',
+                color: Colors.white,
+              ),
+              const SizedBox(width: 12),
+              _SummaryChip(
+                icon: LucideIcons.clock,
+                label: '$pending pendientes',
+                color: Colors.white70,
+              ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDaySelectorSection(
+      List<Schedule> morning, List<Schedule> afternoon, List<Schedule> evening) {
+    return Column(
+      children: [
+        _buildDaySelector(),
+        const SizedBox(height: 20),
+        if (morning.isNotEmpty)
+          _buildTimelineSection(
+            label: 'Mañana',
+            icon: LucideIcons.sunrise,
+            iconColor: AppColors.warning,
+            iconBg: AppColors.warningBg,
+            items: morning,
+          ),
+        if (morning.isNotEmpty && (afternoon.isNotEmpty || evening.isNotEmpty))
+          const SizedBox(height: 16),
+        if (afternoon.isNotEmpty)
+          _buildTimelineSection(
+            label: 'Tarde',
+            icon: LucideIcons.sun,
+            iconColor: AppColors.primary,
+            iconBg: AppColors.primaryLight,
+            items: afternoon,
+          ),
+        if (afternoon.isNotEmpty && evening.isNotEmpty)
+          const SizedBox(height: 16),
+        if (evening.isNotEmpty)
+          _buildTimelineSection(
+            label: 'Noche',
+            icon: LucideIcons.moon,
+            iconColor: AppColors.iconPurpleFg,
+            iconBg: AppColors.iconPurpleBg,
+            items: evening,
+          ),
+        if (morning.isEmpty && afternoon.isEmpty && evening.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 40),
+            child: VitalEmptyState(
+              icon: LucideIcons.calendar,
+              title: 'Sin dosis programadas',
+              description: 'No hay dosis programadas para este día.\nAgrega un medicamento para comenzar.',
+            ),
+          ),
+      ],
     );
   }
 
@@ -263,7 +261,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
     required IconData icon,
     required Color iconColor,
     required Color iconBg,
-    required List<_ScheduleMed> items,
+    required List<Schedule> items,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,16 +285,17 @@ class _ScheduleContentState extends State<ScheduleContent> {
           ),
         ),
         ...List.generate(items.length, (i) {
-          final med = items[i];
+          final sched = items[i];
           final isLast = i == items.length - 1;
-          return _buildTimelineItem(med, isLast);
+          final isCompleted = sched.logs?.any((l) => l.status == LogStatus.confirmado) ?? false;
+          return _buildTimelineItem(sched, isLast, isCompleted);
         }),
       ],
     );
   }
 
-  Widget _buildTimelineItem(_ScheduleMed med, bool isLast) {
-    final isCompleted = med.status == _MedStatus.completed;
+  Widget _buildTimelineItem(Schedule sched, bool isLast, bool isCompleted) {
+    final circleColor = isCompleted ? AppColors.accent : AppColors.warning;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,88 +305,60 @@ class _ScheduleContentState extends State<ScheduleContent> {
             child: Column(
               children: [
                 Container(
-                  width: 12, height: 12,
-                  margin: const EdgeInsets.only(top: 16),
+                  width: isCompleted ? 16 : 14,
+                  height: isCompleted ? 16 : 14,
+                  margin: const EdgeInsets.only(top: 4),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isCompleted ? AppColors.accent : AppColors.warning,
-                    border: Border.all(color: Colors.white, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (isCompleted ? AppColors.accent : AppColors.warning).withValues(alpha: 0.3),
-                        blurRadius: 4,
-                      ),
-                    ],
+                    color: circleColor,
                   ),
+                  child: isCompleted
+                      ? const Icon(LucideIcons.check, size: 10, color: Colors.white)
+                      : null,
                 ),
                 if (!isLast)
                   Expanded(
-                    child: Container(width: 2, color: AppColors.borderLight),
+                    child: Container(
+                      width: 2,
+                      color: AppColors.borderLight,
+                    ),
                   ),
               ],
             ),
           ),
           Expanded(
             child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
+              margin: const EdgeInsets.only(bottom: 4),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: AppDimensions.cardShadow,
-                border: isCompleted
-                    ? Border.all(color: AppColors.accent.withValues(alpha: 0.3), width: 1.5)
-                    : null,
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(
-                      color: med.iconColor,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(LucideIcons.pill, size: 18, color: med.iconFg),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(med.name,
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textDark,
-                                decoration: isCompleted ? TextDecoration.lineThrough : null)),
-                        const SizedBox(height: 2),
-                        Text(med.patient,
-                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                      ],
-                    ),
-                  ),
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(med.time,
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: isCompleted ? AppColors.accent : AppColors.textDark)),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isCompleted ? AppColors.accentLight : AppColors.warningBg,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(med.dose,
-                            style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                                color: isCompleted ? AppColors.accent : AppColors.warning)),
+                      Text(
+                        'Dosis #${sched.id}',
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        sched.timeDisplay,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
                     ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    sched.timeDisplay,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: isCompleted ? AppColors.accent : AppColors.warning),
                   ),
                 ],
               ),
@@ -397,67 +368,6 @@ class _ScheduleContentState extends State<ScheduleContent> {
       ),
     );
   }
-
-  String _getDateLabel() {
-    final now = DateTime.now();
-    const months = [
-      '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    return '${now.day} de ${months[now.month]} · ${_getDayName(now.weekday)}';
-  }
-
-  String _getDayName(int weekday) {
-    const days = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    return days[weekday];
-  }
-}
-
-enum _MedStatus { pending, completed }
-
-class _SummaryChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  const _SummaryChip({required this.icon, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScheduleMed {
-  final String name;
-  final String dose;
-  final String time;
-  final String patient;
-  final _MedStatus status;
-  final Color iconColor;
-  final Color iconFg;
-  const _ScheduleMed({
-    required this.name,
-    required this.dose,
-    required this.time,
-    required this.patient,
-    required this.status,
-    required this.iconColor,
-    required this.iconFg,
-  });
 }
 
 class _DayData {
@@ -466,6 +376,7 @@ class _DayData {
   final bool isToday;
   final bool isSelected;
   final DateTime fullDate;
+
   const _DayData({
     required this.day,
     required this.date,
@@ -473,4 +384,31 @@ class _DayData {
     required this.isSelected,
     required this.fullDate,
   });
+}
+
+class _SummaryChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _SummaryChip({required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
 }

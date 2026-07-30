@@ -7,13 +7,15 @@ import '../../routes/app_routes.dart';
 import '../../services/patient_service.dart';
 import '../../widgets/vital_charts.dart';
 import '../../widgets/vital_shimmer.dart';
+import '../../widgets/vital_empty_state.dart';
+import '../../models/patient.dart';
 
 class PatientDetailScreen extends StatelessWidget {
   const PatientDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final patientService = context.watch<PatientService>();
+    final patientService = context.read<PatientService>();
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: FutureBuilder(
@@ -24,11 +26,19 @@ class PatientDetailScreen extends StatelessWidget {
               child: SkeletonDetail(),
             );
           }
+          final patient = snapshot.data;
+          if (patient == null) {
+            return const VitalEmptyState(
+              icon: LucideIcons.userX,
+              title: 'Paciente no encontrado',
+              description: 'No se encontró información del paciente.',
+            );
+          }
           return SingleChildScrollView(
             child: Column(
               children: [
-                _buildHeader(context),
-                _buildContent(context),
+                _buildHeader(context, patient),
+                _buildContent(context, patient),
               ],
             ),
           );
@@ -37,7 +47,7 @@ class PatientDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, Patient patient) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -98,7 +108,7 @@ class PatientDetailScreen extends StatelessWidget {
                       color: Colors.white24,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       LucideIcons.moreVertical,
                       size: 16,
                       color: Colors.white,
@@ -120,10 +130,10 @@ class PatientDetailScreen extends StatelessWidget {
                 width: 3,
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'JG',
-                style: TextStyle(
+                patient.initials,
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 28,
@@ -132,18 +142,18 @@ class PatientDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Juan García',
-            style: TextStyle(
+          Text(
+            patient.fullName,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            '68 años - Padre',
-            style: TextStyle(
+          Text(
+            '${patient.age} años',
+            style: const TextStyle(
               fontSize: 13,
               color: Colors.white70,
             ),
@@ -165,7 +175,7 @@ class PatientDetailScreen extends StatelessWidget {
                 ),
                 SizedBox(width: 6),
                 Text(
-                  'En línea ahora',
+                  'Conectado',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -180,7 +190,7 @@ class PatientDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(BuildContext context, Patient patient) {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimensions.paddingHorizontal,
@@ -193,32 +203,12 @@ class PatientDetailScreen extends StatelessWidget {
           const SizedBox(height: 20),
           _buildWeeklyChart(),
           const SizedBox(height: 20),
-          const SizedBox(height: 20),
           _buildSectionHeader('Medicamentos'),
           const SizedBox(height: 12),
-          _buildMedicationItem(
-            iconBg: AppColors.primaryLight,
-            iconFg: AppColors.primary,
-            name: 'Losartan 50mg',
-            dose: '1 pastilla - 8:00 AM',
-            status: 'Tomada',
-            statusType: _MedStatus.taken,
-          ),
-          _buildMedicationItem(
-            iconBg: AppColors.accentLight,
-            iconFg: AppColors.accent,
-            name: 'Metformina 850mg',
-            dose: '1 pastilla - 8:00 AM',
-            status: 'Tomada',
-            statusType: _MedStatus.taken,
-          ),
-          _buildMedicationItem(
-            iconBg: AppColors.primaryLight,
-            iconFg: AppColors.primary,
-            name: 'Atorvastatina 20mg',
-            dose: '1 pastilla - 8:00 PM',
-            status: 'Pendiente',
-            statusType: _MedStatus.pending,
+          const VitalEmptyState(
+            icon: LucideIcons.pill,
+            title: 'Sin medicamentos',
+            description: 'No hay medicamentos registrados para este paciente.',
           ),
         ],
       ),
@@ -378,80 +368,7 @@ class PatientDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMedicationItem({
-    required Color iconBg,
-    required Color iconFg,
-    required String name,
-    required String dose,
-    required String status,
-    required _MedStatus statusType,
-  }) {
-    final isTaken = statusType == _MedStatus.taken;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppDimensions.cardShadow,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(LucideIcons.pill, size: 20, color: iconFg),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  dose,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isTaken ? AppColors.accentLight : AppColors.warningBg,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: isTaken ? AppColors.accent : AppColors.warning,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
-
-enum _MedStatus { taken, pending }
 
 class _StatCard extends StatelessWidget {
   final IconData icon;

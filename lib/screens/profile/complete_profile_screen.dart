@@ -15,6 +15,15 @@ class CompleteProfileScreen extends StatefulWidget {
 
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   int _selectedRole = 0;
+  final _phoneController = TextEditingController(text: '+52 55 1234 5678');
+  final _birthDateController = TextEditingController();
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _birthDateController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +54,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       ),
       bottomSheet: GestureDetector(
         onTap: () {
-          context.read<AuthService>().completeProfile();
+          final auth = context.read<AuthService>();
+          auth.completeProfile(isSelfCare: _selectedRole == 1);
           if (_selectedRole == 0) {
             Navigator.pushNamedAndRemoveUntil(context, AppRoutes.firstPatient, (route) => false);
           } else {
@@ -117,21 +127,58 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
       child: Column(children: [
-        _buildField('Teléfono', '+52 55 1234 5678'),
+        _buildPhoneField(),
         const SizedBox(height: 14),
-        _buildField('Fecha de Nacimiento', 'DD/MM/AAAA'),
+        _buildDateField(),
       ]),
     );
   }
 
-  Widget _buildField(String label, String placeholder) {
+  Widget _buildPhoneField() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+      const Text('Teléfono', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
       const SizedBox(height: 6),
       Container(
         height: 48,
         decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-        child: const TextField(decoration: InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16), hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14))),
+        child: TextField(
+          controller: _phoneController,
+          decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16), hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildDateField() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Fecha de Nacimiento', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+      const SizedBox(height: 6),
+      Container(
+        height: 48,
+        decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
+        child: TextField(
+          controller: _birthDateController,
+          readOnly: true,
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 16),
+            hintText: 'DD/MM/AAAA',
+            hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
+            suffixIcon: Icon(LucideIcons.calendar, size: 18, color: AppColors.textMuted),
+          ),
+          onTap: () async {
+            final date = await showDatePicker(
+              context: context,
+              initialDate: DateTime(1985, 1, 1),
+              firstDate: DateTime(1900),
+              lastDate: DateTime.now(),
+            );
+            if (date != null) {
+              _birthDateController.text =
+                  '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+            }
+          },
+        ),
       ),
     ]);
   }

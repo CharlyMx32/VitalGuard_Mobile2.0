@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
-import '../../routes/app_routes.dart';
 
 class MyVitalGuardScreen extends StatelessWidget {
   const MyVitalGuardScreen({super.key});
@@ -140,7 +139,6 @@ class MyVitalGuardScreen extends StatelessWidget {
   }
 
   Widget _buildWiFiStatus(BuildContext context) {
-    final bool isOnline = true;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -155,50 +153,31 @@ class MyVitalGuardScreen extends StatelessWidget {
               Container(
                 width: 36, height: 36,
                 decoration: BoxDecoration(
-                  color: isOnline ? AppColors.accentLight : AppColors.dangerBg,
+                  color: AppColors.accentLight,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(LucideIcons.wifi, size: 18, color: isOnline ? AppColors.accent : AppColors.danger),
+                child: const Icon(LucideIcons.wifi, size: 18, color: AppColors.accent),
               ),
               const SizedBox(width: 12),
-              Expanded(
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('WiFi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
-                    const SizedBox(height: 2),
-                    Text(
-                      isOnline ? 'Casa_Maria · Conectado' : 'Sin conexión',
-                      style: TextStyle(fontSize: 11, color: isOnline ? AppColors.accent : AppColors.danger),
-                    ),
+                    Text('WiFi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
+                    SizedBox(height: 2),
+                    Text('Casa_Maria · Conectado', style: TextStyle(fontSize: 11, color: AppColors.accent)),
                   ],
                 ),
               ),
               Container(
                 width: 8, height: 8,
-                decoration: BoxDecoration(
-                  color: isOnline ? AppColors.accent : AppColors.danger,
+                decoration: const BoxDecoration(
+                  color: AppColors.accent,
                   shape: BoxShape.circle,
                 ),
               ),
             ],
           ),
-          if (!isOnline) ...[
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () => Navigator.pushNamed(context, AppRoutes.wifiSetup),
-              child: Container(
-                width: double.infinity, height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: Text('Configurar WiFi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
