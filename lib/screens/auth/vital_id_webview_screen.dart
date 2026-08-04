@@ -19,7 +19,7 @@ class _VitalIdWebViewScreenState extends State<VitalIdWebViewScreen> {
   bool _isLoading = true;
   String? _error;
 
-  static const String _baseUrl = 'https://auth.vitalid.com/login';
+  static const String _baseUrl = 'https://id.vitalguard.app/login';
   static const String _callbackScheme = 'vitalguard://callback';
 
   @override

@@ -16,7 +16,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   bool _isLoading = true;
   String? _error;
 
-  static const String _securityUrl = 'https://auth.vitalid.com/security';
+  static const String _securityUrl = 'https://id.vitalguard.app/security';
 
   @override
   void initState() {
