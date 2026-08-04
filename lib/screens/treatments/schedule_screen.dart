@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../services/treatment_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/vital_shimmer.dart';
 import '../../widgets/vital_empty_state.dart';
 import '../../models/treatment.dart';
@@ -52,7 +53,8 @@ class _ScheduleContentState extends State<ScheduleContent> {
   @override
   Widget build(BuildContext context) {
     final treatmentService = context.read<TreatmentService>();
-    final patientId = 1;
+    final auth = context.read<AuthService>();
+    final patientId = auth.patientId;
     return RefreshIndicator(
       onRefresh: () async {
         final newKey = _scheduleRefreshKey + 1;

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
-
+import '../../widgets/vital_modal.dart';
 
 class WifiSetupScreen extends StatefulWidget {
   const WifiSetupScreen({super.key});
@@ -12,12 +13,20 @@ class WifiSetupScreen extends StatefulWidget {
 
 class _WifiSetupScreenState extends State<WifiSetupScreen> {
   int _selectedNetwork = 0;
+  final _passwordController = TextEditingController();
+  bool _isSaving = false;
 
   final _networks = [
     _Network(name: 'MiWiFi_5G', signal: 4, label: 'Excelente'),
     _Network(name: 'Vecino_WiFi', signal: 2, label: 'Regular'),
     _Network(name: 'Casa_Garcia', signal: 3, label: 'Buena'),
   ];
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +42,12 @@ class _WifiSetupScreenState extends State<WifiSetupScreen> {
                 children: [
                   const Text('Conectar a WiFi', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textDark)),
                   const SizedBox(height: 6),
-                  const Text('Tu VitalGuard necesita conexión a internet para funcionar',
+                  const Text('Tu VitalGuard necesita conexion a internet para funcionar',
                     textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.5)),
                   const SizedBox(height: 24),
-                  _buildStep(1, true, 'Conéctate a la red del dispositivo', 'Busca la red "VitalGuard-XXXX" en tu teléfono y conéctate'),
+                  _buildStep(1, true, 'Conectate a la red del dispositivo', 'Busca la red "VitalGuard-XXXX" en tu telefono y conectate'),
                   const SizedBox(height: 20),
-                  _buildStep(2, false, 'Selecciona tu red WiFi', 'Elige tu red doméstica e ingresa la contraseña'),
+                  _buildStep(2, false, 'Selecciona tu red WiFi', 'Elige tu red domestica e ingresa la contrasena'),
                   const SizedBox(height: 12),
                   ...List.generate(_networks.length, (i) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -49,7 +58,7 @@ class _WifiSetupScreenState extends State<WifiSetupScreen> {
                   const SizedBox(height: 24),
                   _buildConnectButton(),
                   const SizedBox(height: 12),
-                  const Text('Configurar después', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  const Text('Configurar despues', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
                 ],
               ),
             ),
@@ -125,12 +134,13 @@ class _WifiSetupScreenState extends State<WifiSetupScreen> {
     return Container(
       height: 48,
       decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-      child: const TextField(
+      child: TextField(
+        controller: _passwordController,
         obscureText: true,
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 16),
-          hintText: 'Ingresa la contraseña de tu red',
+          hintText: 'Ingresa la contrasena de tu red',
           hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
         ),
       ),
@@ -138,11 +148,41 @@ class _WifiSetupScreenState extends State<WifiSetupScreen> {
   }
 
   Widget _buildConnectButton() {
-    return Container(
-      width: double.infinity, height: 48,
-      decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
-      child: const Center(child: Text('Conectar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
+    return GestureDetector(
+      onTap: _isSaving ? null : _onConnect,
+      child: Container(
+        width: double.infinity, height: 48,
+        decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
+        child: Center(
+          child: _isSaving
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Text('Conectar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+        ),
+      ),
     );
+  }
+
+  Future<void> _onConnect() async {
+    if (_passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresa la contrasena de la red WiFi'), backgroundColor: AppColors.warning),
+      );
+      return;
+    }
+    setState(() => _isSaving = true);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('wifi_ssid', _networks[_selectedNetwork].name);
+    await prefs.setString('wifi_password', _passwordController.text);
+
+    if (mounted) {
+      VitalFeedback.success(
+        context,
+        code: 'WIFI_CONNECTED',
+        message: 'Configuración WiFi guardada correctamente',
+        onAction: () => Navigator.pop(context),
+      );
+    }
   }
 }
 

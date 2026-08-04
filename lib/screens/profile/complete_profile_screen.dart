@@ -5,6 +5,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
+import '../../services/api_client.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -23,6 +24,18 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     _phoneController.dispose();
     _birthDateController.dispose();
     super.dispose();
+  }
+
+  String? _parseBirthDate() {
+    final text = _birthDateController.text.trim();
+    if (text.isEmpty) return null;
+    final parts = text.split('/');
+    if (parts.length != 3) return null;
+    final day = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (day == null || month == null || year == null) return null;
+    return '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -53,9 +66,30 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         ],
       ),
       bottomSheet: GestureDetector(
-        onTap: () {
+        onTap: () async {
           final auth = context.read<AuthService>();
-          auth.completeProfile(isSelfCare: _selectedRole == 1);
+          final apiClient = context.read<ApiClient>();
+          final isSelfCare = _selectedRole == 1;
+          try {
+            final birthDate = _parseBirthDate();
+            final response = await apiClient.post('/app-profiles/onboarding', data: {
+              'role': isSelfCare ? 'PATIENT' : 'CAREGIVER',
+              if (isSelfCare)
+                'patientData': {
+                  'firstName': 'María',
+                  'paternalLastName': 'García',
+                  'birthDate': ?birthDate,
+                  if (_phoneController.text.isNotEmpty) 'phone': _phoneController.text,
+                },
+            });
+            final data = (response.data as Map<String, dynamic>?) ?? {};
+            final patientId = data['patientId'];
+            if (patientId is int) await auth.setPatientId(patientId);
+          } catch (_) {
+            // Si el backend no responde o ya existe perfil, continuar localmente
+          }
+          auth.completeProfile(isSelfCare: isSelfCare);
+          if (!context.mounted) return;
           if (_selectedRole == 0) {
             Navigator.pushNamedAndRemoveUntil(context, AppRoutes.firstPatient, (route) => false);
           } else {

@@ -1,10 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../services/device_service.dart';
+import '../../services/auth_service.dart';
+import '../../models/device.dart';
+import '../../widgets/vital_button.dart';
+import '../../widgets/vital_modal.dart';
 
-class MyVitalGuardScreen extends StatelessWidget {
+class MyVitalGuardScreen extends StatefulWidget {
   const MyVitalGuardScreen({super.key});
+
+  @override
+  State<MyVitalGuardScreen> createState() => _MyVitalGuardScreenState();
+}
+
+class _MyVitalGuardScreenState extends State<MyVitalGuardScreen> {
+  Device? _device;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDevice();
+  }
+
+  Future<void> _loadDevice() async {
+    final deviceService = context.read<DeviceService>();
+    final auth = context.read<AuthService>();
+    final device = await deviceService.getPatientDevice(auth.patientId);
+    if (mounted) setState(() { _device = device; _loading = false; });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +53,11 @@ class MyVitalGuardScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   _buildWiFiStatus(context),
                   const SizedBox(height: 20),
-                  _buildButton('Sincronizar ahora', AppColors.primary, Colors.white),
+                  _buildButton('Sincronizar ahora', AppColors.primary, Colors.white,
+                      onTap: _syncNow),
                   const SizedBox(height: 12),
-                  _buildButton('Desconectar dispositivo', Colors.white, AppColors.textDark, border: true),
+                  _buildButton('Desconectar dispositivo', Colors.white, AppColors.textDark,
+                      border: true, onTap: _disconnectDevice),
                 ],
               ),
             ),
@@ -53,6 +82,7 @@ class MyVitalGuardScreen extends StatelessWidget {
   }
 
   Widget _buildDeviceVisual() {
+    final device = _device;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -68,13 +98,25 @@ class MyVitalGuardScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.textMuted, shape: BoxShape.circle)),
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: (device?.isOnline ?? false) ? AppColors.accent : AppColors.textMuted, shape: BoxShape.circle)),
               const SizedBox(width: 8),
-              const Text('Sin dispositivo vinculado', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textMuted)),
+              Text(
+                _loading
+                    ? 'Cargando dispositivo...'
+                    : (device != null
+                        ? (device.isOnline ?? false ? 'Dispositivo en línea' : 'Dispositivo sin conexión')
+                        : 'Sin dispositivo vinculado'),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textMuted),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          const Text('Conecta tu VitalGuard para ver la información', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          Text(
+            device != null
+                ? 'Código: ${device.uniqueCode}'
+                : 'Conecta tu VitalGuard para ver la información',
+            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+          ),
         ],
       ),
     );
@@ -85,11 +127,12 @@ class MyVitalGuardScreen extends StatelessWidget {
   }
 
   Widget _buildInfoGroup() {
-    final items = [
-      ('Estado', '---', null),
-      ('Firmware', '---', null),
-      ('Número de serie', '---', null),
-      ('Última sincronización', '---', null),
+    final device = _device;
+    final items = <(String, String)>[
+      ('Estado', device == null ? '---' : (device.isOnline ?? false ? 'En línea' : 'Sin conexión')),
+      ('Firmware', device?.firmwareVersion ?? '---'),
+      ('Número de serie', device?.uniqueCode ?? '---'),
+      ('Última sincronización', _formatSyncDate(device?.lastSyncAt)),
     ];
     return Container(
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
@@ -112,6 +155,13 @@ class MyVitalGuardScreen extends StatelessWidget {
     );
   }
 
+  String _formatSyncDate(DateTime? date) {
+    if (date == null) return '---';
+    final h = date.hour.toString().padLeft(2, '0');
+    final m = date.minute.toString().padLeft(2, '0');
+    return '${date.day}/${date.month}/${date.year} $h:$m';
+  }
+
   Widget _buildWiFiStatus(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -131,11 +181,62 @@ class MyVitalGuardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildButton(String label, Color bg, Color fg, {bool border = false}) {
-    return Container(
-      width: double.infinity, height: 44,
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12), border: border ? Border.all(color: AppColors.borderLight) : null),
-      child: Center(child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg))),
+  Future<void> _syncNow() async {
+    final deviceService = context.read<DeviceService>();
+    final auth = context.read<AuthService>();
+    final device = await deviceService.getPatientDevice(auth.patientId);
+    if (mounted) {
+      setState(() { _device = device; });
+      VitalFeedback.success(
+        context,
+        code: 'DEVICE_SYNCED',
+        message: device != null
+            ? 'Dispositivo sincronizado correctamente'
+            : 'Sin dispositivo vinculado. Conecta tu VitalGuard primero.',
+      );
+    }
+  }
+
+  Future<void> _disconnectDevice() async {
+    final deviceService = context.read<DeviceService>();
+    final confirmed = await VitalModal.show<bool>(
+      context: context,
+      title: 'Desconectar dispositivo',
+      description: 'Se eliminará la vinculación local del dispositivo. ¿Deseas continuar?',
+      iconType: ModalIconType.warning,
+      icon: LucideIcons.unlink,
+      actions: [
+        VitalButton.ghost(
+          label: 'Cancelar',
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+        const SizedBox(height: 8),
+        VitalButton.danger(
+          label: 'Desconectar',
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+      ],
+    );
+    if (confirmed == true && mounted) {
+      await deviceService.disconnect();
+      if (!mounted) return;
+      setState(() => _device = null);
+      VitalFeedback.info(
+        context,
+        code: 'DEVICE_DISCONNECTED',
+        message: 'Dispositivo desconectado correctamente.',
+      );
+    }
+  }
+
+  Widget _buildButton(String label, Color bg, Color fg, {bool border = false, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity, height: 44,
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12), border: border ? Border.all(color: AppColors.borderLight) : null),
+        child: Center(child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg))),
+      ),
     );
   }
 }

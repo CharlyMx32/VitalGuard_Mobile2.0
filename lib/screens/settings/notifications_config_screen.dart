@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 
@@ -18,6 +19,28 @@ class _NotificationsConfigScreenState extends State<NotificationsConfigScreen> {
   bool _dnd = false;
 
   @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _general = prefs.getBool('notif_general') ?? true;
+      _doses = prefs.getBool('notif_doses') ?? true;
+      _emergency = prefs.getBool('notif_emergency') ?? true;
+      _reminders = prefs.getBool('notif_reminders') ?? false;
+      _dnd = prefs.getBool('notif_dnd') ?? false;
+    });
+  }
+
+  Future<void> _save(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -33,16 +56,16 @@ class _NotificationsConfigScreenState extends State<NotificationsConfigScreen> {
                   _buildSectionTitle('Alertas'),
                   const SizedBox(height: 8),
                   _buildToggleGroup([
-                    _ToggleData(LucideIcons.bell, AppColors.accentLight, AppColors.primary, 'Notificaciones generales', 'Recibir todas las alertas', _general, (v) => setState(() => _general = v)),
-                    _ToggleData(LucideIcons.clock, AppColors.warningBg, AppColors.warning, 'Alertas de dosis', 'Avisos de medicación pendiente', _doses, (v) => setState(() => _doses = v)),
-                    _ToggleData(LucideIcons.alertTriangle, AppColors.dangerBg, AppColors.dangerDark, 'Alertas de emergencia', 'SOS y situaciones críticas', _emergency, (v) => setState(() => _emergency = v)),
-                    _ToggleData(LucideIcons.calendar, const Color(0xFFF3E8FF), const Color(0xFF9B59B6), 'Recordatorios', 'Avisos programados', _reminders, (v) => setState(() => _reminders = v)),
+                    _ToggleData(LucideIcons.bell, AppColors.accentLight, AppColors.primary, 'Notificaciones generales', 'Recibir todas las alertas', _general, (v) { setState(() => _general = v); _save('notif_general', v); }),
+                    _ToggleData(LucideIcons.clock, AppColors.warningBg, AppColors.warning, 'Alertas de dosis', 'Avisos de medicación pendiente', _doses, (v) { setState(() => _doses = v); _save('notif_doses', v); }),
+                    _ToggleData(LucideIcons.alertTriangle, AppColors.dangerBg, AppColors.dangerDark, 'Alertas de emergencia', 'SOS y situaciones críticas', _emergency, (v) { setState(() => _emergency = v); _save('notif_emergency', v); }),
+                    _ToggleData(LucideIcons.calendar, const Color(0xFFF3E8FF), const Color(0xFF9B59B6), 'Recordatorios', 'Avisos programados', _reminders, (v) { setState(() => _reminders = v); _save('notif_reminders', v); }),
                   ]),
                   const SizedBox(height: 20),
                   _buildSectionTitle('Horario de silencio'),
                   const SizedBox(height: 8),
                   _buildToggleGroup([
-                    _ToggleData(LucideIcons.clock, AppColors.accentLight, AppColors.accent, 'No molestar', 'Silenciar todas las notificaciones', _dnd, (v) => setState(() => _dnd = v)),
+                    _ToggleData(LucideIcons.clock, AppColors.accentLight, AppColors.accent, 'No molestar', 'Silenciar todas las notificaciones', _dnd, (v) { setState(() => _dnd = v); _save('notif_dnd', v); }),
                   ]),
                   const SizedBox(height: 8),
                   _buildTimeRange(),

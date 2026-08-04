@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
+import '../../services/treatment_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/vital_empty_state.dart';
+import '../../widgets/vital_modal.dart';
+import '../../models/treatment.dart';
+import '../../models/enums.dart';
 
 class AddMedicationScreen extends StatefulWidget {
   const AddMedicationScreen({super.key});
@@ -15,6 +21,8 @@ class AddMedicationScreen extends StatefulWidget {
 class _AddMedicationScreenState extends State<AddMedicationScreen> {
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
+  final List<Map<String, dynamic>> _medications = [];
+  bool _isSaving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +41,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   const SizedBox(height: 16),
                   _buildDateFields(),
                   const SizedBox(height: 16),
-                  _buildSectionHeader('Medicamentos del tratamiento', '0 agregados'),
+                  _buildSectionHeader('Medicamentos del tratamiento', '${_medications.length} agregados'),
                   const SizedBox(height: 8),
-                  const VitalEmptyState(
-                    icon: LucideIcons.pill,
-                    title: 'Sin medicamentos',
-                    description: 'Agrega un medicamento al tratamiento para comenzar.',
-                  ),
+                  if (_medications.isEmpty)
+                    const VitalEmptyState(
+                      icon: LucideIcons.pill,
+                      title: 'Sin medicamentos',
+                      description: 'Busca los medicamentos en el catalogo\ny agregalos a tu tratamiento.',
+                    )
+                  else
+                    ..._medications.asMap().entries.map((e) => _buildMedItem(e.key, e.value)),
                   const SizedBox(height: 8),
                   _buildAddMedButton(),
                   const SizedBox(height: 16),
@@ -50,6 +61,31 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMedItem(int index, Map<String, dynamic> med) {
+    final frequency = med['frequencyHours'] as int? ?? 8;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
+      child: Row(children: [
+        Container(
+          width: 40, height: 40,
+          decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
+          child: const Icon(LucideIcons.pill, size: 20, color: AppColors.primary),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(med['medicationName'] as String, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+          Text('${med['doseInfo'] ?? 'Dosis no especificada'} · Cada $frequency horas', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+        ])),
+        GestureDetector(
+          onTap: () => setState(() => _medications.removeAt(index)),
+          child: const Icon(LucideIcons.trash2, size: 16, color: AppColors.dangerDark),
+        ),
+      ]),
     );
   }
 
@@ -68,16 +104,17 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }
 
   Widget _buildProgressSection() {
+    final progress = _medications.isEmpty ? 0.3 : 0.7;
     return Column(
       children: [
         ClipRRect(borderRadius: BorderRadius.circular(2),
-          child: LinearProgressIndicator(value: 0.3, minHeight: 4, backgroundColor: AppColors.borderLight, valueColor: const AlwaysStoppedAnimation(AppColors.primary)),
+          child: LinearProgressIndicator(value: progress, minHeight: 4, backgroundColor: AppColors.borderLight, valueColor: const AlwaysStoppedAnimation(AppColors.primary)),
         ),
         const SizedBox(height: 8),
-        const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Tratamiento', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.primary)),
-          Text('Medicamentos', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textMuted)),
-          Text('Horarios', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textMuted)),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Text('Tratamiento', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.primary)),
+          Text('Medicamentos', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: _medications.isNotEmpty ? AppColors.primary : AppColors.textMuted)),
+          const Text('Horarios', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textMuted)),
         ]),
       ],
     );
@@ -133,7 +170,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   Widget _buildAddMedButton() {
     return GestureDetector(
-      onTap: () => Navigator.of(context).pushNamed(AppRoutes.scheduleConfig),
+      onTap: () async {
+        final result = await Navigator.of(context).pushNamed(AppRoutes.scheduleConfig);
+        if (result != null && result is Map<String, dynamic>) {
+          setState(() => _medications.add(result));
+        }
+      },
       child: Container(
         height: 52,
         decoration: BoxDecoration(border: Border.all(color: AppColors.borderLight, width: 1.5), borderRadius: BorderRadius.circular(12)),
@@ -151,9 +193,11 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       children: [
         SizedBox(width: double.infinity, height: 48,
           child: ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-            child: const Text('Guardar Tratamiento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            onPressed: _medications.isEmpty ? null : _onSaveTreatment,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0, disabledBackgroundColor: AppColors.borderLight),
+            child: _isSaving
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Guardar Tratamiento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
           ),
         ),
         const SizedBox(height: 12),
@@ -166,5 +210,53 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _onSaveTreatment() async {
+    setState(() => _isSaving = true);
+    final treatmentService = context.read<TreatmentService>();
+    final auth = context.read<AuthService>();
+
+    final treatment = await treatmentService.createTreatment(
+      auth.patientId, _startDate, _endDate,
+    );
+
+    for (final med in _medications) {
+      final firstTake = DateTime(
+        _startDate.year, _startDate.month, _startDate.day, 8, 0,
+      );
+      final frequencyHours = med['frequencyHours'] as int? ?? 8;
+      final detail = TreatmentDetail(
+        id: DateTime.now().millisecondsSinceEpoch + med.hashCode,
+        treatmentId: treatment.id,
+        medicationId: med['medicationId'] as int? ?? 0,
+        doseInfo: med['doseInfo'] as String?,
+        frequencyHours: frequencyHours,
+        firstTakeTime: firstTake,
+        endDate: med['endDate'] as DateTime?,
+        status: MedicationStatus.enCurso,
+        compartmentNumber: med['compartmentNumber'] as int?,
+        isExternal: med['isExternal'] as bool?,
+      );
+      final saved = await treatmentService.addDetail(treatment.id, detail);
+
+      if (saved.id != 0) {
+        for (var i = 0; i < 24 ~/ frequencyHours; i++) {
+          await treatmentService.addSchedule(Schedule(
+            id: DateTime.now().millisecondsSinceEpoch + med.hashCode + i,
+            treatmentDetailId: saved.id,
+            timeOfDay: firstTake.add(Duration(hours: frequencyHours * i)),
+          ));
+        }
+      }
+    }
+
+    if (mounted) {
+      VitalFeedback.success(
+        context,
+        message: 'Tratamiento guardado correctamente',
+        onAction: () => Navigator.of(context).pop(),
+      );
+    }
   }
 }

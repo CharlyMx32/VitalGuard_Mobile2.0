@@ -266,22 +266,23 @@ class _LoginScreenState extends State<LoginScreen>
                     child: OutlinedButton(
                       onPressed: () async {
                         final dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
+                        final authService = context.read<AuthService>();
+                        final navigator = Navigator.of(context);
+                        final messenger = ScaffoldMessenger.of(context);
                         try {
                           // Usar vitalId del cuidador de prueba en el seed
                           final res = await dio.post('/auth/dev-login', data: {
                             'vitalId': 'a0000000-0000-0000-0000-000000000002',
                           });
                           final token = res.data['token'] as String;
-                          if (context.mounted) {
-                            await context.read<AuthService>().login(token);
-                            Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+                          await authService.login(token);
+                          if (mounted) {
+                            navigator.pushReplacementNamed(AppRoutes.dashboard);
                           }
                         } catch (_) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Error: backend no disponible')),
-                            );
-                          }
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('Error: backend no disponible')),
+                          );
                         }
                       },
                       style: OutlinedButton.styleFrom(

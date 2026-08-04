@@ -8,6 +8,7 @@ import '../../services/treatment_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/vital_shimmer.dart';
 import '../../widgets/vital_empty_state.dart';
+import '../../widgets/vital_modal.dart';
 import '../../models/treatment.dart';
 import '../../models/enums.dart';
 
@@ -32,15 +33,17 @@ class MedicationsContent extends StatefulWidget {
 
 class _MedicationsContentState extends State<MedicationsContent> {
   int _selectedFilter = 0;
+  int _refreshKey = 0;
 
   @override
   Widget build(BuildContext context) {
     final treatmentService = context.read<TreatmentService>();
     final auth = context.read<AuthService>();
-    final patientId = auth.isSelfCare ? 1 : 1;
+    final patientId = auth.patientId;
     return Container(
       color: AppColors.bg,
       child: FutureBuilder<List<Treatment>>(
+        key: ValueKey('meds_$_refreshKey'),
         future: treatmentService.getTreatments(patientId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -304,16 +307,22 @@ class _MedicationsContentState extends State<MedicationsContent> {
                   child: SizedBox(
                     height: 36,
                     child: OutlinedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text(isActive
-                                  ? 'Medicamento pausado'
-                                  : 'Medicamento activado'),
-                              backgroundColor: isActive
-                                  ? AppColors.warning
-                                  : AppColors.accent),
-                        );
+                      onPressed: () async {
+                        final svc = context.read<TreatmentService>();
+                        final newStatus = isActive
+                            ? MedicationStatus.finalizado
+                            : MedicationStatus.enCurso;
+                        await svc.updateDetailStatus(detail.id, newStatus);
+                        setState(() => _refreshKey++);
+                        if (mounted) {
+                          VitalFeedback.show(
+                            context,
+                            code: isActive ? 'MEDICATION_PAUSED' : 'MEDICATION_RESUMED',
+                            message: isActive
+                                ? 'Medicamento pausado correctamente'
+                                : 'Medicamento activado correctamente',
+                          );
+                        }
                       },
                       style: OutlinedButton.styleFrom(
                         backgroundColor: AppColors.bg,

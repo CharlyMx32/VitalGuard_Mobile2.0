@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/vital_empty_state.dart';
+import '../../services/caregiver_service.dart';
+import '../../services/sos_service.dart';
+import '../../services/auth_service.dart';
+import '../../models/caregiver.dart';
+import '../../models/sos_event.dart';
 
 class SosEmergencyScreen extends StatefulWidget {
   const SosEmergencyScreen({super.key});
@@ -14,11 +20,30 @@ class SosEmergencyScreen extends StatefulWidget {
 class _SosEmergencyScreenState extends State<SosEmergencyScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
+  List<Caregiver> _contacts = [];
+  List<SosEvent> _activeEvents = [];
+  bool _loadingContacts = true;
 
   @override
   void initState() {
     super.initState();
     _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+    _loadContacts();
+    _loadActiveEvents();
+  }
+
+  Future<void> _loadContacts() async {
+    final caregiverService = context.read<CaregiverService>();
+    final auth = context.read<AuthService>();
+    final contacts = await caregiverService.getCaregivers(auth.patientId);
+    if (mounted) setState(() { _contacts = contacts; _loadingContacts = false; });
+  }
+
+  Future<void> _loadActiveEvents() async {
+    final sosService = context.read<SosService>();
+    final auth = context.read<AuthService>();
+    final events = await sosService.getActiveSosEvents(auth.patientId);
+    if (mounted) setState(() => _activeEvents = events);
   }
 
   @override
@@ -40,14 +65,14 @@ class _SosEmergencyScreenState extends State<SosEmergencyScreen>
               child: Column(
                 children: [
                   _buildActivateButton(context),
+                  if (_activeEvents.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildActiveEventBanner(),
+                  ],
                   const SizedBox(height: 20),
                   _buildSectionTitle('Contactos de emergencia'),
                   const SizedBox(height: 12),
-                  const VitalEmptyState(
-                    icon: LucideIcons.phoneOff,
-                    title: 'Sin contactos',
-                    description: 'No hay contactos de emergencia registrados.\nAgrega contactos en la configuración de SOS.',
-                  ),
+                  _buildContactsSection(),
                   const SizedBox(height: 20),
                   _buildLocationInfo(),
                   const SizedBox(height: 20),
@@ -58,6 +83,38 @@ class _SosEmergencyScreenState extends State<SosEmergencyScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildContactsSection() {
+    if (_loadingContacts) {
+      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+    }
+    if (_contacts.isEmpty) {
+      return const VitalEmptyState(
+        icon: LucideIcons.phoneOff,
+        title: 'Sin contactos',
+        description: 'No hay contactos de emergencia registrados.\nAgrega contactos en la configuracion de SOS.',
+      );
+    }
+    return Column(
+      children: _contacts.map((c) => Container(
+        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
+        child: Row(children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(color: AppColors.primaryLight, shape: BoxShape.circle),
+            child: const Icon(LucideIcons.phone, size: 20, color: AppColors.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Cuidador #${c.appProfileId}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+            Text('Prioridad: ${c.emergencyCallPriority ?? 'Normal'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          ])),
+        ]),
+      )).toList(),
     );
   }
 
@@ -116,6 +173,35 @@ class _SosEmergencyScreenState extends State<SosEmergencyScreen>
 
   Widget _buildSectionTitle(String title) {
     return Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)));
+  }
+
+  Widget _buildActiveEventBanner() {
+    final event = _activeEvents.first;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.dangerDark.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.dangerDark.withValues(alpha: 0.3)),
+      ),
+      child: Row(children: [
+        const Icon(LucideIcons.alertTriangle, size: 20, color: AppColors.dangerDark),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Alerta SOS activa', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.dangerDark)),
+          const SizedBox(height: 2),
+          Text('Evento #${event.id} · ${_formatTime(event.createdAt)}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+        ])),
+      ]),
+    );
+  }
+
+  String _formatTime(DateTime? dt) {
+    if (dt == null) return 'ahora';
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
 
   Widget _buildLocationInfo() {

@@ -101,4 +101,98 @@ class TreatmentService {
       return 0.0;
     }
   }
+
+  Future<Treatment> createTreatment(int patientId, DateTime startDate, DateTime? endDate) async {
+    final treatment = Treatment(
+      id: DateTime.now().millisecondsSinceEpoch,
+      patientId: patientId,
+      startDate: startDate,
+      endDate: endDate,
+      status: TreatmentStatus.activo,
+      createdAt: DateTime.now(),
+    );
+    try {
+      final response = await _client.post('/treatments', data: treatment.toJson());
+      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+      final saved = Treatment.fromJson(normalized);
+      final cached = await _loadTreatmentsCache();
+      cached.add(saved);
+      await _storage.saveTreatments(cached);
+      _cachedTreatments = cached;
+      return saved;
+    } on DioException {
+      final cached = await _loadTreatmentsCache();
+      cached.add(treatment);
+      await _storage.saveTreatments(cached);
+      _cachedTreatments = cached;
+      return treatment;
+    }
+  }
+
+  Future<TreatmentDetail> addDetail(int treatmentId, TreatmentDetail detail) async {
+    try {
+      final response = await _client.post('/treatment-details', data: detail.toJson());
+      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+      final saved = TreatmentDetail.fromJson(normalized);
+      return saved;
+    } on DioException {
+      return detail;
+    }
+  }
+
+  Future<Schedule> addSchedule(Schedule schedule) async {
+    try {
+      final response = await _client.post('/schedules', data: schedule.toJson());
+      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+      final saved = Schedule.fromJson(normalized);
+      return saved;
+    } on DioException {
+      return schedule;
+    }
+  }
+
+  Future<void> updateDetailStatus(int detailId, MedicationStatus status) async {
+    try {
+      await _client.patch('/treatment-details/$detailId', data: {'status': _medicationStatusToApi(status)});
+    } on DioException {
+      // silently fail, status was already changed in memory
+    }
+    // update cache
+    final treatments = await _loadTreatmentsCache();
+    for (final t in treatments) {
+      final details = t.details ?? [];
+      for (final d in details) {
+        if (d.id == detailId) {
+          final idx = details.indexOf(d);
+          final updated = TreatmentDetail(
+            id: d.id,
+            treatmentId: d.treatmentId,
+            medicationId: d.medicationId,
+            doseInfo: d.doseInfo,
+            frequencyHours: d.frequencyHours,
+            firstTakeTime: d.firstTakeTime,
+            endDate: d.endDate,
+            status: status,
+            compartmentNumber: d.compartmentNumber,
+            isExternal: d.isExternal,
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt,
+            medication: d.medication,
+            schedules: d.schedules,
+          );
+          details[idx] = updated;
+          break;
+        }
+      }
+    }
+    await _storage.saveTreatments(treatments);
+    _cachedTreatments = treatments;
+  }
+
+  String _medicationStatusToApi(MedicationStatus status) {
+    switch (status) {
+      case MedicationStatus.enCurso: return 'En_curso';
+      case MedicationStatus.finalizado: return 'Finalizado';
+    }
+  }
 }

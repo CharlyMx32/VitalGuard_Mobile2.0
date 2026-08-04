@@ -5,7 +5,10 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../services/avatar_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/vital_avatar.dart';
+import '../../widgets/vital_button.dart';
+import '../../widgets/vital_modal.dart';
 
 class MyProfileScreen extends StatelessWidget {
   const MyProfileScreen({super.key});
@@ -33,9 +36,15 @@ class MyProfileScreen extends StatelessWidget {
                     ('Fecha de nacimiento', '---'),
                   ]),
                   const SizedBox(height: 20),
-                  _buildButton('Guardar cambios', AppColors.primary, Colors.white),
+                  _buildButton('Guardar cambios', AppColors.primary, Colors.white,
+                      onTap: () => VitalFeedback.success(
+                            context,
+                            code: 'PROFILE_SAVED',
+                            message: 'Perfil actualizado correctamente',
+                          )),
                   const SizedBox(height: 12),
-                  _buildButton('Cerrar sesión', Colors.white, AppColors.textDark, border: true),
+                  _buildButton('Cerrar sesión', Colors.white, AppColors.textDark,
+                      border: true, onTap: () => _confirmLogout(context)),
                 ],
               ),
             ),
@@ -108,11 +117,45 @@ class MyProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildButton(String label, Color bg, Color fg, {bool border = false}) {
-    return Container(
-      width: double.infinity, height: 44,
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12), border: border ? Border.all(color: AppColors.borderLight) : null),
-      child: Center(child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg))),
+  Future<void> _confirmLogout(BuildContext context) async {
+    final auth = context.read<AuthService>();
+    final shouldLogout = await VitalModal.show<bool>(
+      context: context,
+      title: 'Cerrar sesión',
+      description: '¿Seguro que deseas cerrar sesión?',
+      iconType: ModalIconType.warning,
+      icon: LucideIcons.logOut,
+      actions: [
+        VitalButton.ghost(
+          label: 'Cancelar',
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+        const SizedBox(height: 8),
+        VitalButton(
+          label: 'Cerrar sesión',
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+      ],
+    );
+    if (shouldLogout == true && context.mounted) {
+      await auth.logout();
+      if (context.mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRoutes.login,
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  Widget _buildButton(String label, Color bg, Color fg, {bool border = false, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity, height: 44,
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12), border: border ? Border.all(color: AppColors.borderLight) : null),
+        child: Center(child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg))),
+      ),
     );
   }
 }

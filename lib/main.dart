@@ -13,6 +13,7 @@ import 'services/sos_service.dart';
 import 'services/voice_service.dart';
 import 'services/caregiver_service.dart';
 import 'services/avatar_service.dart';
+import 'services/medication_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +58,10 @@ void main() {
         ),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AvatarService()),
+        ProxyProvider2<ApiClient, StorageService, MedicationService>(
+          update: (context, apiClient, storage, previous) =>
+              previous ?? MedicationService(apiClient, storage),
+        ),
       ],
       child: const VitalGuardApp(),
     ),

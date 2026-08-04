@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../widgets/vital_input.dart';
 import '../../widgets/vital_button.dart';
+import '../../widgets/vital_modal.dart';
+import '../../services/patient_service.dart';
+import '../../services/auth_service.dart';
+import '../../models/patient.dart';
+import '../../models/enums.dart';
 
 class EditPatientScreen extends StatefulWidget {
   const EditPatientScreen({super.key});
@@ -167,8 +173,47 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
     );
   }
 
-  Widget _buildForm() {
-    return Column(
+  Future<void> _onSave() async {
+    final patientService = context.read<PatientService>();
+    final auth = context.read<AuthService>();
+    final patients = await patientService.getPatients();
+    final existing = patients.where((p) => p.id == auth.patientId).firstOrNull;
+    final bloodType = BloodType.values
+        .where((b) => b.displayValue == _tipoSangre)
+        .firstOrNull;
+    final patient = Patient(
+      id: existing?.id ?? auth.patientId,
+      firstName: _nombreController.text.trim().isEmpty
+          ? '---'
+          : _nombreController.text.trim(),
+      paternalLastName: _apellidoPaternoController.text.trim().isEmpty
+          ? '---'
+          : _apellidoPaternoController.text.trim(),
+      maternalLastName: _apellidoMaternoController.text.trim().isEmpty
+          ? null
+          : _apellidoMaternoController.text.trim(),
+      birthDate: DateTime.tryParse(_fechaNacimientoController.text) ?? DateTime(2000),
+      gender: existing?.gender ?? GenderType.f,
+      phone: _telefonoController.text.trim().isEmpty
+          ? null
+          : _telefonoController.text.trim(),
+      bloodType: bloodType,
+      medicalNotes: _notasController.text.trim().isEmpty
+          ? null
+          : _notasController.text.trim(),
+    );
+    await patientService.updatePatient(patient);
+    if (mounted) {
+      VitalFeedback.success(
+        context,
+        code: 'PATIENT_UPDATED',
+        message: 'Información del paciente actualizada correctamente',
+        onAction: () => Navigator.of(context).pop(),
+      );
+    }
+  }
+
+  Widget _buildForm() {    return Column(
       children: [
         VitalInput(
           label: 'NOMBRE',
@@ -352,7 +397,7 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
         children: [
           VitalButton(
             label: 'Guardar cambios',
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: _onSave,
           ),
           const SizedBox(height: 12),
           VitalButton.ghost(

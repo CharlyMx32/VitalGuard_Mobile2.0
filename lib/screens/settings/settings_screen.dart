@@ -100,10 +100,9 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                         icon: LucideIcons.wifi,
                         iconBg: AppColors.iconGrayBg,
                         iconFg: AppColors.iconGrayFg,
-                        label: 'WiFi',
-                        description: 'No disponible',
-                        showChevron: false,
-                        onTap: () {},
+                        label: 'Configurar WiFi',
+                        description: 'Conectar a una red',
+                        onTap: () => Navigator.pushNamed(context, AppRoutes.wifiSetup),
                       ),
                     ]),
                     const SizedBox(height: 20),
@@ -252,7 +251,6 @@ class _SettingsItem extends StatelessWidget {
   final Color iconFg;
   final String label;
   final String description;
-  final bool showChevron;
   final VoidCallback onTap;
 
   const _SettingsItem({
@@ -261,7 +259,6 @@ class _SettingsItem extends StatelessWidget {
     required this.iconFg,
     required this.label,
     required this.description,
-    this.showChevron = true,
     required this.onTap,
   });
 
@@ -293,7 +290,7 @@ class _SettingsItem extends StatelessWidget {
                 ],
               ),
             ),
-            if (showChevron) const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
+            const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
           ],
         ),
       ),

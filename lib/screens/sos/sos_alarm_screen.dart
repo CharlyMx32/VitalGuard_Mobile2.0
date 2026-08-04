@@ -2,8 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../services/sos_alarm_audio.dart';
+import '../../services/sos_service.dart';
+import '../../services/auth_service.dart';
 
 class SosAlarmScreen extends StatefulWidget {
   const SosAlarmScreen({super.key});
@@ -36,6 +39,15 @@ class _SosAlarmScreenState extends State<SosAlarmScreen>
 
     SosAlarmAudio.start();
     HapticFeedback.heavyImpact();
+    _triggerSosEvent();
+  }
+
+  Future<void> _triggerSosEvent() async {
+    final context = this.context;
+    if (!mounted) return;
+    final sosService = context.read<SosService>();
+    final auth = context.read<AuthService>();
+    await sosService.createSosEvent(auth.patientId);
   }
 
   @override

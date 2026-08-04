@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
 import 'routes/app_routes.dart';
@@ -62,14 +63,33 @@ class VitalGuardApp extends StatelessWidget {
   }
 }
 
-class LoginRedirect extends StatelessWidget {
+class LoginRedirect extends StatefulWidget {
   const LoginRedirect({super.key});
 
   @override
+  State<LoginRedirect> createState() => _LoginRedirectState();
+}
+
+class _LoginRedirectState extends State<LoginRedirect> {
+  @override
+  void initState() {
+    super.initState();
+    _redirect();
+  }
+
+  Future<void> _redirect() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool('onboarding_seen') ?? false;
+    if (mounted) {
+      Navigator.pushReplacementNamed(
+        context,
+        seen ? AppRoutes.login : AppRoutes.splash,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
-    });
     return const Scaffold(
       body: Center(
         child: SkeletonLine(width: 180, height: 16),

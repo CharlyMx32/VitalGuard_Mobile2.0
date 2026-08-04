@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../models/medication.dart';
+import '../../widgets/medication_search_field.dart';
 
 class ScheduleConfigScreen extends StatefulWidget {
   const ScheduleConfigScreen({super.key});
@@ -12,7 +14,19 @@ class ScheduleConfigScreen extends StatefulWidget {
 
 class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   int _selectedType = 0;
-  TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
+  final _doseController = TextEditingController();
+  int? _compartmentNumber;
+  DateTime? _endDate;
+  Medication? _selectedMedication;
+  int _frequencyHours = 8;
+
+  static const List<int> _frequencyOptions = [3, 5, 6, 7, 8, 10, 12];
+
+  @override
+  void dispose() {
+    _doseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,15 +43,15 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
                 children: [
                   _buildProgressSection(),
                   const SizedBox(height: 16),
-                  _buildCatalogSection(),
+                  _buildMedicationSection(),
                   const SizedBox(height: 16),
-                  _buildDivider('Configuración'),
+                  _buildDivider('Configuracion'),
                   const SizedBox(height: 12),
                   _buildConfigSection(),
                   const SizedBox(height: 16),
-                  _buildDivider('Horario'),
+                  _buildDivider('Frecuencia'),
                   const SizedBox(height: 12),
-                  _buildScheduleSection(),
+                  _buildFrequencySection(),
                   const SizedBox(height: 16),
                   _buildFooterButtons(),
                 ],
@@ -79,49 +93,14 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
     );
   }
 
-  Widget _buildCatalogSection() {
+  Widget _buildMedicationSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Seleccionar medicamento', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
         const SizedBox(height: 6),
-        TextField(
-          decoration: InputDecoration(
-            hintText: 'Buscar medicamento...',
-            hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
-            prefixIcon: const Icon(LucideIcons.search, size: 16, color: AppColors.textMuted),
-            filled: true, fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
-          child: Center(
-            child: Column(children: [
-              Icon(LucideIcons.pill, size: 32, color: AppColors.textMuted.withValues(alpha: 0.5)),
-              const SizedBox(height: 8),
-              const Text('Catálogo de medicamentos no disponible', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-              const SizedBox(height: 4),
-              const Text('Escribe el nombre del medicamento para buscarlo', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-            ]),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: AppColors.warningBg, borderRadius: BorderRadius.circular(10)),
-          child: Row(
-            children: [
-              const Icon(LucideIcons.info, size: 14, color: AppColors.warning),
-              const SizedBox(width: 8),
-              const Expanded(child: Text('Si no encuentras tu medicamento, contacta a tu médico o soporte', style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
-            ],
-          ),
+        MedicationSearchField(
+          onSelected: (med) => setState(() => _selectedMedication = med),
         ),
       ],
     );
@@ -153,6 +132,7 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
         _buildFormLabel('Dosis'),
         const SizedBox(height: 6),
         TextField(
+          controller: _doseController,
           decoration: InputDecoration(
             hintText: 'Ej: 1 tableta, 5ml',
             hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
@@ -163,35 +143,47 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
           ),
         ),
-        const SizedBox(height: 12),
-        _buildFormLabel('Compartimento (pastillero)'),
-        const SizedBox(height: 6),
-        Container(
-          height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight), borderRadius: BorderRadius.circular(12)),
-          child: const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('Seleccionar', style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
-            Icon(LucideIcons.chevronDown, size: 16, color: AppColors.textMuted),
-          ]),
-        ),
+        if (_selectedType == 0) ...[
+          const SizedBox(height: 12),
+          _buildFormLabel('Compartimento (pastillero)'),
+          const SizedBox(height: 6),
+          _buildCompartmentSelector(),
+        ],
         const SizedBox(height: 12),
         _buildFormLabel('Fecha de fin (opcional)'),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
-            final picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime(2024), lastDate: DateTime(2030));
-            if (picked != null) setState(() {});
+            final picked = await showDatePicker(context: context, initialDate: _endDate ?? DateTime.now(), firstDate: DateTime(2024), lastDate: DateTime(2030));
+            if (picked != null) setState(() => _endDate = picked);
           },
           child: Container(
             height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight), borderRadius: BorderRadius.circular(12)),
-            child: const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('Seleccionar', style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
-              Icon(LucideIcons.calendar, size: 16, color: AppColors.textMuted),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text(_endDate != null ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}' : 'Seleccionar',
+                style: TextStyle(fontSize: 14, color: _endDate != null ? AppColors.textDark : AppColors.textMuted)),
+              const Icon(LucideIcons.calendar, size: 16, color: AppColors.textMuted),
             ]),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCompartmentSelector() {
+    return Container(
+      height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight), borderRadius: BorderRadius.circular(12)),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(_compartmentNumber != null ? 'Compartimento #$_compartmentNumber' : 'Seleccionar',
+          style: TextStyle(fontSize: 14, color: _compartmentNumber != null ? AppColors.textDark : AppColors.textMuted)),
+        PopupMenuButton<int>(
+          icon: const Icon(LucideIcons.chevronDown, size: 16, color: AppColors.textMuted),
+          onSelected: (v) => setState(() => _compartmentNumber = v),
+          itemBuilder: (context) => List.generate(8, (i) => PopupMenuItem(value: i + 1, child: Text('Compartimento #${i + 1}'))),
+        ),
+      ]),
     );
   }
 
@@ -217,27 +209,33 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
     );
   }
 
-  Widget _buildScheduleSection() {
+  Widget _buildFrequencySection() {
     return Column(
       children: [
-        _buildFormLabel('Hora de toma'),
+        _buildFormLabel('Cada cuanto debe tomarse'),
         const SizedBox(height: 6),
-        GestureDetector(
-          onTap: () async {
-            final picked = await showTimePicker(context: context, initialTime: _startTime);
-            if (picked != null) setState(() => _startTime = picked);
-          },
-          child: Container(
-            height: 52,
-            decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight, width: 1.5), borderRadius: BorderRadius.circular(12)),
-            child: Center(
-              child: Text('${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.textDark, letterSpacing: 2)),
-            ),
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _frequencyOptions.map((h) {
+            final selected = _frequencyHours == h;
+            return GestureDetector(
+              onTap: () => setState(() => _frequencyHours = h),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: selected ? AppColors.primary : AppColors.borderLight),
+                ),
+                child: Text('Cada $h horas',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: selected ? Colors.white : AppColors.textDark)),
+              ),
+            );
+          }).toList(),
         ),
         const SizedBox(height: 4),
-        const Align(alignment: Alignment.centerLeft, child: Text('Selecciona la hora en que el paciente debe tomar este medicamento', style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
+        const Align(alignment: Alignment.centerLeft, child: Text('Ej: cada 8 horas = 3 tomas al dia', style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
       ],
     );
   }
@@ -247,7 +245,7 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
       children: [
         SizedBox(width: double.infinity, height: 48,
           child: ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: _onSave,
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
             child: const Text('Guardar medicamento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
           ),
@@ -262,5 +260,23 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
         ),
       ],
     );
+  }
+
+  void _onSave() {
+    if (_selectedMedication == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Busca y selecciona un medicamento del catalogo'), backgroundColor: AppColors.warning),
+      );
+      return;
+    }
+    Navigator.of(context).pop({
+      'medicationId': _selectedMedication!.id,
+      'medicationName': _selectedMedication!.name,
+      'doseInfo': _doseController.text.trim().isEmpty ? null : _doseController.text.trim(),
+      'frequencyHours': _frequencyHours,
+      'compartmentNumber': _selectedType == 0 ? _compartmentNumber : null,
+      'isExternal': _selectedType == 1,
+      'endDate': _endDate,
+    });
   }
 }

@@ -3,7 +3,9 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../routes/app_routes.dart';
 import '../../services/treatment_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/vital_shimmer.dart';
 import '../../widgets/vital_empty_state.dart';
 import '../../models/treatment.dart';
@@ -14,10 +16,11 @@ class TreatmentDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final treatmentService = context.read<TreatmentService>();
+    final auth = context.read<AuthService>();
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: FutureBuilder(
-        future: treatmentService.getTreatments(1),
+        future: treatmentService.getTreatments(auth.patientId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(
@@ -48,7 +51,7 @@ class TreatmentDetailScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       _buildProgressCard(treatment),
                       const SizedBox(height: 16),
-                      _buildSectionHeader(
+                      _buildSectionHeader(context,
                           'Medicamentos (${treatment.details?.length ?? 0})'),
                       const SizedBox(height: 8),
                       if (treatment.details != null &&
@@ -242,7 +245,7 @@ class TreatmentDetailScreen extends StatelessWidget {
     return months[month - 1];
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -251,11 +254,14 @@ class TreatmentDetailScreen extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textMuted)),
-        const Text('+ Agregar',
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primary)),
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, AppRoutes.addMedication),
+          child: const Text('+ Agregar',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primary)),
+        ),
       ],
     );
   }

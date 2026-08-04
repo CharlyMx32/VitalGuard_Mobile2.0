@@ -5,6 +5,7 @@ import '../models/treatment.dart';
 import '../models/device.dart';
 import '../models/caregiver.dart';
 import '../models/voice_message.dart';
+import '../models/medication.dart';
 
 class StorageService {
   static const _keyPatients = 'data_patients';
@@ -14,6 +15,7 @@ class StorageService {
   static const _keyCaregivers = 'data_caregivers';
   static const _keyDevice = 'data_device';
   static const _keyVoiceMessages = 'data_voice_messages';
+  static const _keyMedications = 'data_medications';
 
   // ── Patients ──
 
@@ -109,6 +111,11 @@ class StorageService {
     await prefs.setString(_keyDevice, jsonEncode(device.toJson()));
   }
 
+  Future<void> clearDevice() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyDevice);
+  }
+
   // ── Voice Messages ──
 
   Future<List<VoiceMessage>> loadVoiceMessages() async {
@@ -125,6 +132,22 @@ class StorageService {
     await prefs.setString(_keyVoiceMessages, json);
   }
 
+  // ── Medications ──
+
+  Future<List<Medication>> loadMedications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_keyMedications);
+    if (json == null) return [];
+    final list = jsonDecode(json) as List;
+    return list.map((e) => Medication.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> saveMedications(List<Medication> medications) async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = jsonEncode(medications.map((e) => e.toJson()).toList());
+    await prefs.setString(_keyMedications, json);
+  }
+
   // ── Clear all ──
 
   Future<void> clearAll() async {
@@ -136,5 +159,6 @@ class StorageService {
     await prefs.remove(_keyCaregivers);
     await prefs.remove(_keyDevice);
     await prefs.remove(_keyVoiceMessages);
+    await prefs.remove(_keyMedications);
   }
 }

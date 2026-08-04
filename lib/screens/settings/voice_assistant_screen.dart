@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../widgets/vital_modal.dart';
 
 class VoiceAssistantScreen extends StatefulWidget {
   const VoiceAssistantScreen({super.key});
@@ -167,10 +168,19 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
   }
 
   Widget _buildLinkButton() {
-    return Container(
-      width: double.infinity, height: 44,
-      decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
-      child: const Center(child: Text('Vincular dispositivo Alexa', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
+    return GestureDetector(
+      onTap: () => VitalFeedback.info(
+        context,
+        code: 'ALEXA_LINK_STARTED',
+        title: 'Vincular dispositivo Alexa',
+        message: 'Para vincular Amazon Alexa, descarga la skill de VitalGuard en la app de Alexa '
+            'y sigue los pasos de la skill con tu cuenta VitalGuard.',
+      ),
+      child: Container(
+        width: double.infinity, height: 44,
+        decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
+        child: const Center(child: Text('Vincular dispositivo Alexa', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
+      ),
     );
   }
 }

@@ -19,7 +19,9 @@ class PatientDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: FutureBuilder(
-        future: patientService.getPatient(1),
+        future: patientService.getPatient(
+          ModalRoute.of(context)?.settings.arguments as int? ?? 1,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(

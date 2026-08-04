@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../routes/app_routes.dart';
 import 'widgets/onboarding_page1.dart';
 import 'widgets/onboarding_page2.dart';
@@ -35,6 +36,14 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
         curve: Curves.easeInOut,
       );
     } else {
+      _finishOnboarding();
+    }
+  }
+
+  Future<void> _finishOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_seen', true);
+    if (mounted) {
       Navigator.pushReplacementNamed(context, AppRoutes.login);
     }
   }

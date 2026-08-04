@@ -42,4 +42,41 @@ class PatientService {
       return patients.firstWhere((p) => p.id == id);
     }
   }
+
+  Future<Patient> createPatient(Patient patient) async {
+    try {
+      final response = await _client.post('/patients', data: patient.toJson());
+      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+      final saved = Patient.fromJson(normalized);
+      final cached = await _loadCache();
+      cached.add(saved);
+      await _storage.savePatients(cached);
+      _cached = cached;
+      return saved;
+    } on DioException {
+      final cached = await _loadCache();
+      cached.add(patient);
+      await _storage.savePatients(cached);
+      _cached = cached;
+      return patient;
+    }
+  }
+
+  Future<Patient> updatePatient(Patient patient) async {
+    try {
+      await _client.put('/patients/${patient.id}', data: patient.toJson());
+    } on DioException {
+      // persistir localmente si el backend no esta disponible
+    }
+    final cached = await _loadCache();
+    final idx = cached.indexWhere((p) => p.id == patient.id);
+    if (idx != -1) {
+      cached[idx] = patient;
+    } else {
+      cached.add(patient);
+    }
+    await _storage.savePatients(cached);
+    _cached = cached;
+    return patient;
+  }
 }

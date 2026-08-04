@@ -68,7 +68,7 @@ class _DashboardContentState extends State<DashboardContent>
       },
       child: FutureBuilder<List<Treatment>>(
         key: ValueKey('dashboard_$_dashboardRefreshKey'),
-        future: treatmentService.getTreatments(1),
+        future: treatmentService.getTreatments(auth.patientId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(
@@ -570,8 +570,8 @@ class _QuickActionsGrid extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: _QuickActionTile(
-          icon: LucideIcons.search,
-          label: 'Seleccionar\nmed.',
+          icon: LucideIcons.plus,
+          label: 'Crear\ntratamiento',
           onTap: onTapAddMed,
           color: AppColors.primary,
         )),
