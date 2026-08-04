@@ -17,6 +17,7 @@ dependencies:
   dio: ^5.11.0
   fl_chart: ^1.2.0
   share_plus: ^13.3.0
+  firebase_messaging: ^16.5.0
 
 
 dev_dependencies:
@@ -34,6 +35,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/
 
 
 
