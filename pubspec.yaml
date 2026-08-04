@@ -16,6 +16,7 @@ dependencies:
   shared_preferences: ^2.5.0
   dio: ^5.11.0
   fl_chart: ^1.2.0
+  share_plus: ^13.3.0
 
 
 dev_dependencies:

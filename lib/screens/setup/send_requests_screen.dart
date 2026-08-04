@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../widgets/vital_modal.dart';
@@ -24,13 +25,13 @@ class SendRequestsScreen extends StatelessWidget {
                     style: TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.5)),
                   const SizedBox(height: 20),
                   _buildRequestCard(context, LucideIcons.users, AppColors.accentLight, AppColors.primary, 'Solicitud de Cuidador',
-                    'Invita a otro cuidador a unirse y compartir la responsabilidad del paciente'),
+                    'Invita a otro cuidador a unirse y compartir la responsabilidad del paciente', slug: 'cuidador'),
                   const SizedBox(height: 12),
                   _buildRequestCard(context, LucideIcons.userCheck, AppColors.accentLight, AppColors.accent, 'Autocuidado',
-                    'Envía el enlace al paciente para que gestione sus propios medicamentos'),
+                    'Envía el enlace al paciente para que gestione sus propios medicamentos', slug: 'autocuidado'),
                   const SizedBox(height: 12),
                   _buildRequestCard(context, LucideIcons.activity, const Color(0xFFF3E8FF), const Color(0xFF9B59B6), 'Vincular Médico',
-                    'Invita a tu médico tratante para que acceda a los reportes de salud'),
+                    'Invita a tu médico tratante para que acceda a los reportes de salud', slug: 'medico'),
                 ],
               ),
             ),
@@ -52,15 +53,9 @@ class SendRequestsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRequestCard(BuildContext context, IconData icon, Color bg, Color fg, String title, String desc) {
+  Widget _buildRequestCard(BuildContext context, IconData icon, Color bg, Color fg, String title, String desc, {required String slug}) {
     return GestureDetector(
-      onTap: () {
-        VitalFeedback.success(
-          context,
-          code: 'REQUEST_LINK_CREATED',
-          message: 'Enlace de $title creado. Compártelo con la persona que deseas invitar.',
-        );
-      },
+      onTap: () => _shareRequest(context, title, slug),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -80,5 +75,22 @@ class SendRequestsScreen extends StatelessWidget {
         ]),
       ),
     );
+  }
+
+  Future<void> _shareRequest(BuildContext context, String title, String slug) async {
+    final link = 'https://vitalguard.app/invite/$slug';
+    await SharePlus.instance.share(
+      ShareParams(
+        text: 'Te invito a unirte a VitalGuard como $title.\n$link',
+        subject: 'Invitación a VitalGuard - $title',
+      ),
+    );
+    if (context.mounted) {
+      VitalFeedback.success(
+        context,
+        code: 'REQUEST_LINK_CREATED',
+        message: 'Enlace de $title creado. Compártelo con la persona que deseas invitar.',
+      );
+    }
   }
 }
