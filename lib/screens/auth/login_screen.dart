@@ -8,6 +8,7 @@ import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/vital_tap.dart';
 import '../../services/auth_service.dart';
+import '../../services/storage_service.dart';
 import 'vital_id_webview_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -268,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen>
                         final dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
                         final authService = context.read<AuthService>();
                         final navigator = Navigator.of(context);
-                        final messenger = ScaffoldMessenger.of(context);
+                        final storage = context.read<StorageService>();
                         try {
                           // Usar vitalId del cuidador de prueba en el seed
                           final res = await dio.post('/auth/dev-login', data: {
@@ -280,9 +281,16 @@ class _LoginScreenState extends State<LoginScreen>
                             navigator.pushReplacementNamed(AppRoutes.dashboard);
                           }
                         } catch (_) {
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('Error: backend no disponible')),
-                          );
+                          // Backend no disponible: login local de respaldo
+                          await authService.login('dev-local-token');
+                          final patients = await storage.loadPatients();
+                          if (patients.isNotEmpty) {
+                            await authService.setPatientId(patients.first.id);
+                          }
+                          await authService.completeProfile();
+                          if (mounted) {
+                            navigator.pushReplacementNamed(AppRoutes.dashboard);
+                          }
                         }
                       },
                       style: OutlinedButton.styleFrom(
