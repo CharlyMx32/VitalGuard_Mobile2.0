@@ -2,7 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../routes/app_routes.dart';
+import '../../services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -39,9 +42,21 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    _navigationTimer = Timer(const Duration(seconds: 3), () {
+    _navigationTimer = Timer(const Duration(seconds: 3), () async {
+      if (!mounted) return;
+      final auth = context.read<AuthService>();
+      final prefs = await SharedPreferences.getInstance();
+      final seen = prefs.getBool('onboarding_seen') ?? false;
+      String route;
+      if (auth.isLoggedIn) {
+        route = auth.isProfileComplete
+            ? AppRoutes.dashboard
+            : AppRoutes.completeProfile;
+      } else {
+        route = seen ? AppRoutes.login : AppRoutes.onboarding1;
+      }
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.onboarding1);
+        Navigator.pushReplacementNamed(context, route);
       }
     });
   }

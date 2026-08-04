@@ -7,7 +7,10 @@ import 'routes/app_routes.dart';
 import 'services/auth_service.dart';
 import 'services/theme_provider.dart';
 import 'screens/main_shell.dart';
+import 'screens/onboarding/splash_screen.dart';
 import 'widgets/vital_shimmer.dart';
+
+bool _splashShownThisRun = false;
 
 class VitalGuardApp extends StatelessWidget {
   const VitalGuardApp({super.key});
@@ -26,6 +29,11 @@ class VitalGuardApp extends StatelessWidget {
             builder: (context, auth, _) {
               if (auth.isLoading) {
                 return _buildSplashSkeleton();
+              }
+
+              if (!_splashShownThisRun) {
+                _splashShownThisRun = true;
+                return const SplashScreen();
               }
 
               if (auth.isLoggedIn) {
