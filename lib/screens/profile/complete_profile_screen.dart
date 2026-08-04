@@ -70,6 +70,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           final auth = context.read<AuthService>();
           final apiClient = context.read<ApiClient>();
           final isSelfCare = _selectedRole == 1;
+          int? patientId;
           try {
             final birthDate = _parseBirthDate();
             final response = await apiClient.post('/app-profiles/onboarding', data: {
@@ -83,7 +84,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 },
             });
             final data = (response.data as Map<String, dynamic>?) ?? {};
-            final patientId = data['patientId'];
+            patientId = data['patientId'] is int ? data['patientId'] as int : null;
             if (patientId is int) await auth.setPatientId(patientId);
           } catch (_) {
             // Si el backend no responde o ya existe perfil, continuar localmente
@@ -93,7 +94,12 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           if (_selectedRole == 0) {
             Navigator.pushNamedAndRemoveUntil(context, AppRoutes.firstPatient, (route) => false);
           } else {
-            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.dashboard, (route) => false);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.selfCareProfile,
+              (route) => false,
+              arguments: patientId is int ? patientId : null,
+            );
           }
         },
         child: Container(

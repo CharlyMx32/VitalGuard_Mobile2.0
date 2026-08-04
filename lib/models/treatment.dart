@@ -194,6 +194,8 @@ class Schedule {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final List<MedicationLog>? logs;
+  final String? medicationName;
+  final String? doseInfo;
 
   const Schedule({
     required this.id,
@@ -202,6 +204,8 @@ class Schedule {
     this.createdAt,
     this.updatedAt,
     this.logs,
+    this.medicationName,
+    this.doseInfo,
   });
 
   String get timeDisplay {
@@ -213,10 +217,13 @@ class Schedule {
   }
 
   factory Schedule.fromJson(Map<String, dynamic> json) {
+    final details = json['treatmentDetails'] ?? json['treatment_details'];
+    final medication =
+        details is Map<String, dynamic> ? details['medications'] : null;
     return Schedule(
       id: json['id'] as int,
       treatmentDetailId: json['treatmentDetailId'] as int,
-      timeOfDay: DateTime.parse(json['timeOfDay'] as String),
+      timeOfDay: _parseTime(json['timeOfDay'] as String),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : null,
@@ -228,15 +235,37 @@ class Schedule {
               .map((e) => MedicationLog.fromJson(e as Map<String, dynamic>))
               .toList()
           : null,
+      medicationName:
+          medication is Map<String, dynamic> ? medication['name'] as String? : null,
+      doseInfo:
+          details is Map<String, dynamic> ? details['doseInfo'] as String? : null,
     );
+  }
+
+  static DateTime _parseTime(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed != null) return parsed;
+    final parts = value.split(':');
+    if (parts.length >= 2) {
+      final hour = int.tryParse(parts[0]) ?? 0;
+      final minute = int.tryParse(parts[1]) ?? 0;
+      final now = DateTime.now();
+      return DateTime(now.year, now.month, now.day, hour, minute);
+    }
+    return DateTime.now();
   }
 
   Map<String, dynamic> toJson() {
     return {
       'treatmentDetailId': treatmentDetailId,
-      'timeOfDay':
-          '${timeOfDay.hour.toString().padLeft(2, '0')}:${timeOfDay.minute.toString().padLeft(2, '0')}',
+      'timeOfDay': _timeToApi(timeOfDay),
+      if (medicationName != null) 'medicationName': medicationName,
+      if (doseInfo != null) 'doseInfo': doseInfo,
     };
+  }
+
+  static String _timeToApi(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 }
 

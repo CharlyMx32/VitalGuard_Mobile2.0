@@ -86,7 +86,8 @@ class PatientDetailScreen extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.pushNamed(context, AppRoutes.editPatient);
+                      Navigator.pushNamed(context, AppRoutes.editPatient,
+                          arguments: patient.id);
                     },
                     child: Container(
                       width: 32,

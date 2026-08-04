@@ -222,8 +222,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
 
     for (final med in _medications) {
+      final firstTakeHour = med['firstTakeHour'] as int? ?? 8;
+      final firstTakeMinute = med['firstTakeMinute'] as int? ?? 0;
       final firstTake = DateTime(
-        _startDate.year, _startDate.month, _startDate.day, 8, 0,
+        _startDate.year, _startDate.month, _startDate.day, firstTakeHour, firstTakeMinute,
       );
       final frequencyHours = med['frequencyHours'] as int? ?? 8;
       final detail = TreatmentDetail(

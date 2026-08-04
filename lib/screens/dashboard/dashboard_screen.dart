@@ -81,7 +81,7 @@ class _DashboardContentState extends State<DashboardContent>
             physics: AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
-                _buildHeader(context, avatarService.config),
+                _buildHeader(context, avatarService.config, isSelfCare: isSelfCare),
                 _buildContent(context, treatments: treatments, isSelfCare: isSelfCare),
               ],
             ),
@@ -91,7 +91,8 @@ class _DashboardContentState extends State<DashboardContent>
     );
   }
 
-  Widget _buildHeader(BuildContext context, AvatarConfig avatarConfig) {
+  Widget _buildHeader(BuildContext context, AvatarConfig avatarConfig,
+      {bool isSelfCare = false}) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -119,8 +120,8 @@ class _DashboardContentState extends State<DashboardContent>
                         fontWeight: FontWeight.w400,
                         color: Colors.white70)),
                 const SizedBox(height: 2),
-                const Text('---',
-                    style: TextStyle(
+                Text(isSelfCare ? 'Autocuidado' : 'Cuidador',
+                    style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: Colors.white)),
@@ -319,8 +320,8 @@ class _DashboardContentState extends State<DashboardContent>
                     adherenceColor: AppColors.textMuted,
                     avatarGradient:
                         _avatarGradients[e.key % _avatarGradients.length],
-                    onTap: () =>
-                        Navigator.pushNamed(context, AppRoutes.patientDetail),
+                    onTap: () => Navigator.pushNamed(context, AppRoutes.patientDetail,
+                        arguments: e.value.id),
                   ),
                 ),
               )

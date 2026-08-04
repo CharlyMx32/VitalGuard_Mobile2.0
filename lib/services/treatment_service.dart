@@ -76,6 +76,46 @@ class TreatmentService {
     }
   }
 
+  /// Devuelve los horarios programados para el día indicado. Los horarios
+  /// son recurrentes (misma hora todos los días del tratamiento), por lo que
+  /// se construyen a partir del tratamiento y sus detalles, marcando como
+  /// completado si existe un log confirmado para esa fecha.
+  Future<List<Schedule>> getSchedulesForDay(int patientId, DateTime day) async {
+    final treatments = await getTreatments(patientId);
+    final logs = await getRecentLogs(patientId);
+    final schedules = <Schedule>[];
+    final base = DateTime(day.year, day.month, day.day);
+
+    for (final treatment in treatments) {
+      for (final detail in treatment.details ?? []) {
+        for (final s in detail.schedules ?? []) {
+          final time = s.timeOfDay;
+          final scheduledAt =
+              DateTime(base.year, base.month, base.day, time.hour, time.minute);
+          final dayLogs = logs
+              .where((l) =>
+                  l.scheduleId == s.id &&
+                  _sameDay(l.scheduledDatetime, scheduledAt))
+              .toList();
+          schedules.add(Schedule(
+            id: s.id,
+            treatmentDetailId: s.treatmentDetailId,
+            timeOfDay: scheduledAt,
+            logs: dayLogs,
+            medicationName: detail.medication?.name ?? s.medicationName,
+            doseInfo: detail.doseInfo ?? s.doseInfo,
+          ));
+        }
+      }
+    }
+    schedules.sort((a, b) => a.timeOfDay.compareTo(b.timeOfDay));
+    return schedules;
+  }
+
+  bool _sameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
   Future<List<MedicationLog>> getRecentLogs(int patientId) async {
     try {
       final response = await _client.get('/medication-logs/recent/$patientId');
@@ -90,7 +130,6 @@ class TreatmentService {
       return _loadLogsCache();
     }
   }
-
   Future<double> getAdherence(int patientId) async {
     try {
       final response =
@@ -99,6 +138,84 @@ class TreatmentService {
       return (data['adherence'] as num).toDouble();
     } on DioException {
       return 0.0;
+    }
+  }
+
+  /// Confirma una dosis (marca como tomada). Si el backend no responde,
+  /// se guarda el log localmente.
+  Future<void> confirmDose(Schedule schedule) async {
+    final now = DateTime.now();
+    final log = MedicationLog(
+      id: DateTime.now().millisecondsSinceEpoch,
+      scheduleId: schedule.id,
+      scheduledDatetime: schedule.timeOfDay,
+      actualTakenDatetime: now,
+      status: LogStatus.confirmado,
+      createdAt: now,
+      updatedAt: now,
+    );
+    try {
+      await _client.post('/medication-logs', data: log.toJson());
+    } on DioException {
+      // fallback local
+    }
+    final logs = await _loadLogsCache();
+    logs.add(log);
+    await _storage.saveLogs(logs);
+    _cachedLogs = logs;
+
+    final treatments = _cachedTreatments;
+    if (treatments == null) return;
+    for (final t in treatments) {
+      final details = t.details ?? [];
+      for (final d in details) {
+        final scheds = d.schedules ?? [];
+        for (final s in scheds) {
+          if (s.id == schedule.id) {
+            final updatedSched = Schedule(
+              id: s.id,
+              treatmentDetailId: s.treatmentDetailId,
+              timeOfDay: s.timeOfDay,
+              createdAt: s.createdAt,
+              updatedAt: s.updatedAt,
+              logs: [...?s.logs, log],
+              medicationName: s.medicationName,
+              doseInfo: s.doseInfo,
+            );
+            final updatedDetail = TreatmentDetail(
+              id: d.id,
+              treatmentId: d.treatmentId,
+              medicationId: d.medicationId,
+              doseInfo: d.doseInfo,
+              frequencyHours: d.frequencyHours,
+              firstTakeTime: d.firstTakeTime,
+              endDate: d.endDate,
+              status: d.status,
+              compartmentNumber: d.compartmentNumber,
+              isExternal: d.isExternal,
+              createdAt: d.createdAt,
+              updatedAt: d.updatedAt,
+              medication: d.medication,
+              schedules: scheds.map((x) => x == s ? updatedSched : x).toList(),
+            );
+            final updated = Treatment(
+              id: t.id,
+              patientId: t.patientId,
+              appProfileId: t.appProfileId,
+              startDate: t.startDate,
+              endDate: t.endDate,
+              status: t.status,
+              createdAt: t.createdAt,
+              updatedAt: t.updatedAt,
+              patient: t.patient,
+              details: details.map((x) => x == d ? updatedDetail : x).toList(),
+            );
+            treatments[treatments.indexOf(t)] = updated;
+            await _storage.saveTreatments(treatments);
+            return;
+          }
+        }
+      }
     }
   }
 
@@ -134,9 +251,36 @@ class TreatmentService {
       final response = await _client.post('/treatment-details', data: detail.toJson());
       final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
       final saved = TreatmentDetail.fromJson(normalized);
+      _attachDetail(treatmentId, saved);
       return saved;
     } on DioException {
+      _attachDetail(treatmentId, detail);
       return detail;
+    }
+  }
+
+  void _attachDetail(int treatmentId, TreatmentDetail detail) {
+    final treatments = _cachedTreatments;
+    if (treatments == null) return;
+    for (final t in treatments) {
+      if (t.id == treatmentId) {
+        final details = [...?t.details, detail];
+        final updated = Treatment(
+          id: t.id,
+          patientId: t.patientId,
+          appProfileId: t.appProfileId,
+          startDate: t.startDate,
+          endDate: t.endDate,
+          status: t.status,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+          patient: t.patient,
+          details: details,
+        );
+        treatments[treatments.indexOf(t)] = updated;
+        _storage.saveTreatments(treatments);
+        break;
+      }
     }
   }
 
@@ -145,9 +289,55 @@ class TreatmentService {
       final response = await _client.post('/schedules', data: schedule.toJson());
       final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
       final saved = Schedule.fromJson(normalized);
+      _attachSchedule(saved);
       return saved;
     } on DioException {
+      _attachSchedule(schedule);
       return schedule;
+    }
+  }
+
+  void _attachSchedule(Schedule schedule) {
+    final treatments = _cachedTreatments;
+    if (treatments == null) return;
+    for (final t in treatments) {
+      final details = t.details ?? [];
+      for (final d in details) {
+        if (d.id == schedule.treatmentDetailId) {
+          final scheds = [...?d.schedules, schedule];
+          final updatedDetail = TreatmentDetail(
+            id: d.id,
+            treatmentId: d.treatmentId,
+            medicationId: d.medicationId,
+            doseInfo: d.doseInfo,
+            frequencyHours: d.frequencyHours,
+            firstTakeTime: d.firstTakeTime,
+            endDate: d.endDate,
+            status: d.status,
+            compartmentNumber: d.compartmentNumber,
+            isExternal: d.isExternal,
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt,
+            medication: d.medication,
+            schedules: scheds,
+          );
+          final updated = Treatment(
+            id: t.id,
+            patientId: t.patientId,
+            appProfileId: t.appProfileId,
+            startDate: t.startDate,
+            endDate: t.endDate,
+            status: t.status,
+            createdAt: t.createdAt,
+            updatedAt: t.updatedAt,
+            patient: t.patient,
+            details: details.map((x) => x == d ? updatedDetail : x).toList(),
+          );
+          treatments[treatments.indexOf(t)] = updated;
+          _storage.saveTreatments(treatments);
+          return;
+        }
+      }
     }
   }
 

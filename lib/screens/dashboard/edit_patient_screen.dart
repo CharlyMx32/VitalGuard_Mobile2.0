@@ -19,15 +19,51 @@ class EditPatientScreen extends StatefulWidget {
 }
 
 class _EditPatientScreenState extends State<EditPatientScreen> {
-  final _nombreController = TextEditingController(text: 'Juan');
-  final _apellidoPaternoController = TextEditingController(text: 'Pérez');
-  final _apellidoMaternoController = TextEditingController(text: 'García');
-  final _telefonoController = TextEditingController(text: '8711514690');
-  final _fechaNacimientoController = TextEditingController(text: '1958-05-15');
-  final _notasController = TextEditingController(
-    text: 'Alérgico a la penicilina. Hipertensión arterial controlada.',
-  );
+  final _nombreController = TextEditingController();
+  final _apellidoPaternoController = TextEditingController();
+  final _apellidoMaternoController = TextEditingController();
+  final _telefonoController = TextEditingController();
+  final _fechaNacimientoController = TextEditingController();
+  final _notasController = TextEditingController();
   String _tipoSangre = 'O+';
+  int? _patientId;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _patientId =
+        ModalRoute.of(context)?.settings.arguments as int?;
+    _loadPatient();
+  }
+
+  Future<void> _loadPatient() async {
+    final patientService = context.read<PatientService>();
+    final auth = context.read<AuthService>();
+    final id = _patientId ?? auth.patientId;
+    _patientId = id;
+    Patient? patient;
+    try {
+      patient = await patientService.getPatient(id);
+    } catch (_) {
+      patient = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _nombreController.text = patient?.firstName ?? '';
+      _apellidoPaternoController.text = patient?.paternalLastName ?? '';
+      _apellidoMaternoController.text = patient?.maternalLastName ?? '';
+      _telefonoController.text = patient?.phone ?? '';
+      if (patient != null) {
+        final b = patient.birthDate;
+        _fechaNacimientoController.text =
+            '${b.year}-${b.month.toString().padLeft(2, '0')}-${b.day.toString().padLeft(2, '0')}';
+      }
+      _notasController.text = patient?.medicalNotes ?? '';
+      _tipoSangre = patient?.bloodType?.displayValue ?? 'O+';
+      _loading = false;
+    });
+  }
 
   @override
   void dispose() {
@@ -48,18 +84,20 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
         children: [
           _buildTopBar(context),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.paddingHorizontal,
-              ) + const EdgeInsets.only(top: 20),
-              child: Column(
-                children: [
-                  _buildAvatarHeader(),
-                  const SizedBox(height: 24),
-                  _buildForm(),
-                ],
-              ),
-            ),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.paddingHorizontal,
+                    ) + const EdgeInsets.only(top: 20),
+                    child: Column(
+                      children: [
+                        _buildAvatarHeader(),
+                        const SizedBox(height: 24),
+                        _buildForm(),
+                      ],
+                    ),
+                  ),
           ),
           _buildFooter(context),
         ],
@@ -177,12 +215,13 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
     final patientService = context.read<PatientService>();
     final auth = context.read<AuthService>();
     final patients = await patientService.getPatients();
-    final existing = patients.where((p) => p.id == auth.patientId).firstOrNull;
+    final id = _patientId ?? auth.patientId;
+    final existing = patients.where((p) => p.id == id).firstOrNull;
     final bloodType = BloodType.values
         .where((b) => b.displayValue == _tipoSangre)
         .firstOrNull;
     final patient = Patient(
-      id: existing?.id ?? auth.patientId,
+      id: existing?.id ?? id,
       firstName: _nombreController.text.trim().isEmpty
           ? '---'
           : _nombreController.text.trim(),

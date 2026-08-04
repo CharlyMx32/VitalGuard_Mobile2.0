@@ -55,14 +55,15 @@ class _ScheduleContentState extends State<ScheduleContent> {
     final treatmentService = context.read<TreatmentService>();
     final auth = context.read<AuthService>();
     final patientId = auth.patientId;
+    final selectedDay = _days()[_selectedDayIndex].fullDate;
     return RefreshIndicator(
       onRefresh: () async {
         final newKey = _scheduleRefreshKey + 1;
         setState(() => _scheduleRefreshKey = newKey);
       },
       child: FutureBuilder<List<Schedule>>(
-        key: ValueKey('schedule_$_scheduleRefreshKey'),
-        future: treatmentService.getTodaySchedules(patientId),
+        key: ValueKey('schedule_${_selectedDayIndex}_$_scheduleRefreshKey'),
+        future: treatmentService.getSchedulesForDay(patientId, selectedDay),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(
@@ -296,6 +297,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
 
   Widget _buildTimelineItem(Schedule sched, bool isLast, bool isCompleted) {
     final circleColor = isCompleted ? AppColors.accent : AppColors.warning;
+    final isFuture = sched.timeOfDay.isAfter(DateTime.now());
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,31 +337,68 @@ class _ScheduleContentState extends State<ScheduleContent> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: AppDimensions.cardShadow,
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text(
-                        'Dosis #${sched.id}',
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              sched.medicationName ?? 'Dosis #${sched.id}',
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textDark),
+                            ),
+                            if (sched.doseInfo != null && sched.doseInfo!.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                sched.doseInfo!,
+                                style: const TextStyle(
+                                    fontSize: 12, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(width: 8),
                       Text(
                         sched.timeDisplay,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isCompleted
+                                ? AppColors.accent
+                                : AppColors.warning),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  Text(
-                    sched.timeDisplay,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: isCompleted ? AppColors.accent : AppColors.warning),
-                  ),
+                  if (!isCompleted && !isFuture) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 32,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _confirmDose(context, sched),
+                        icon: const Icon(LucideIcons.check,
+                            size: 14, color: AppColors.accent),
+                        label: const Text('Marcar como tomada',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.accent)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.accent),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -367,6 +406,13 @@ class _ScheduleContentState extends State<ScheduleContent> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDose(BuildContext context, Schedule sched) async {
+    final treatmentService = context.read<TreatmentService>();
+    await treatmentService.confirmDose(sched);
+    if (!mounted) return;
+    setState(() => _scheduleRefreshKey = _scheduleRefreshKey + 1);
   }
 }
 

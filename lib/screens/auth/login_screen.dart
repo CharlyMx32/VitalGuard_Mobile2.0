@@ -287,7 +287,11 @@ class _LoginScreenState extends State<LoginScreen>
                           if (patients.isNotEmpty) {
                             await authService.setPatientId(patients.first.id);
                           }
-                          await authService.completeProfile();
+                          if (!authService.isProfileComplete) {
+                            await authService.completeProfile(
+                              isSelfCare: authService.isSelfCare,
+                            );
+                          }
                           if (mounted) {
                             navigator.pushReplacementNamed(AppRoutes.dashboard);
                           }

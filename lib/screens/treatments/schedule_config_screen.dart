@@ -19,6 +19,7 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   DateTime? _endDate;
   Medication? _selectedMedication;
   int _frequencyHours = 8;
+  TimeOfDay _firstTakeTime = const TimeOfDay(hour: 8, minute: 0);
 
   static const List<int> _frequencyOptions = [3, 5, 6, 7, 8, 10, 12];
 
@@ -236,8 +237,35 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
         ),
         const SizedBox(height: 4),
         const Align(alignment: Alignment.centerLeft, child: Text('Ej: cada 8 horas = 3 tomas al dia', style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
+        const SizedBox(height: 16),
+        _buildFormLabel('Hora de la primera toma'),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: () async {
+            final picked = await showTimePicker(
+              context: context,
+              initialTime: _firstTakeTime,
+            );
+            if (picked != null) setState(() => _firstTakeTime = picked);
+          },
+          child: Container(
+            height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight), borderRadius: BorderRadius.circular(12)),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text(_formatTime(_firstTakeTime), style: const TextStyle(fontSize: 14, color: AppColors.textDark)),
+              const Icon(LucideIcons.clock, size: 16, color: AppColors.textMuted),
+            ]),
+          ),
+        ),
       ],
     );
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hour == 0 ? 12 : (time.hour > 12 ? time.hour - 12 : time.hour);
+    final minute = time.minute.toString().padLeft(2, '0');
+    final amPm = time.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $amPm';
   }
 
   Widget _buildFooterButtons() {
@@ -277,6 +305,8 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
       'compartmentNumber': _selectedType == 0 ? _compartmentNumber : null,
       'isExternal': _selectedType == 1,
       'endDate': _endDate,
+      'firstTakeHour': _firstTakeTime.hour,
+      'firstTakeMinute': _firstTakeTime.minute,
     });
   }
 }

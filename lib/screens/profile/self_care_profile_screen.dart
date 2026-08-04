@@ -1,11 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../routes/app_routes.dart';
+import '../../services/auth_service.dart';
+import '../../services/patient_service.dart';
+import '../../models/patient.dart';
+import '../../models/enums.dart';
 import '../../widgets/vital_modal.dart';
 
-class SelfCareProfileScreen extends StatelessWidget {
+class SelfCareProfileScreen extends StatefulWidget {
   const SelfCareProfileScreen({super.key});
+
+  @override
+  State<SelfCareProfileScreen> createState() => _SelfCareProfileScreenState();
+}
+
+class _SelfCareProfileScreenState extends State<SelfCareProfileScreen> {
+  BloodType? _bloodType;
+  final _medicalNotesController = TextEditingController(
+    text: 'Ej: Alergia a la penicilina, presión arterial alta...',
+  );
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _medicalNotesController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,23 +58,22 @@ class SelfCareProfileScreen extends StatelessWidget {
         ],
       ),
       bottomSheet: GestureDetector(
-        onTap: () => VitalFeedback.success(
-          context,
-          code: 'SELF_CARE_SAVED',
-          message: 'Tu información fue guardada correctamente',
-          onAction: () => Navigator.of(context).pop(),
-        ),
+        onTap: _isSaving ? null : _onSave,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal, vertical: 16),
           color: AppColors.bg,
           child: Container(
             width: double.infinity, height: 48,
             decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(12)),
-            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(LucideIcons.check, size: 18, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Completar y Continuar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-            ]),
+            child: Center(
+              child: _isSaving
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(LucideIcons.check, size: 18, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text('Completar y Continuar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                    ]),
+            ),
           ),
         ),
       ),
@@ -132,28 +154,126 @@ class SelfCareProfileScreen extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Tipo de Sangre', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
         const SizedBox(height: 6),
-        Container(
-          height: 48, width: double.infinity,
-          decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-          child: const Row(children: [
-            SizedBox(width: 16),
-            Expanded(child: Text('Seleccionar', style: TextStyle(fontSize: 14, color: AppColors.textMuted))),
-            Icon(LucideIcons.chevronDown, size: 16, color: AppColors.textMuted),
-            SizedBox(width: 16),
-          ]),
+        GestureDetector(
+          onTap: () => _pickBloodType(),
+          child: Container(
+            height: 48, width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
+            child: Row(children: [
+              Expanded(child: Text(_bloodType?.displayValue ?? 'Seleccionar', style: TextStyle(fontSize: 14, color: _bloodType != null ? AppColors.textDark : AppColors.textMuted))),
+              const Icon(LucideIcons.chevronDown, size: 16, color: AppColors.textMuted),
+            ]),
+          ),
         ),
         const SizedBox(height: 14),
         const Text('Notas Médicas (opcional)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
         const SizedBox(height: 6),
         Container(
-          height: 80, width: double.infinity,
+          width: double.infinity,
           decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-          child: const Padding(
-            padding: EdgeInsets.all(12),
-            child: Text('Ej: Alergia a la penicilina, presión arterial alta...', style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
+          child: TextField(
+            controller: _medicalNotesController,
+            maxLines: 3,
+            style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.all(12),
+            ),
           ),
         ),
       ]),
+    );
+  }
+
+  void _pickBloodType() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Tipo de Sangre', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+            ),
+            ...BloodType.values.map((bt) => ListTile(
+              leading: const Icon(LucideIcons.droplet, size: 18, color: AppColors.primary),
+              title: Text(bt.displayValue, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
+              trailing: _bloodType == bt ? const Icon(LucideIcons.check, size: 18, color: AppColors.accent) : null,
+              onTap: () {
+                Navigator.pop(ctx);
+                setState(() => _bloodType = bt);
+              },
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onSave() async {
+    setState(() => _isSaving = true);
+    final patientService = context.read<PatientService>();
+    final auth = context.read<AuthService>();
+
+    final args = ModalRoute.of(context)?.settings.arguments as int?;
+    final patientId = args ?? auth.patientId;
+
+    Patient? existing;
+    try {
+      existing = await patientService.getPatient(patientId);
+    } catch (_) {
+      existing = null;
+    }
+
+    final notes = _medicalNotesController.text.trim().isEmpty ||
+            _medicalNotesController.text.trim() == 'Ej: Alergia a la penicilina, presión arterial alta...'
+        ? null
+        : _medicalNotesController.text.trim();
+
+    if (existing != null) {
+      final updated = Patient(
+        id: existing.id,
+        firstName: existing.firstName,
+        paternalLastName: existing.paternalLastName,
+        maternalLastName: existing.maternalLastName,
+        birthDate: existing.birthDate,
+        gender: existing.gender,
+        phone: existing.phone,
+        address: existing.address,
+        bloodType: _bloodType ?? existing.bloodType,
+        medicalNotes: notes ?? existing.medicalNotes,
+      );
+      await patientService.updatePatient(updated);
+      await auth.setPatientId(updated.id);
+    } else {
+      final patient = Patient(
+        id: DateTime.now().millisecondsSinceEpoch,
+        firstName: 'María',
+        paternalLastName: 'García',
+        maternalLastName: 'Pérez',
+        birthDate: DateTime(1985, 1, 1),
+        gender: GenderType.f,
+        bloodType: _bloodType,
+        medicalNotes: notes,
+      );
+      final saved = await patientService.createPatient(patient);
+      await auth.setPatientId(saved.id);
+    }
+
+    if (!mounted) return;
+    VitalFeedback.success(
+      context,
+      code: 'SELF_CARE_SAVED',
+      message: 'Tu información fue guardada correctamente',
+      onAction: () => Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.dashboard,
+        (route) => false,
+      ),
     );
   }
 }

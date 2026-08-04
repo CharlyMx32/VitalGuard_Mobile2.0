@@ -213,7 +213,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
   Widget _buildPatientCard(Patient patient, int index) {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, AppRoutes.patientDetail),
+      onTap: () =>
+          Navigator.pushNamed(context, AppRoutes.patientDetail, arguments: patient.id),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppDimensions.cardMarginBottom),
         padding: const EdgeInsets.all(16),
@@ -309,8 +310,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () =>
-                        Navigator.pushNamed(context, AppRoutes.patientDetail),
+                    onTap: () => Navigator.pushNamed(
+                        context, AppRoutes.patientDetail,
+                        arguments: patient.id),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
