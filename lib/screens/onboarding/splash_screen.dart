@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -15,8 +16,9 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _bgController;
   late Animation<double> _fadeLogo;
   late Animation<double> _fadeText;
   late Animation<double> _fadeLoader;
@@ -30,6 +32,11 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 1200),
     );
 
+    _bgController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 7000),
+    );
+
     _fadeLogo = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5)),
     );
@@ -41,6 +48,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
+    _bgController.repeat();
 
     _navigationTimer = Timer(const Duration(seconds: 3), () async {
       if (!mounted) return;
@@ -64,6 +72,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _bgController.dispose();
     _navigationTimer?.cancel();
     super.dispose();
   }
@@ -87,17 +96,38 @@ class _SplashScreenState extends State<SplashScreen>
             Positioned(
               top: -80,
               right: -60,
-              child: _buildCircle(300, 0.06),
+              child: _FloatingCircle(
+                size: 300,
+                opacity: 0.06,
+                animation: _bgController,
+                phase: 0.0,
+                drift: const Offset(18, 22),
+                breathe: 0.05,
+              ),
             ),
             Positioned(
               bottom: 120,
               left: -40,
-              child: _buildCircle(200, 0.06),
+              child: _FloatingCircle(
+                size: 200,
+                opacity: 0.06,
+                animation: _bgController,
+                phase: 2.2,
+                drift: const Offset(24, 16),
+                breathe: 0.07,
+              ),
             ),
             Positioned(
               bottom: -30,
               right: 40,
-              child: _buildCircle(150, 0.06),
+              child: _FloatingCircle(
+                size: 150,
+                opacity: 0.06,
+                animation: _bgController,
+                phase: 4.4,
+                drift: const Offset(14, 26),
+                breathe: 0.09,
+              ),
             ),
 
             // Content
@@ -223,14 +253,49 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  Widget _buildCircle(double size, double opacity) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: opacity),
-      ),
+}
+
+class _FloatingCircle extends StatelessWidget {
+  final double size;
+  final double opacity;
+  final Animation<double> animation;
+  final double phase;
+  final Offset drift;
+  final double breathe;
+
+  const _FloatingCircle({
+    required this.size,
+    required this.opacity,
+    required this.animation,
+    required this.phase,
+    required this.drift,
+    required this.breathe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final t = animation.value * 2 * math.pi + phase;
+        final dx = drift.dx * math.sin(t);
+        final dy = drift.dy * math.cos(t * 0.75 + phase * 0.3);
+        final scale = 1 + breathe * math.sin(t * 0.5);
+        return Transform.translate(
+          offset: Offset(dx, dy),
+          child: Transform.scale(
+            scale: scale,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: opacity),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
