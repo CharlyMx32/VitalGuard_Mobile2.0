@@ -112,22 +112,19 @@ class _SplashScreenState extends State<SplashScreen>
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: const Color(0x33FFFFFF),
                         borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                        border: Border.all(
+                          color: const Color(0x40FFFFFF),
+                          width: 1,
+                        ),
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(24),
                         child: Image.asset(
-                          'assets/images/isotipo.png',
-                          width: 100,
-                          height: 100,
+                          'assets/images/isotipo_transparente.png',
+                          width: 56,
+                          height: 56,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) =>
                               _buildMedicalCrossLogo(),
