@@ -151,13 +151,16 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(24),
-                        child: Image.asset(
-                          'assets/images/isotipo_transparente.png',
-                          width: 56,
-                          height: 56,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildMedicalCrossLogo(),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Image.asset(
+                            'assets/images/isotipo_transparente.png',
+                            width: 56,
+                            height: 56,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildMedicalCrossLogo(),
+                          ),
                         ),
                       ),
                     ),
