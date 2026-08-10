@@ -17,37 +17,60 @@ class MedicationSearchField extends StatefulWidget {
 
 class _MedicationSearchFieldState extends State<MedicationSearchField> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   Timer? _debounce;
-  List<Medication> _results = [];
+  List<Medication> _allMedications = [];
+  List<Medication> _filtered = [];
   bool _loading = false;
-  bool _searched = false;
+  bool _showAll = false;
   Medication? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+    _loadAll();
+  }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (_focusNode.hasFocus && _selected == null) {
+      setState(() => _showAll = true);
+    }
+  }
+
+  Future<void> _loadAll() async {
+    setState(() => _loading = true);
+    final medicationService = context.read<MedicationService>();
+    _allMedications = await medicationService.getMedications();
+    _filtered = _allMedications;
+    if (mounted) setState(() => _loading = false);
   }
 
   void _onChanged(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () => _search(value));
-  }
-
-  Future<void> _search(String query) async {
-    if (query.trim().isEmpty) {
-      if (mounted) setState(() { _results = []; _searched = false; _loading = false; });
-      return;
-    }
-    if (mounted) setState(() => _loading = true);
-    final medicationService = context.read<MedicationService>();
-    final results = await medicationService.searchMedications(query);
-    if (!mounted) return;
-    setState(() {
-      _results = results;
-      _loading = false;
-      _searched = true;
+    _debounce = Timer(const Duration(milliseconds: 200), () {
+      final q = value.trim().toLowerCase();
+      setState(() {
+        _showAll = true;
+        if (q.isEmpty) {
+          _filtered = _allMedications;
+        } else {
+          _filtered = _allMedications
+              .where((m) =>
+                  m.name.toLowerCase().contains(q) ||
+                  (m.presentation?.toLowerCase().contains(q) ?? false))
+              .toList();
+        }
+      });
     });
   }
 
@@ -55,9 +78,9 @@ class _MedicationSearchFieldState extends State<MedicationSearchField> {
     setState(() {
       _selected = med;
       _controller.text = med.name;
-      _results = [];
-      _searched = false;
+      _showAll = false;
     });
+    _focusNode.unfocus();
     widget.onSelected(med);
   }
 
@@ -65,9 +88,10 @@ class _MedicationSearchFieldState extends State<MedicationSearchField> {
     setState(() {
       _selected = null;
       _controller.clear();
-      _results = [];
-      _searched = false;
+      _filtered = _allMedications;
+      _showAll = true;
     });
+    _focusNode.requestFocus();
   }
 
   @override
@@ -77,8 +101,12 @@ class _MedicationSearchFieldState extends State<MedicationSearchField> {
       children: [
         TextField(
           controller: _controller,
+          focusNode: _focusNode,
           onChanged: _onChanged,
           readOnly: _selected != null,
+          onTap: () {
+            if (_selected == null) setState(() => _showAll = true);
+          },
           decoration: InputDecoration(
             hintText: 'Buscar medicamento...',
             hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
@@ -104,13 +132,10 @@ class _MedicationSearchFieldState extends State<MedicationSearchField> {
           const SizedBox(height: 12),
           const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator(strokeWidth: 2))),
         ],
-        if (_results.isNotEmpty) ...[
+        if (_showAll && _selected == null && !_loading) ...[
           const SizedBox(height: 8),
-          _buildResultsList(),
-        ],
-        if (_searched && !_loading && _results.isEmpty && _selected == null) ...[
-          const SizedBox(height: 8),
-          _buildNotFoundCard(),
+          if (_filtered.isNotEmpty) _buildResultsList(),
+          if (_filtered.isEmpty && _controller.text.isNotEmpty) _buildNotFoundCard(),
         ],
       ],
     );
@@ -131,28 +156,41 @@ class _MedicationSearchFieldState extends State<MedicationSearchField> {
 
   Widget _buildResultsList() {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-      child: Column(
-        children: _results.take(6).map((med) => InkWell(
-          onTap: () => _select(med),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(children: [
-              Container(
-                width: 34, height: 34,
-                decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
-                child: const Icon(LucideIcons.pill, size: 16, color: AppColors.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(med.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-                if (med.presentation != null)
-                  Text(med.presentation!, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-              ])),
-              const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
-            ]),
-          ),
-        )).toList(),
+      constraints: const BoxConstraints(maxHeight: 250),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderLight),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        itemCount: _filtered.length,
+        separatorBuilder: (_, __) => const Divider(height: 1, indent: 56),
+        itemBuilder: (context, index) {
+          final med = _filtered[index];
+          return InkWell(
+            onTap: () => _select(med),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(children: [
+                Container(
+                  width: 34, height: 34,
+                  decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(LucideIcons.pill, size: 16, color: AppColors.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(med.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+                  if (med.presentation != null)
+                    Text(med.presentation!, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                ])),
+                const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
+              ]),
+            ),
+          );
+        },
       ),
     );
   }
@@ -175,7 +213,7 @@ class _MedicationSearchFieldState extends State<MedicationSearchField> {
                   style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                   children: [
                     TextSpan(
-                      text: 'Si no lo encuentras, contacta a tu medico o a soporte para que lo agreguen',
+                      text: 'Contacta a tu medico o soporte para que lo agreguen',
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.warning, decoration: TextDecoration.underline),
                     ),
                   ],
