@@ -16,6 +16,7 @@ class ApiClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          if (AppConfig.isNgrok) 'ngrok-skip-browser-warning': 'true',
         },
       ),
     );

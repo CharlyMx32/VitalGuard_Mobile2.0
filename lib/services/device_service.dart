@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'api_client.dart';
 import 'storage_service.dart';
 import '../utils/json_utils.dart';
@@ -21,34 +22,59 @@ class DeviceService {
     try {
       final response = await _client.get('/devices/patient/$patientId');
       if (response.data == null) return null;
-      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        debugPrint('[DeviceService] getPatientDevice: unexpected response type: ${data.runtimeType}, data: $data');
+        return null;
+      }
+      final normalized = normalizeJsonKeys(data) as Map<String, dynamic>;
       final device = Device.fromJson(normalized);
       _cached = device;
       await _storage.saveDevice(device);
       return device;
     } on DioException {
-      return _loadCache();
+      final cached = await _loadCache();
+      if (cached != null && cached.patientId == patientId) return cached;
+      return null;
     }
   }
 
   Future<Device> saveDeviceByCode(String code, {int? patientId}) async {
+    try {
+      final response = await _client.post('/devices/vincular', data: {
+        'deviceId': code,
+        if (patientId != null) 'patientId': patientId,
+      });
+      debugPrint('[DeviceService] vincular response: ${response.data}');
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['device'] is Map) {
+        final normalized = normalizeJsonKeys(data['device']) as Map<String, dynamic>;
+        final device = Device.fromJson(normalized);
+        _cached = device;
+        await _storage.saveDevice(device);
+        return device;
+      }
+      throw Exception('Respuesta inesperada del servidor');
+    } on DioException catch (e) {
+      debugPrint('[DeviceService] vincular error: ${e.response?.statusCode} ${e.response?.data}');
+      rethrow;
+    }
+  }
+
+  /// Crea un dispositivo mock local (para testing sin backend/token real)
+  Future<Device> saveDeviceMock(String code, {int? patientId}) async {
     final device = Device(
       id: DateTime.now().millisecondsSinceEpoch,
       uniqueCode: code,
       patientId: patientId,
+      isOnline: true,
+      firmwareVersion: '1.0.0-mock',
+      createdAt: DateTime.now(),
     );
-    try {
-      final response = await _client.post('/devices', data: device.toJson());
-      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
-      final saved = Device.fromJson(normalized);
-      _cached = saved;
-      await _storage.saveDevice(saved);
-      return saved;
-    } on DioException {
-      _cached = device;
-      await _storage.saveDevice(device);
-      return device;
-    }
+    _cached = device;
+    await _storage.saveDevice(device);
+    debugPrint('[DeviceService] mock device saved: ${device.uniqueCode}');
+    return device;
   }
 
   Future<void> disconnect() async {

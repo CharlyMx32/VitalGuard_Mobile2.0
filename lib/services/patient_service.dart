@@ -3,6 +3,7 @@ import 'api_client.dart';
 import 'storage_service.dart';
 import '../utils/json_utils.dart';
 import '../models/patient.dart';
+import '../models/enums.dart';
 
 class PatientService {
   final ApiClient _client;
@@ -39,27 +40,21 @@ class PatientService {
       return Patient.fromJson(normalized);
     } on DioException {
       final patients = await _loadCache();
-      return patients.firstWhere((p) => p.id == id);
+      return patients.firstWhere((p) => p.id == id, orElse: () => throw Exception('Paciente $id no encontrado en caché'));
     }
   }
 
-  Future<Patient> createPatient(Patient patient) async {
-    try {
-      final response = await _client.post('/patients', data: patient.toJson());
-      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
-      final saved = Patient.fromJson(normalized);
-      final cached = await _loadCache();
-      cached.add(saved);
-      await _storage.savePatients(cached);
-      _cached = cached;
-      return saved;
-    } on DioException {
-      final cached = await _loadCache();
-      cached.add(patient);
-      await _storage.savePatients(cached);
-      _cached = cached;
-      return patient;
-    }
+  Future<Patient> createPatient(Patient patient, {KinshipType? kinship}) async {
+    final data = patient.toJson();
+    if (kinship != null) data['kinship'] = kinship.apiValue;
+    final response = await _client.post('/patients', data: data);
+    final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+    final saved = Patient.fromJson(normalized);
+    final cached = await _loadCache();
+    cached.add(saved);
+    await _storage.savePatients(cached);
+    _cached = cached;
+    return saved;
   }
 
   Future<Patient> updatePatient(Patient patient) async {
@@ -78,5 +73,34 @@ class PatientService {
     await _storage.savePatients(cached);
     _cached = cached;
     return patient;
+  }
+
+  Future<Patient> updatePatientFields(int id, Map<String, dynamic> fields) async {
+    try {
+      final response = await _client.patch('/patients/$id', data: fields);
+      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+      final updated = Patient.fromJson(normalized);
+      final cached = await _loadCache();
+      final idx = cached.indexWhere((p) => p.id == id);
+      if (idx != -1) cached[idx] = updated;
+      await _storage.savePatients(cached);
+      _cached = cached;
+      return updated;
+    } on DioException {
+      final cached = await _loadCache();
+      return cached.firstWhere((p) => p.id == id, orElse: () => throw Exception('Paciente $id no encontrado en caché'));
+    }
+  }
+
+  Future<void> deletePatient(int id) async {
+    try {
+      await _client.delete('/patients/$id');
+    } on DioException {
+      rethrow;
+    }
+    final cached = await _loadCache();
+    cached.removeWhere((p) => p.id == id);
+    await _storage.savePatients(cached);
+    _cached = cached;
   }
 }

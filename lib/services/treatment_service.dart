@@ -43,7 +43,13 @@ class TreatmentService {
       await _storage.saveTreatments(data);
       return data;
     } on DioException {
-      final treatments = await _loadTreatmentsCache();
+      List<Treatment> treatments;
+      try {
+        treatments = await _loadTreatmentsCache();
+      } catch (_) {
+        treatments = [];
+        _cachedTreatments = treatments;
+      }
       return treatments.where((t) => t.patientId == patientId).toList();
     }
   }
@@ -238,7 +244,13 @@ class TreatmentService {
       _cachedTreatments = cached;
       return saved;
     } on DioException {
-      final cached = await _loadTreatmentsCache();
+      List<Treatment> cached;
+      try {
+        cached = await _loadTreatmentsCache();
+      } catch (_) {
+        cached = [];
+        _cachedTreatments = cached;
+      }
       cached.add(treatment);
       await _storage.saveTreatments(cached);
       _cachedTreatments = cached;
@@ -379,10 +391,221 @@ class TreatmentService {
     _cachedTreatments = treatments;
   }
 
+  Future<void> updateTreatmentDetail(int id, Map<String, dynamic> fields) async {
+    try {
+      await _client.patch('/treatment-details/$id', data: fields);
+    } on DioException {}
+    final cached = await _loadTreatmentsCache();
+    for (final t in cached) {
+      final details = t.details;
+      if (details == null) continue;
+      final idx = details.indexWhere((d) => d.id == id);
+      if (idx != -1) {
+        final d = details[idx];
+        final updated = TreatmentDetail(
+          id: d.id,
+          treatmentId: d.treatmentId,
+          medicationId: fields['medicationId'] as int? ?? d.medicationId,
+          doseInfo: fields['doseInfo'] as String? ?? d.doseInfo,
+          frequencyHours: fields['frequencyHours'] as int? ?? d.frequencyHours,
+          firstTakeTime: fields['firstTakeTime'] != null
+              ? DateTime.parse(fields['firstTakeTime'] as String)
+              : d.firstTakeTime,
+          endDate: fields['endDate'] != null ? DateTime.parse(fields['endDate'] as String) : d.endDate,
+          status: d.status,
+          compartmentNumber: fields['compartmentNumber'] as int? ?? d.compartmentNumber,
+          isExternal: fields['isExternal'] as bool? ?? d.isExternal,
+          createdAt: d.createdAt,
+          updatedAt: DateTime.now(),
+          medication: d.medication,
+          schedules: d.schedules,
+        );
+        final updatedDetails = List<TreatmentDetail>.from(details);
+        updatedDetails[idx] = updated;
+        cached[cached.indexOf(t)] = Treatment(
+          id: t.id,
+          patientId: t.patientId,
+          appProfileId: t.appProfileId,
+          startDate: t.startDate,
+          endDate: t.endDate,
+          status: t.status,
+          createdAt: t.createdAt,
+          updatedAt: DateTime.now(),
+          patient: t.patient,
+          details: updatedDetails,
+        );
+        break;
+      }
+    }
+    await _storage.saveTreatments(cached);
+    _cachedTreatments = cached;
+  }
+
+  Future<void> updateTreatmentFields(int id, Map<String, dynamic> fields) async {
+    try {
+      await _client.patch('/treatments/$id', data: fields);
+    } on DioException {}
+    final cached = await _loadTreatmentsCache();
+    final idx = cached.indexWhere((t) => t.id == id);
+    if (idx != -1) {
+      final t = cached[idx];
+      final statusStr = fields['status'] as String?;
+      final endDateStr = fields['endDate'] as String?;
+      cached[idx] = Treatment(
+        id: t.id,
+        patientId: t.patientId,
+        appProfileId: t.appProfileId,
+        startDate: t.startDate,
+        endDate: endDateStr != null ? DateTime.parse(endDateStr) : t.endDate,
+        status: statusStr != null ? _treatmentStatusFromApi(statusStr) : t.status,
+        createdAt: t.createdAt,
+        updatedAt: DateTime.now(),
+        patient: t.patient,
+        details: t.details,
+      );
+      await _storage.saveTreatments(cached);
+      _cachedTreatments = cached;
+    }
+  }
+
+  Future<void> deleteTreatment(int id) async {
+    try {
+      await _client.delete('/treatments/$id');
+    } on DioException {}
+    final cached = await _loadTreatmentsCache();
+    cached.removeWhere((t) => t.id == id);
+    await _storage.saveTreatments(cached);
+    _cachedTreatments = cached;
+  }
+
+  Future<void> deleteTreatmentDetail(int id) async {
+    try {
+      await _client.delete('/treatment-details/$id');
+    } on DioException {}
+    final cached = await _loadTreatmentsCache();
+    for (final t in cached) {
+      final details = t.details;
+      if (details == null) continue;
+      final idx = details.indexWhere((d) => d.id == id);
+      if (idx != -1) {
+        final updated = Treatment(
+          id: t.id,
+          patientId: t.patientId,
+          appProfileId: t.appProfileId,
+          startDate: t.startDate,
+          endDate: t.endDate,
+          status: t.status,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+          patient: t.patient,
+          details: [...details]..removeAt(idx),
+        );
+        cached[cached.indexOf(t)] = updated;
+        break;
+      }
+    }
+    await _storage.saveTreatments(cached);
+    _cachedTreatments = cached;
+  }
+
+  Future<void> deleteSchedule(int id) async {
+    try {
+      await _client.delete('/schedules/$id');
+    } on DioException {}
+    final cached = await _loadTreatmentsCache();
+    for (final t in cached) {
+      final details = t.details;
+      if (details == null) continue;
+      for (final d in details) {
+        final schedules = d.schedules;
+        if (schedules == null) continue;
+        final idx = schedules.indexWhere((s) => s.id == id);
+        if (idx != -1) {
+          final updatedDetail = TreatmentDetail(
+            id: d.id,
+            treatmentId: d.treatmentId,
+            medicationId: d.medicationId,
+            doseInfo: d.doseInfo,
+            frequencyHours: d.frequencyHours,
+            firstTakeTime: d.firstTakeTime,
+            endDate: d.endDate,
+            status: d.status,
+            compartmentNumber: d.compartmentNumber,
+            isExternal: d.isExternal,
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt,
+            medication: d.medication,
+            schedules: [...schedules]..removeAt(idx),
+          );
+          final updated = Treatment(
+            id: t.id,
+            patientId: t.patientId,
+            appProfileId: t.appProfileId,
+            startDate: t.startDate,
+            endDate: t.endDate,
+            status: t.status,
+            createdAt: t.createdAt,
+            updatedAt: t.updatedAt,
+            patient: t.patient,
+            details: details.map((x) => x == d ? updatedDetail : x).toList(),
+          );
+          cached[cached.indexOf(t)] = updated;
+          await _storage.saveTreatments(cached);
+          _cachedTreatments = cached;
+          return;
+        }
+      }
+    }
+  }
+
+  Future<void> updateMedicationLog(int id, Map<String, dynamic> fields) async {
+    try {
+      await _client.patch('/medication-logs/$id', data: fields);
+    } on DioException {}
+    final cached = await _loadLogsCache();
+    final idx = cached.indexWhere((l) => l.id == id);
+    if (idx != -1) {
+      final log = cached[idx];
+      final statusStr = fields['status'] as String?;
+      final actualStr = fields['actualTakenDatetime'] as String?;
+      cached[idx] = MedicationLog(
+        id: log.id,
+        scheduleId: log.scheduleId,
+        scheduledDatetime: log.scheduledDatetime,
+        actualTakenDatetime: actualStr != null ? DateTime.parse(actualStr) : log.actualTakenDatetime,
+        status: statusStr != null ? _logStatusFromApi(statusStr) : log.status,
+        voiceConfirmed: fields['voiceConfirmed'] as bool? ?? log.voiceConfirmed,
+        createdAt: log.createdAt,
+        updatedAt: DateTime.now(),
+      );
+      await _storage.saveLogs(cached);
+      _cachedLogs = cached;
+    }
+  }
+
   String _medicationStatusToApi(MedicationStatus status) {
     switch (status) {
       case MedicationStatus.enCurso: return 'En_curso';
       case MedicationStatus.finalizado: return 'Finalizado';
+    }
+  }
+
+  static TreatmentStatus _treatmentStatusFromApi(String value) {
+    switch (value) {
+      case 'Activo': return TreatmentStatus.activo;
+      case 'Pausado': return TreatmentStatus.pausado;
+      case 'Finalizado': return TreatmentStatus.finalizado;
+      default: return TreatmentStatus.activo;
+    }
+  }
+
+  static LogStatus _logStatusFromApi(String value) {
+    switch (value) {
+      case 'Pendiente': return LogStatus.pendiente;
+      case 'Confirmado': return LogStatus.confirmado;
+      case 'Retraso': return LogStatus.retraso;
+      case 'Omitida': return LogStatus.omitida;
+      default: return LogStatus.pendiente;
     }
   }
 }

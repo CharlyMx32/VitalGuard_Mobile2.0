@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,13 +8,17 @@ class AuthService extends ChangeNotifier {
   static const String _profileCompleteKey = 'vitalguard_profile_complete';
   static const String _selfCareKey = 'vitalguard_self_care';
   static const String _patientIdKey = 'vitalguard_patient_id';
+  static const String _roleKey = 'vitalguard_role';
+  static const String _userKey = 'vitalguard_user';
 
   String? _token;
   String? _refreshToken;
   bool _isLoading = true;
   bool _isProfileComplete = false;
   bool _isSelfCare = false;
-  int _patientId = 1;
+  int? _patientId;
+  String? _role;
+  Map<String, dynamic>? _user;
 
   String? get token => _token;
   String? get refreshToken => _refreshToken;
@@ -21,7 +26,19 @@ class AuthService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isProfileComplete => _isProfileComplete;
   bool get isSelfCare => _isSelfCare;
-  int get patientId => _patientId;
+  int? get patientId => _patientId;
+  String? get role => _role;
+  Map<String, dynamic>? get user => _user;
+
+  String? get firstName => _user?['first_name'] ?? _user?['firstName'];
+  String? get paternalLastName =>
+      _user?['paternal_last_name'] ?? _user?['paternalLastName'];
+  String? get maternalLastName =>
+      _user?['maternal_last_name'] ?? _user?['maternalLastName'];
+  String? get email => _user?['email'];
+  String? get phone => _user?['phone'];
+  String? get birthDate => _user?['birth_date'] ?? _user?['birthDate'];
+  String? get gender => _user?['gender'];
 
   AuthService() {
     _loadTokens();
@@ -33,7 +50,16 @@ class AuthService extends ChangeNotifier {
     _refreshToken = prefs.getString(_refreshTokenKey);
     _isProfileComplete = prefs.getBool(_profileCompleteKey) ?? false;
     _isSelfCare = prefs.getBool(_selfCareKey) ?? false;
-    _patientId = prefs.getInt(_patientIdKey) ?? 1;
+    _patientId = prefs.getInt(_patientIdKey);
+    _role = prefs.getString(_roleKey);
+    final userJson = prefs.getString(_userKey);
+    if (userJson != null) {
+      try {
+        _user = jsonDecode(userJson) as Map<String, dynamic>;
+      } catch (_) {
+        _user = null;
+      }
+    }
     _isLoading = false;
     notifyListeners();
   }
@@ -51,11 +77,28 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setUser(Map<String, dynamic> user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userKey, jsonEncode(user));
+    _user = user;
+    notifyListeners();
+  }
+
   Future<void> completeProfile({bool isSelfCare = false}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_profileCompleteKey, true);
     await prefs.setBool(_selfCareKey, isSelfCare);
     _isProfileComplete = true;
+    _isSelfCare = isSelfCare;
+    notifyListeners();
+  }
+
+  Future<void> setRole(String role) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_roleKey, role);
+    _role = role;
+    final isSelfCare = role == 'PATIENT';
+    await prefs.setBool(_selfCareKey, isSelfCare);
     _isSelfCare = isSelfCare;
     notifyListeners();
   }
@@ -74,11 +117,15 @@ class AuthService extends ChangeNotifier {
     await prefs.remove(_profileCompleteKey);
     await prefs.remove(_selfCareKey);
     await prefs.remove(_patientIdKey);
+    await prefs.remove(_roleKey);
+    await prefs.remove(_userKey);
     _token = null;
     _refreshToken = null;
     _isProfileComplete = false;
     _isSelfCare = false;
-    _patientId = 1;
+    _patientId = null;
+    _role = null;
+    _user = null;
     notifyListeners();
   }
 }

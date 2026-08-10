@@ -24,12 +24,20 @@ class StorageService {
     final json = prefs.getString(_keyPatients);
     if (json == null) return [];
     final list = jsonDecode(json) as List;
-    return list.map((e) => Patient.fromJson(e as Map<String, dynamic>)).toList();
+    final patients = <Patient>[];
+    for (final e in list) {
+      try {
+        patients.add(Patient.fromJson(e as Map<String, dynamic>));
+      } catch (_) {
+        // Skip corrupted patient entries
+      }
+    }
+    return patients;
   }
 
   Future<void> savePatients(List<Patient> patients) async {
     final prefs = await SharedPreferences.getInstance();
-    final json = jsonEncode(patients.map((e) => e.toJson()).toList());
+    final json = jsonEncode(patients.map((e) => e.toJsonWithId()).toList());
     await prefs.setString(_keyPatients, json);
   }
 
@@ -40,7 +48,13 @@ class StorageService {
     final json = prefs.getString(_keyTreatments);
     if (json == null) return [];
     final list = jsonDecode(json) as List;
-    return list.map((e) => Treatment.fromJson(e as Map<String, dynamic>)).toList();
+    final treatments = <Treatment>[];
+    for (final e in list) {
+      try {
+        treatments.add(Treatment.fromJson(e as Map<String, dynamic>));
+      } catch (_) {}
+    }
+    return treatments;
   }
 
   Future<void> saveTreatments(List<Treatment> treatments) async {

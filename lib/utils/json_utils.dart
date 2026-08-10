@@ -1,5 +1,9 @@
 dynamic normalizeJsonKeys(dynamic value) {
   if (value is Map<String, dynamic>) {
+    // Handle paginated wrapper: {"data": [...], "meta": {...}}
+    if (value.containsKey('data') && value['data'] is List) {
+      return normalizeJsonKeys(value['data']);
+    }
     final result = <String, dynamic>{};
     value.forEach((key, val) {
       String camelKey = key.replaceAllMapped(
