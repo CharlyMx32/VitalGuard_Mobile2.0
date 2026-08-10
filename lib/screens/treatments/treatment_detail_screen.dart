@@ -6,21 +6,44 @@ import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../services/treatment_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/patient_current_service.dart';
 import '../../widgets/vital_shimmer.dart';
+import '../../widgets/vital_badge.dart';
 import '../../widgets/vital_empty_state.dart';
+import '../../widgets/vital_header.dart';
 import '../../models/treatment.dart';
 
-class TreatmentDetailScreen extends StatelessWidget {
+class TreatmentDetailScreen extends StatefulWidget {
   const TreatmentDetailScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final treatmentService = context.read<TreatmentService>();
+  State<TreatmentDetailScreen> createState() => _TreatmentDetailScreenState();
+}
+
+class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
+  late Future<List<Treatment>> _treatmentsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTreatments();
+  }
+
+  void _loadTreatments() {
+    final patientCurrent = context.read<PatientCurrentService>();
     final auth = context.read<AuthService>();
+    final treatmentService = context.read<TreatmentService>();
+    final patientId = patientCurrent.patientId ?? auth.patientId;
+    if (patientId == null) return;
+    _treatmentsFuture = treatmentService.getTreatments(patientId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: FutureBuilder(
-        future: treatmentService.getTreatments(auth.patientId),
+        future: _treatmentsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(
@@ -38,7 +61,35 @@ class TreatmentDetailScreen extends StatelessWidget {
           }
           return Column(
             children: [
-              _buildHeader(context),
+              VitalHeader.white(
+                title: 'Detalle del Tratamiento',
+                actions: [
+                    GestureDetector(
+                      onTap: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Eliminar tratamiento'),
+                            content: const Text('¿Estás seguro? Se eliminarán todos los medicamentos y horarios asociados.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar', style: TextStyle(color: AppColors.danger))),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true && context.mounted) {
+                          await context.read<TreatmentService>().deleteTreatment(treatment.id);
+                          if (context.mounted) Navigator.of(context).pop();
+                        }
+                      },
+                      child: const SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Icon(LucideIcons.trash2,
+                              size: 18, color: AppColors.danger)),
+                    ),
+                ],
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
@@ -78,39 +129,6 @@ class TreatmentDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 12,
-        left: 16,
-        right: 16,
-        bottom: 12,
-      ),
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: const SizedBox(
-                width: 32,
-                height: 32,
-                child: Icon(LucideIcons.chevronLeft,
-                    size: 18, color: AppColors.textDark)),
-          ),
-          const Expanded(
-            child: Text('Detalle del Tratamiento',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark)),
-          ),
-          const SizedBox(width: 32),
-        ],
-      ),
-    );
-  }
-
   Widget _buildHeroCard(Treatment treatment) {
     final details = treatment.details ?? [];
     final totalDays = treatment.totalDays;
@@ -129,7 +147,8 @@ class TreatmentDetailScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -147,6 +166,8 @@ class TreatmentDetailScreen extends StatelessWidget {
                   ),
                 ],
               ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -310,19 +331,7 @@ class TreatmentDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.accentLight,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text('Activo',
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.accent)),
-              ),
+              const VitalBadge.completed(label: 'Activo'),
             ],
           ),
           const SizedBox(height: 12),

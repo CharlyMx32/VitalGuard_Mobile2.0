@@ -3,11 +3,14 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
+import '../../widgets/vital_badge.dart';
 import '../../widgets/vital_empty_state.dart';
 import '../../services/treatment_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/patient_current_service.dart';
 import '../../models/treatment.dart';
 import '../../models/enums.dart';
+import '../../widgets/vital_header.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -34,11 +37,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _loadData() async {
     final treatmentService = context.read<TreatmentService>();
+    final patientCurrent = context.read<PatientCurrentService>();
     final auth = context.read<AuthService>();
-    final logs = await treatmentService.getRecentLogs(auth.patientId);
+    final patientId = patientCurrent.patientId ?? auth.patientId;
+    if (patientId == null) return;
+    final logs = await treatmentService.getRecentLogs(patientId);
     double adherence = 0.0;
     try {
-      adherence = await treatmentService.getAdherence(auth.patientId);
+      adherence = await treatmentService.getAdherence(patientId);
     } catch (_) {}
     if (mounted) {
       setState(() {
@@ -56,7 +62,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: AppColors.bg,
       body: Column(
         children: [
-          _buildHeader(context),
+          VitalHeader.white(title: 'Historial'),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 16, bottom: 80),
@@ -73,20 +79,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Row(
-        children: [
-          GestureDetector(onTap: () => Navigator.of(context).pop(), child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: AppColors.textDark))),
-          const Expanded(child: Text('Historial', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark))),
-          const SizedBox(width: 32),
         ],
       ),
     );
@@ -195,7 +187,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(_logStatusLabel(log.status), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+              _logStatusBadge(log.status),
               const SizedBox(height: 2),
               Text(_formatDateTime(log.scheduledDatetime), style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
             ])),
@@ -213,15 +205,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return '${dt.day} ${months[dt.month - 1]} ${dt.year} · $h:$m';
   }
 
-  String _logStatusLabel(LogStatus status) {
-    switch (status) {
-      case LogStatus.confirmado: return 'Dosis confirmada';
-      case LogStatus.retraso: return 'Dosis con retraso';
-      case LogStatus.omitida: return 'Dosis omitida';
-      case LogStatus.pendiente: return 'Dosis pendiente';
-    }
-  }
-
   IconData _logIcon(LogStatus status) {
     switch (status) {
       case LogStatus.confirmado: return LucideIcons.checkCircle;
@@ -237,6 +220,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       case LogStatus.retraso: return AppColors.warning;
       case LogStatus.omitida: return AppColors.dangerDark;
       case LogStatus.pendiente: return AppColors.textMuted;
+    }
+  }
+
+  Widget _logStatusBadge(LogStatus status) {
+    switch (status) {
+      case LogStatus.confirmado: return const VitalBadge.completed(label: 'Dosis confirmada');
+      case LogStatus.retraso: return VitalBadge(label: 'Dosis con retraso', type: BadgeType.warning);
+      case LogStatus.omitida: return const VitalBadge.danger(label: 'Dosis omitida');
+      case LogStatus.pendiente: return const VitalBadge.pending(label: 'Dosis pendiente');
     }
   }
 }

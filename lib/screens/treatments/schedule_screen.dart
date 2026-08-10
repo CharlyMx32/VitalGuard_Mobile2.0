@@ -5,8 +5,11 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../services/treatment_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/patient_current_service.dart';
 import '../../widgets/vital_shimmer.dart';
+import '../../widgets/vital_badge.dart';
 import '../../widgets/vital_empty_state.dart';
+import '../../widgets/patient_selector_header.dart';
 import '../../models/treatment.dart';
 import '../../models/enums.dart';
 
@@ -31,6 +34,21 @@ class ScheduleContent extends StatefulWidget {
 class _ScheduleContentState extends State<ScheduleContent> {
   int _selectedDayIndex = 0;
   int _scheduleRefreshKey = 0;
+  late Future<List<Schedule>> _schedulesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSchedules();
+  }
+
+  void _loadSchedules() {
+    final patientCurrent = context.read<PatientCurrentService>();
+    final auth = context.read<AuthService>();
+    final treatmentService = context.read<TreatmentService>();
+    final selectedDay = _days()[_selectedDayIndex].fullDate;
+    _schedulesFuture = treatmentService.getSchedulesForDay(patientCurrent.patientId ?? auth.patientId ?? 0, selectedDay);
+  }
 
   List<_DayData> _days() {
     final now = DateTime.now();
@@ -52,18 +70,16 @@ class _ScheduleContentState extends State<ScheduleContent> {
 
   @override
   Widget build(BuildContext context) {
-    final treatmentService = context.read<TreatmentService>();
-    final auth = context.read<AuthService>();
-    final patientId = auth.patientId;
-    final selectedDay = _days()[_selectedDayIndex].fullDate;
     return RefreshIndicator(
       onRefresh: () async {
-        final newKey = _scheduleRefreshKey + 1;
-        setState(() => _scheduleRefreshKey = newKey);
+        setState(() {
+          _scheduleRefreshKey++;
+          _loadSchedules();
+        });
       },
       child: FutureBuilder<List<Schedule>>(
         key: ValueKey('schedule_${_selectedDayIndex}_$_scheduleRefreshKey'),
-        future: treatmentService.getSchedulesForDay(patientId, selectedDay),
+        future: _schedulesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(
@@ -80,6 +96,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
             child: Column(
               children: [
                 _buildHeader(context, schedules),
+                const PatientSelectorHeader(),
                 _buildDaySelectorSection(morning, afternoon, evening),
                 const SizedBox(height: 80),
               ],
@@ -131,19 +148,12 @@ class _ScheduleContentState extends State<ScheduleContent> {
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400, color: Colors.white70),
           ),
           const SizedBox(height: 16),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
             children: [
-              _SummaryChip(
-                icon: LucideIcons.checkCircle,
-                label: '$completed completadas',
-                color: Colors.white,
-              ),
-              const SizedBox(width: 12),
-              _SummaryChip(
-                icon: LucideIcons.clock,
-                label: '$pending pendientes',
-                color: Colors.white70,
-              ),
+              VitalBadge.completed(label: '$completed completadas'),
+              VitalBadge.pending(label: '$pending pendientes'),
             ],
           ),
         ],
@@ -216,7 +226,12 @@ class _ScheduleContentState extends State<ScheduleContent> {
         itemBuilder: (context, index) {
           final d = days[index];
           return GestureDetector(
-            onTap: () => setState(() => _selectedDayIndex = index),
+            onTap: () {
+              setState(() {
+                _selectedDayIndex = index;
+                _loadSchedules();
+              });
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 48,
@@ -409,6 +424,25 @@ class _ScheduleContentState extends State<ScheduleContent> {
   }
 
   Future<void> _confirmDose(BuildContext context, Schedule sched) async {
+    final auth = context.read<AuthService>();
+    final isCaregiver = !auth.isSelfCare;
+
+    if (isCaregiver) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Marcar dosis'),
+          content: const Text(
+              'Es preferible que el paciente marque su propia dosis para llevar un seguimiento correcto de adherencia.\n\n¿Deseas marcarla de todos modos?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Marcar de todos modos')),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
     final treatmentService = context.read<TreatmentService>();
     await treatmentService.confirmDose(sched);
     if (!mounted) return;
@@ -430,31 +464,4 @@ class _DayData {
     required this.isSelected,
     required this.fullDate,
   });
-}
-
-class _SummaryChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _SummaryChip({required this.icon, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
 }

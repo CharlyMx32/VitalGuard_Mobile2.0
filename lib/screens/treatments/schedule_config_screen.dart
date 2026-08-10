@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../models/medication.dart';
+import '../../models/treatment.dart';
+import '../../services/treatment_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/patient_current_service.dart';
 import '../../widgets/medication_search_field.dart';
+import '../../widgets/vital_header.dart';
+import '../../widgets/vital_form_field.dart';
+import '../../utils/vital_validator.dart';
 
 class ScheduleConfigScreen extends StatefulWidget {
   const ScheduleConfigScreen({super.key});
@@ -15,18 +23,70 @@ class ScheduleConfigScreen extends StatefulWidget {
 class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   int _selectedType = 0;
   final _doseController = TextEditingController();
+  final _frequencyController = TextEditingController(text: '8');
   int? _compartmentNumber;
   DateTime? _endDate;
   Medication? _selectedMedication;
   int _frequencyHours = 8;
   TimeOfDay _firstTakeTime = const TimeOfDay(hour: 8, minute: 0);
+  Set<int> _occupiedCompartments = {};
+  Set<int> _sessionOccupied = {};
 
-  static const List<int> _frequencyOptions = [3, 5, 6, 7, 8, 10, 12];
+  TreatmentDetail? _editDetail;
+  bool get _isEditing => _editDetail != null;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic>) {
+        _sessionOccupied = (args['occupiedCompartments'] as Set<int>?) ?? {};
+      }
+      _loadOccupiedCompartments();
+      if (args is TreatmentDetail) {
+        _editDetail = args;
+        _doseController.text = args.doseInfo ?? '';
+        _frequencyHours = args.frequencyHours ?? 8;
+        _frequencyController.text = '$_frequencyHours';
+        _compartmentNumber = args.compartmentNumber;
+        _selectedType = args.isExternal == true ? 1 : 0;
+        _firstTakeTime = TimeOfDay(hour: args.firstTakeTime.hour, minute: args.firstTakeTime.minute);
+        if (args.endDate != null) _endDate = args.endDate;
+        setState(() {});
+      }
+    });
+  }
 
   @override
   void dispose() {
     _doseController.dispose();
+    _frequencyController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadOccupiedCompartments() async {
+    final patientCurrent = context.read<PatientCurrentService>();
+    final auth = context.read<AuthService>();
+    final treatmentService = context.read<TreatmentService>();
+    final patientId = patientCurrent.patientId ?? auth.patientId ?? 0;
+    try {
+      final treatments = await treatmentService.getTreatments(patientId);
+      final occupied = <int>{};
+      for (final t in treatments) {
+        for (final d in (t.details ?? [])) {
+          if (d.compartmentNumber != null && d.compartmentNumber! > 0) {
+            occupied.add(d.compartmentNumber!);
+          }
+        }
+      }
+      occupied.addAll(_sessionOccupied);
+      if (mounted) setState(() => _occupiedCompartments = occupied);
+    } catch (_) {
+      if (_sessionOccupied.isNotEmpty) {
+        if (mounted) setState(() => _occupiedCompartments = _sessionOccupied);
+      }
+    }
   }
 
   @override
@@ -35,7 +95,7 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
       backgroundColor: AppColors.bg,
       body: Column(
         children: [
-          _buildHeader(context),
+          VitalHeader.white(title: _isEditing ? 'Editar Medicamento' : 'Agregar Medicamento'),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 16, bottom: 100),
@@ -59,20 +119,6 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Row(
-        children: [
-          GestureDetector(onTap: () => Navigator.of(context).pop(), child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: AppColors.textDark))),
-          const Expanded(child: Text('Agregar Medicamento', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark))),
-          const SizedBox(width: 32),
         ],
       ),
     );
@@ -126,23 +172,18 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
           children: [
             _buildTypeOption(0, LucideIcons.rectangleVertical, 'En pastillero'),
             const SizedBox(width: 8),
-            _buildTypeOption(1, LucideIcons.clock, 'Manual'),
+            _buildTypeOption(1, LucideIcons.clock, 'Fuera del pastillero'),
           ],
         ),
         const SizedBox(height: 12),
         _buildFormLabel('Dosis'),
         const SizedBox(height: 6),
-        TextField(
+        VitalFormField(
+          label: '',
           controller: _doseController,
-          decoration: InputDecoration(
-            hintText: 'Ej: 1 tableta, 5ml',
-            hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
-            filled: true, fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
-          ),
+          hint: 'Ej: 1 tableta, 5ml',
+          validator: VitalValidator.doseInfo,
+          onChanged: (_) => setState(() {}),
         ),
         if (_selectedType == 0) ...[
           const SizedBox(height: 12),
@@ -173,18 +214,84 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   }
 
   Widget _buildCompartmentSelector() {
-    return Container(
-      height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight), borderRadius: BorderRadius.circular(12)),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(_compartmentNumber != null ? 'Compartimento #$_compartmentNumber' : 'Seleccionar',
-          style: TextStyle(fontSize: 14, color: _compartmentNumber != null ? AppColors.textDark : AppColors.textMuted)),
-        PopupMenuButton<int>(
-          icon: const Icon(LucideIcons.chevronDown, size: 16, color: AppColors.textMuted),
-          onSelected: (v) => setState(() => _compartmentNumber = v),
-          itemBuilder: (context) => List.generate(8, (i) => PopupMenuItem(value: i + 1, child: Text('Compartimento #${i + 1}'))),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: List.generate(5, (i) {
+            final num = i + 1;
+            final isOccupied = _occupiedCompartments.contains(num) && _compartmentNumber != num;
+            final isSelected = _compartmentNumber == num;
+            return Expanded(
+              child: GestureDetector(
+                onTap: isOccupied ? null : () => setState(() => _compartmentNumber = num),
+                child: Container(
+                  height: 52,
+                  margin: EdgeInsets.only(right: i < 4 ? 6 : 0),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary
+                        : isOccupied
+                            ? const Color(0xFFFDEAEA)
+                            : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primary
+                          : isOccupied
+                              ? const Color(0xFFE57373)
+                              : AppColors.borderLight,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isOccupied ? LucideIcons.lock : LucideIcons.box,
+                        size: 14,
+                        color: isSelected
+                            ? Colors.white
+                            : isOccupied
+                                ? const Color(0xFFD32F2F)
+                                : AppColors.textMuted,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$num',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected
+                              ? Colors.white
+                              : isOccupied
+                                  ? const Color(0xFFD32F2F)
+                                  : AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
         ),
-      ]),
+        if (_occupiedCompartments.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              children: [
+                Container(width: 8, height: 8, decoration: BoxDecoration(color: const Color(0xFFFDEAEA), borderRadius: BorderRadius.circular(2), border: Border.all(color: const Color(0xFFE57373)))),
+                const SizedBox(width: 4),
+                const Text('Ocupado', style: TextStyle(fontSize: 10, color: Color(0xFFD32F2F))),
+                const SizedBox(width: 12),
+                Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(width: 4),
+                const Text('Seleccionado', style: TextStyle(fontSize: 10, color: AppColors.primary)),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
@@ -213,39 +320,30 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   Widget _buildFrequencySection() {
     return Column(
       children: [
-        _buildFormLabel('Cada cuanto debe tomarse'),
+        _buildFormLabel('Cada cuantas horas'),
         const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _frequencyOptions.map((h) {
-            final selected = _frequencyHours == h;
-            return GestureDetector(
-              onTap: () => setState(() => _frequencyHours = h),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.primary : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: selected ? AppColors.primary : AppColors.borderLight),
-                ),
-                child: Text('Cada $h horas',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: selected ? Colors.white : AppColors.textDark)),
-              ),
-            );
-          }).toList(),
+        VitalFormField(
+          label: '',
+          controller: _frequencyController,
+          hint: 'Ej: 8',
+          validator: VitalValidator.frequencyHours,
+          onChanged: (v) {
+            final n = int.tryParse(v);
+            if (n != null && n > 0 && n <= 72) _frequencyHours = n;
+            setState(() {});
+          },
         ),
         const SizedBox(height: 4),
-        const Align(alignment: Alignment.centerLeft, child: Text('Ej: cada 8 horas = 3 tomas al dia', style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
+        Align(alignment: Alignment.centerLeft, child: Text(
+          _frequencyHours > 0 ? _buildFrequencyText() : 'Ingresa un numero entre 1 y 72',
+          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+        )),
         const SizedBox(height: 16),
         _buildFormLabel('Hora de la primera toma'),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
-            final picked = await showTimePicker(
-              context: context,
-              initialTime: _firstTakeTime,
-            );
+            final picked = await showTimePicker(context: context, initialTime: _firstTakeTime);
             if (picked != null) setState(() => _firstTakeTime = picked);
           },
           child: Container(
@@ -266,6 +364,16 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
     final minute = time.minute.toString().padLeft(2, '0');
     final amPm = time.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $amPm';
+  }
+
+  String _buildFrequencyText() {
+    if (_frequencyHours <= 24) {
+      final tomas = (24 / _frequencyHours).ceil();
+      return 'Cada $_frequencyHours horas = $tomas ${tomas == 1 ? "toma" : "tomas"} al dia';
+    } else {
+      final dias = (_frequencyHours / 24).ceil();
+      return 'Cada $_frequencyHours horas = 1 toma cada $dias ${dias == 1 ? "dia" : "dias"}';
+    }
   }
 
   Widget _buildFooterButtons() {
@@ -291,22 +399,45 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
   }
 
   void _onSave() {
-    if (_selectedMedication == null) {
+    if (_selectedMedication == null && !_isEditing) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Busca y selecciona un medicamento del catalogo'), backgroundColor: AppColors.warning),
       );
       return;
     }
-    Navigator.of(context).pop({
-      'medicationId': _selectedMedication!.id,
-      'medicationName': _selectedMedication!.name,
-      'doseInfo': _doseController.text.trim().isEmpty ? null : _doseController.text.trim(),
-      'frequencyHours': _frequencyHours,
-      'compartmentNumber': _selectedType == 0 ? _compartmentNumber : null,
-      'isExternal': _selectedType == 1,
-      'endDate': _endDate,
-      'firstTakeHour': _firstTakeTime.hour,
-      'firstTakeMinute': _firstTakeTime.minute,
-    });
+    final freq = int.tryParse(_frequencyController.text.trim());
+    if (freq == null || freq < 1 || freq > 72) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La frecuencia debe ser entre 1 y 72 horas'), backgroundColor: AppColors.warning),
+      );
+      return;
+    }
+    _frequencyHours = freq;
+
+    if (_isEditing) {
+      final firstTake = '${_firstTakeTime.hour.toString().padLeft(2, '0')}:${_firstTakeTime.minute.toString().padLeft(2, '0')}';
+      final data = {
+        'doseInfo': _doseController.text.trim().isEmpty ? null : _doseController.text.trim(),
+        'frequencyHours': _frequencyHours,
+        'compartmentNumber': _selectedType == 0 ? _compartmentNumber : null,
+        'isExternal': _selectedType == 1,
+        'firstTakeTime': firstTake,
+      };
+      if (_endDate != null) data['endDate'] = _endDate!.toIso8601String().split('T')[0];
+      context.read<TreatmentService>().updateTreatmentDetail(_editDetail!.id, data);
+      Navigator.of(context).pop(true);
+    } else {
+      Navigator.of(context).pop({
+        'medicationId': _selectedMedication!.id,
+        'medicationName': _selectedMedication!.name,
+        'doseInfo': _doseController.text.trim().isEmpty ? null : _doseController.text.trim(),
+        'frequencyHours': _frequencyHours,
+        'compartmentNumber': _selectedType == 0 ? _compartmentNumber : null,
+        'isExternal': _selectedType == 1,
+        'endDate': _endDate,
+        'firstTakeHour': _firstTakeTime.hour,
+        'firstTakeMinute': _firstTakeTime.minute,
+      });
+    }
   }
 }

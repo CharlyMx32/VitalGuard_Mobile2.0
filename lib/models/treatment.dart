@@ -40,14 +40,14 @@ class Treatment {
 
   factory Treatment.fromJson(Map<String, dynamic> json) {
     return Treatment(
-      id: json['id'] as int,
-      patientId: json['patientId'] as int,
+      id: (json['id'] as int?) ?? 0,
+      patientId: (json['patientId'] as int?) ?? 0,
       appProfileId: json['appProfileId'] as int?,
-      startDate: DateTime.parse(json['startDate'] as String),
+      startDate: DateTime.tryParse(json['startDate'] as String? ?? '') ?? DateTime.now(),
       endDate: json['endDate'] != null
-          ? DateTime.parse(json['endDate'] as String)
+          ? DateTime.tryParse(json['endDate'] as String)
           : null,
-      status: _treatmentStatusFromApi(json['status'] as String),
+      status: _treatmentStatusFromApi(json['status'] as String? ?? 'Activo'),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : null,
@@ -127,9 +127,9 @@ class TreatmentDetail {
 
   factory TreatmentDetail.fromJson(Map<String, dynamic> json) {
     return TreatmentDetail(
-      id: json['id'] as int,
-      treatmentId: json['treatmentId'] as int,
-      medicationId: json['medicationId'] as int,
+      id: (json['id'] as int?) ?? 0,
+      treatmentId: (json['treatmentId'] as int?) ?? 0,
+      medicationId: (json['medicationId'] as int?) ?? 0,
       doseInfo: json['doseInfo'] as String?,
       frequencyHours: json['frequencyHours'] as int?,
       firstTakeTime: DateTime.parse(json['firstTakeTime'] as String),
@@ -221,9 +221,9 @@ class Schedule {
     final medication =
         details is Map<String, dynamic> ? details['medications'] : null;
     return Schedule(
-      id: json['id'] as int,
-      treatmentDetailId: json['treatmentDetailId'] as int,
-      timeOfDay: _parseTime(json['timeOfDay'] as String),
+      id: (json['id'] as int?) ?? 0,
+      treatmentDetailId: (json['treatmentDetailId'] as int?) ?? 0,
+      timeOfDay: _parseTime((json['timeOfDay'] as String?) ?? '08:00'),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : null,

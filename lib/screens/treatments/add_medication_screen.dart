@@ -6,8 +6,11 @@ import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../services/treatment_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/device_service.dart';
+import '../../services/patient_current_service.dart';
 import '../../widgets/vital_empty_state.dart';
 import '../../widgets/vital_modal.dart';
+import '../../widgets/vital_header.dart';
 import '../../models/treatment.dart';
 import '../../models/enums.dart';
 
@@ -23,14 +26,165 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   DateTime? _endDate;
   final List<Map<String, dynamic>> _medications = [];
   bool _isSaving = false;
+  bool _deviceChecked = false;
+  bool _hasDevice = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkDevice());
+  }
+
+  Future<void> _checkDevice() async {
+    final patientCurrent = context.read<PatientCurrentService>();
+    final auth = context.read<AuthService>();
+    final deviceService = context.read<DeviceService>();
+    final patientId = patientCurrent.patientId ?? auth.patientId ?? 0;
+    final device = await deviceService.getPatientDevice(patientId);
+    if (!mounted) return;
+    setState(() {
+      _hasDevice = device != null;
+      _deviceChecked = true;
+    });
+    if (!_hasDevice) {
+      _showNoDeviceDialog();
+    }
+  }
+
+  void _showNoDeviceDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.warningBg,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(LucideIcons.box, size: 32, color: AppColors.warning),
+            ),
+            const SizedBox(height: 16),
+            const Text('Dispositivo no vinculado',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+            const SizedBox(height: 8),
+            const Text(
+              'Para crear tratamientos necesitas vincular un VitalGuard al paciente.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  final patientCurrent = context.read<PatientCurrentService>();
+                  final auth = context.read<AuthService>();
+                  Navigator.pushNamed(context, AppRoutes.linkDevice, arguments: {
+                    'patientId': patientCurrent.patientId ?? auth.patientId,
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text('Vincular dispositivo', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!_deviceChecked) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
+    if (!_hasDevice) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Column(
+          children: [
+            VitalHeader.white(title: 'Crear Tratamiento'),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 80, height: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.warningBg,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Icon(LucideIcons.box, size: 40, color: AppColors.warning),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text('Sin dispositivo vinculado',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Vincula un VitalGuard al paciente para poder crear tratamientos y configurar los compartimentos.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final patientCurrent = context.read<PatientCurrentService>();
+                            final auth = context.read<AuthService>();
+                            Navigator.pushNamed(context, AppRoutes.linkDevice, arguments: {
+                              'patientId': patientCurrent.patientId ?? auth.patientId,
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: const Text('Vincular dispositivo', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: Column(
         children: [
-          _buildHeader(context),
+          VitalHeader.white(title: 'Crear Tratamiento'),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 16, bottom: 100),
@@ -89,20 +243,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Row(
-        children: [
-          GestureDetector(onTap: () => Navigator.of(context).pop(), child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: AppColors.textDark))),
-          const Expanded(child: Text('Crear Tratamiento', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark))),
-          const SizedBox(width: 32),
-        ],
-      ),
-    );
-  }
-
   Widget _buildProgressSection() {
     final progress = _medications.isEmpty ? 0.3 : 0.7;
     return Column(
@@ -147,8 +287,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.borderLight), borderRadius: BorderRadius.circular(12)),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(date != null ? '${date.day} ${_monthName(date.month)} ${date.year}' : 'Seleccionar',
-              style: TextStyle(fontSize: 14, color: date != null ? AppColors.textDark : AppColors.textMuted)),
+            Expanded(
+              child: Text(date != null ? '${date.day} ${_monthName(date.month)} ${date.year}' : 'Seleccionar',
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 14, color: date != null ? AppColors.textDark : AppColors.textMuted)),
+            ),
+            const SizedBox(width: 8),
             const Icon(LucideIcons.calendar, size: 16, color: AppColors.textMuted),
           ]),
         ),
@@ -171,7 +315,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   Widget _buildAddMedButton() {
     return GestureDetector(
       onTap: () async {
-        final result = await Navigator.of(context).pushNamed(AppRoutes.scheduleConfig);
+        final occupied = _medications
+            .where((m) => m['compartmentNumber'] != null && (m['compartmentNumber'] as int) > 0)
+            .map((m) => m['compartmentNumber'] as int)
+            .toSet();
+        final result = await Navigator.of(context).pushNamed(
+          AppRoutes.scheduleConfig,
+          arguments: {'occupiedCompartments': occupied},
+        );
         if (result != null && result is Map<String, dynamic>) {
           setState(() => _medications.add(result));
         }
@@ -215,10 +366,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   Future<void> _onSaveTreatment() async {
     setState(() => _isSaving = true);
     final treatmentService = context.read<TreatmentService>();
+    final patientCurrent = context.read<PatientCurrentService>();
     final auth = context.read<AuthService>();
+    final patientId = patientCurrent.patientId ?? auth.patientId ?? 0;
 
     final treatment = await treatmentService.createTreatment(
-      auth.patientId, _startDate, _endDate,
+      patientId, _startDate, _endDate,
     );
 
     for (final med in _medications) {
