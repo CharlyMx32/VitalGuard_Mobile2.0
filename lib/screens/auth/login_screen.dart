@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:dio/dio.dart';
-import '../../config.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/vital_tap.dart';
 import '../../services/auth_service.dart';
+import '../../services/api_client.dart';
 import '../../services/storage_service.dart';
 import 'vital_id_webview_screen.dart';
 
@@ -205,19 +204,43 @@ class _LoginScreenState extends State<LoginScreen>
                   const SizedBox(height: 16),
 
                   // Register link
-                  RichText(
-                    text: const TextSpan(
-                      style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-                      children: [
-                        TextSpan(text: '¿No tienes cuenta? '),
-                        TextSpan(
-                          text: 'Créala en Vital ID',
-                          style: TextStyle(
-                            color: AppColors.vitalGreen,
-                            fontWeight: FontWeight.w600,
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      PageRouteBuilder(
+                        transitionDuration: const Duration(milliseconds: 400),
+                        pageBuilder: (context, a, b) =>
+                            const VitalIdWebViewScreen(path: '#register'),
+                        transitionsBuilder: (context, animation, c, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.05),
+                                end: Offset.zero,
+                              ).animate(CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              )),
+                              child: child,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    child: RichText(
+                      text: const TextSpan(
+                        style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                        children: [
+                          TextSpan(text: '¿No tienes cuenta? '),
+                          TextSpan(
+                            text: 'Créala en Vital ID',
+                            style: TextStyle(
+                              color: AppColors.vitalGreen,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
 
@@ -266,22 +289,35 @@ class _LoginScreenState extends State<LoginScreen>
                     height: 44,
                     child: OutlinedButton(
                       onPressed: () async {
-                        final dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
+                        final apiClient = context.read<ApiClient>();
                         final authService = context.read<AuthService>();
                         final navigator = Navigator.of(context);
                         final storage = context.read<StorageService>();
                         try {
-                          // Usar vitalId del cuidador de prueba en el seed
-                          final res = await dio.post('/auth/dev-login', data: {
-                            'vitalId': 'a0000000-0000-0000-0000-000000000002',
+                          final res = await apiClient.post('/auth/dev-login', data: {
+                            'vitalId': 'a0000000-0000-0000-0000-000000000001',
                           });
                           final token = res.data['token'] as String;
                           await authService.login(token);
+
+                          final statusRes = await apiClient.get('/auth/check-status');
+                          final statusData = statusRes.data;
+                          if (statusData['hasProfile'] == true) {
+                            final profile = statusData['appProfile'];
+                            final roleName = profile['roleName'] as String;
+                            await authService.setRole(roleName);
+                            await authService.completeProfile(
+                              isSelfCare: roleName == 'PATIENT',
+                            );
+                          } else {
+                            await authService.setRole('CAREGIVER');
+                            await authService.completeProfile(isSelfCare: false);
+                          }
+
                           if (mounted) {
                             navigator.pushReplacementNamed(AppRoutes.dashboard);
                           }
-                        } catch (_) {
-                          // Backend no disponible: login local de respaldo
+                        } catch (e) {
                           await authService.login('dev-local-token');
                           final patients = await storage.loadPatients();
                           if (patients.isNotEmpty) {

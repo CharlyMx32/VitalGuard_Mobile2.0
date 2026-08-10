@@ -7,6 +7,9 @@ import '../../theme/app_colors.dart';
 import '../../services/sos_alarm_audio.dart';
 import '../../services/sos_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/patient_current_service.dart';
+import '../../services/patient_service.dart';
+import '../../models/patient.dart';
 
 class SosAlarmScreen extends StatefulWidget {
   const SosAlarmScreen({super.key});
@@ -22,6 +25,7 @@ class _SosAlarmScreenState extends State<SosAlarmScreen>
   late AnimationController _pulseController;
   bool _badgeVisible = true;
   Timer? _badgeTimer;
+  Patient? _patient;
 
   @override
   void initState() {
@@ -39,15 +43,25 @@ class _SosAlarmScreenState extends State<SosAlarmScreen>
 
     SosAlarmAudio.start();
     HapticFeedback.heavyImpact();
-    _triggerSosEvent();
+    _loadPatientAndTrigger();
   }
 
-  Future<void> _triggerSosEvent() async {
-    final context = this.context;
+  Future<void> _loadPatientAndTrigger() async {
+    if (!mounted) return;
+    final patientCurrent = context.read<PatientCurrentService>();
+    final auth = context.read<AuthService>();
+    final patientId = patientCurrent.patientId ?? auth.patientId ?? 0;
+    if (patientId == 0) return;
+
+    try {
+      final patientService = context.read<PatientService>();
+      final patient = await patientService.getPatient(patientId);
+      if (mounted) setState(() => _patient = patient);
+    } catch (_) {}
+
     if (!mounted) return;
     final sosService = context.read<SosService>();
-    final auth = context.read<AuthService>();
-    await sosService.createSosEvent(auth.patientId);
+    await sosService.createSosEvent(patientId);
   }
 
   @override
@@ -184,6 +198,15 @@ class _SosAlarmScreenState extends State<SosAlarmScreen>
   }
 
   Widget _buildPatientCard() {
+    final p = _patient;
+    String name = 'Paciente';
+    String initials = '?';
+    if (p != null) {
+      name = '${p.firstName} ${p.paternalLastName ?? ''}'.trim();
+      final fn = p.firstName.isNotEmpty ? p.firstName[0] : '';
+      final ln = (p.paternalLastName ?? '').isNotEmpty ? (p.paternalLastName ?? '')[0] : '';
+      initials = '$fn$ln';
+    }
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(20),
@@ -201,27 +224,27 @@ class _SosAlarmScreenState extends State<SosAlarmScreen>
                 colors: [AppColors.primary, Color(0xFF3A7BD5)]),
             shape: BoxShape.circle,
           ),
-          child: const Center(
-              child: Text('JG',
-                  style: TextStyle(
+          child: Center(
+              child: Text(initials.toUpperCase(),
+                  style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                       color: Colors.white))),
         ),
         const SizedBox(width: 14),
-        const Expanded(
+        Expanded(
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              Text('Juan García',
-                  style: TextStyle(
+              Text(name.trim(),
+                  style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: Colors.white)),
-              SizedBox(height: 2),
-              Text('Padre · 68 años',
+              const SizedBox(height: 2),
+              Text(_patient != null ? 'Paciente' : 'Cargando...',
                   style:
-                      TextStyle(fontSize: 13, color: Color(0x80FFFFFF))),
+                      const TextStyle(fontSize: 13, color: Color(0x80FFFFFF))),
             ])),
       ]),
     );
@@ -251,11 +274,11 @@ class _SosAlarmScreenState extends State<SosAlarmScreen>
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              Text('Ubicación actual',
+              Text('Ubicacion actual',
                   style:
                       TextStyle(fontSize: 11, color: Color(0x66FFFFFF))),
               SizedBox(height: 1),
-              Text('Calle Principal 123, San José',
+              Text('Enviando ubicacion del dispositivo...',
                   style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,

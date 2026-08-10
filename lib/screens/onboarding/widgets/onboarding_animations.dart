@@ -116,7 +116,8 @@ class CircleProgressPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CircleProgressPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 class RipplePainter extends CustomPainter {

@@ -34,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _bgController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 7000),
+      duration: const Duration(milliseconds: 3000),
     );
 
     _fadeLogo = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -59,7 +59,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (auth.isLoggedIn) {
         route = auth.isProfileComplete
             ? AppRoutes.dashboard
-            : AppRoutes.completeProfile;
+            : AppRoutes.selectRole;
       } else {
         route = seen ? AppRoutes.login : AppRoutes.onboarding1;
       }
