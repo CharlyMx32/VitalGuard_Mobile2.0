@@ -19,10 +19,34 @@ class SelfCareProfileScreen extends StatefulWidget {
 
 class _SelfCareProfileScreenState extends State<SelfCareProfileScreen> {
   BloodType? _bloodType;
-  final _medicalNotesController = TextEditingController(
-    text: 'Ej: Alergia a la penicilina, presión arterial alta...',
-  );
+  late final TextEditingController _medicalNotesController;
   bool _isSaving = false;
+
+  int? _patientId;
+  String _firstName = '';
+  String _paternalLastName = '';
+  String? _phone;
+  bool _argsRead = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _medicalNotesController = TextEditingController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsRead) return;
+    _argsRead = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      _patientId = args['patientId'] as int?;
+      _firstName = (args['firstName'] as String?) ?? '';
+      _paternalLastName = (args['paternalLastName'] as String?) ?? '';
+      _phone = args['phone'] as String?;
+    }
+  }
 
   @override
   void dispose() {
@@ -112,9 +136,12 @@ class _SelfCareProfileScreenState extends State<SelfCareProfileScreen> {
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('María García', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-            const SizedBox(height: 2),
-            Text('maria.garcia@email.com', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
+            Text(
+              _firstName.isNotEmpty && _paternalLastName.isNotEmpty
+                  ? '$_firstName $_paternalLastName'
+                  : 'Autocuidado',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+            ),
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -219,8 +246,7 @@ class _SelfCareProfileScreenState extends State<SelfCareProfileScreen> {
     final patientService = context.read<PatientService>();
     final auth = context.read<AuthService>();
 
-    final args = ModalRoute.of(context)?.settings.arguments as int?;
-    final patientId = args ?? auth.patientId;
+    final patientId = _patientId ?? auth.patientId ?? 0;
 
     Patient? existing;
     try {
@@ -229,8 +255,7 @@ class _SelfCareProfileScreenState extends State<SelfCareProfileScreen> {
       existing = null;
     }
 
-    final notes = _medicalNotesController.text.trim().isEmpty ||
-            _medicalNotesController.text.trim() == 'Ej: Alergia a la penicilina, presión arterial alta...'
+    final notes = _medicalNotesController.text.trim().isEmpty
         ? null
         : _medicalNotesController.text.trim();
 
@@ -252,11 +277,11 @@ class _SelfCareProfileScreenState extends State<SelfCareProfileScreen> {
     } else {
       final patient = Patient(
         id: DateTime.now().millisecondsSinceEpoch,
-        firstName: 'María',
-        paternalLastName: 'García',
-        maternalLastName: 'Pérez',
+        firstName: _firstName,
+        paternalLastName: _paternalLastName,
         birthDate: DateTime(1985, 1, 1),
         gender: GenderType.f,
+        phone: _phone,
         bloodType: _bloodType,
         medicalNotes: notes,
       );

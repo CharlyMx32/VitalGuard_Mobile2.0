@@ -178,7 +178,7 @@ class _PersonasPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _PersonasPainter old) => old.seed != seed;
 }
 
 class _CartoonPainter extends CustomPainter {
@@ -218,7 +218,7 @@ class _CartoonPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _CartoonPainter old) => old.seed != seed;
 }
 
 class _RobotsPainter extends CustomPainter {
@@ -268,7 +268,7 @@ class _RobotsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _RobotsPainter old) => old.seed != seed;
 }
 
 class _PixelArtPainter extends CustomPainter {
@@ -362,7 +362,7 @@ class _PixelArtPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _PixelArtPainter old) => old.seed != seed;
 }
 
 class _EmojiPainter extends CustomPainter {
@@ -424,7 +424,7 @@ class _EmojiPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _EmojiPainter old) => old.seed != seed;
 }
 
 Gradient _bgGradient(int idx, Size size) {

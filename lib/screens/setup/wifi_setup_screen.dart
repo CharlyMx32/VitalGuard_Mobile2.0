@@ -3,6 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/vital_modal.dart';
+import '../../widgets/vital_form_field.dart';
 
 class WifiSetupScreen extends StatefulWidget {
   const WifiSetupScreen({super.key});
@@ -88,7 +89,9 @@ class _WifiSetupScreenState extends State<WifiSetupScreen> {
           child: completed ? const Icon(LucideIcons.check, size: 14, color: Colors.white) : Center(child: Text('$number', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white))),
         ),
         const SizedBox(width: 10),
-        Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+        Expanded(
+          child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+        ),
       ]),
       Padding(
         padding: const EdgeInsets.only(left: 38),
@@ -131,19 +134,15 @@ class _WifiSetupScreenState extends State<WifiSetupScreen> {
   }
 
   Widget _buildPasswordField() {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-      child: TextField(
-        controller: _passwordController,
-        obscureText: true,
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16),
-          hintText: 'Ingresa la contrasena de tu red',
-          hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
-        ),
-      ),
+    return VitalFormField(
+      label: '',
+      controller: _passwordController,
+      hint: 'Ingresa la contraseña de tu red',
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) return 'La contraseña es requerida';
+        return null;
+      },
+      onChanged: (_) => setState(() {}),
     );
   }
 
@@ -178,8 +177,8 @@ class _WifiSetupScreenState extends State<WifiSetupScreen> {
     if (mounted) {
       VitalFeedback.success(
         context,
-        code: 'WIFI_CONNECTED',
-        message: 'Configuración WiFi guardada correctamente',
+        code: 'WIFI_SAVED',
+        message: 'Credenciales WiFi guardadas. El dispositivo se conectará al reiniciar.',
         onAction: () => Navigator.pop(context),
       );
     }

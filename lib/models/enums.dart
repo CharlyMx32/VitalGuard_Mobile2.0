@@ -76,6 +76,18 @@ enum KinshipType {
     }
   }
 
+  String get displayValue {
+    switch (this) {
+      case KinshipType.madre: return 'Madre';
+      case KinshipType.padre: return 'Padre';
+      case KinshipType.hijoA: return 'Hijo/a';
+      case KinshipType.abueloA: return 'Abuelo/a';
+      case KinshipType.esposoA: return 'Esposo/a';
+      case KinshipType.cuidador: return 'Cuidador';
+      case KinshipType.otro: return 'Otro';
+    }
+  }
+
   static KinshipType fromApi(String value) {
     switch (value) {
       case 'Madre': return KinshipType.madre;
@@ -96,3 +108,29 @@ enum MedicationStatus { enCurso, finalizado }
 enum SosStatus { activo, atendido, falsaAlarma }
 
 enum TreatmentStatus { activo, pausado, finalizado }
+
+enum NotificationType {
+  medicamentoSolicitud,
+  dosisRecordatorio,
+  sosAlerta,
+  sistema;
+
+  String get apiValue {
+    switch (this) {
+      case NotificationType.medicamentoSolicitud: return 'MEDICAMENTO_SOLICITUD';
+      case NotificationType.dosisRecordatorio: return 'DOSIS_RECORDATORIO';
+      case NotificationType.sosAlerta: return 'SOS_ALERTA';
+      case NotificationType.sistema: return 'SISTEMA';
+    }
+  }
+
+  static NotificationType fromApi(String value) {
+    switch (value) {
+      case 'MEDICAMENTO_SOLICITUD': return NotificationType.medicamentoSolicitud;
+      case 'DOSIS_RECORDATORIO': return NotificationType.dosisRecordatorio;
+      case 'SOS_ALERTA': return NotificationType.sosAlerta;
+      case 'SISTEMA': return NotificationType.sistema;
+      default: return NotificationType.sistema;
+    }
+  }
+}

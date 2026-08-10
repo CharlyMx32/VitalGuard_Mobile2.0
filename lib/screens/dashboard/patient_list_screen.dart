@@ -7,6 +7,7 @@ import '../../routes/app_routes.dart';
 import '../../services/patient_service.dart';
 import '../../widgets/vital_shimmer.dart';
 import '../../widgets/vital_empty_state.dart';
+import '../../widgets/vital_search_bar.dart';
 import '../../models/patient.dart';
 
 class PatientListScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
   final _searchController = TextEditingController();
   List<Patient> _allPatients = [];
   List<Patient> _filteredPatients = [];
+  late Future<List<Patient>> _patientsFuture;
 
   static const _avatarGradients = [
     LinearGradient(
@@ -41,6 +43,17 @@ class _PatientListScreenState extends State<PatientListScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadPatients();
+  }
+
+  void _loadPatients() {
+    final patientService = context.read<PatientService>();
+    _patientsFuture = patientService.getPatients();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -59,11 +72,10 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final patientService = context.read<PatientService>();
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: FutureBuilder(
-        future: patientService.getPatients(),
+      body: FutureBuilder<List<Patient>>(
+        future: _patientsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SkeletonList(itemCount: 5);
@@ -165,42 +177,10 @@ class _PatientListScreenState extends State<PatientListScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.bg,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusInput),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  LucideIcons.search,
-                  size: 18,
-                  color: AppColors.textLight,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: _filter,
-                    decoration: const InputDecoration(
-                      hintText: 'Buscar paciente...',
-                      hintStyle: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textPlaceholder,
-                      ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          VitalSearchBar(
+            controller: _searchController,
+            hint: 'Buscar paciente...',
+            onChanged: _filter,
           ),
         ],
       ),

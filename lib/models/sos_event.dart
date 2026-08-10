@@ -21,10 +21,10 @@ class SosEvent {
 
   factory SosEvent.fromJson(Map<String, dynamic> json) {
     return SosEvent(
-      id: json['id'] as int,
-      patientId: json['patientId'] as int,
+      id: (json['id'] as int?) ?? 0,
+      patientId: (json['patientId'] as int?) ?? 0,
       deviceId: json['deviceId'] as int?,
-      status: _sosStatusFromApi(json['status'] as String),
+      status: _sosStatusFromApi(json['status'] as String? ?? 'Activo'),
       resolvingCaregiverId: json['resolvingCaregiverId'] as int?,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)

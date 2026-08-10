@@ -5,23 +5,51 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../services/patient_service.dart';
+import '../../services/caregiver_service.dart';
+import '../../widgets/vital_badge.dart';
 import '../../widgets/vital_charts.dart';
 import '../../widgets/vital_shimmer.dart';
 import '../../widgets/vital_empty_state.dart';
 import '../../models/patient.dart';
+import '../../models/caregiver.dart';
 
-class PatientDetailScreen extends StatelessWidget {
+class PatientDetailScreen extends StatefulWidget {
   const PatientDetailScreen({super.key});
 
   @override
+  State<PatientDetailScreen> createState() => _PatientDetailScreenState();
+}
+
+class _PatientDetailScreenState extends State<PatientDetailScreen> {
+  late Future<Patient?> _patientFuture;
+  bool _futureLoaded = false;
+  List<Caregiver> _caregivers = [];
+  bool _loadingCaregivers = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_futureLoaded) {
+      _futureLoaded = true;
+      final patientService = context.read<PatientService>();
+      final patientId = ModalRoute.of(context)?.settings.arguments as int? ?? 1;
+      _patientFuture = patientService.getPatient(patientId);
+      _loadCaregivers(patientId);
+    }
+  }
+
+  Future<void> _loadCaregivers(int patientId) async {
+    final caregiverService = context.read<CaregiverService>();
+    final caregivers = await caregiverService.getCaregivers(patientId);
+    if (mounted) setState(() { _caregivers = caregivers; _loadingCaregivers = false; });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final patientService = context.read<PatientService>();
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: FutureBuilder(
-        future: patientService.getPatient(
-          ModalRoute.of(context)?.settings.arguments as int? ?? 1,
-        ),
+        future: _patientFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(
@@ -162,32 +190,7 @@ class PatientDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  LucideIcons.circle,
-                  size: 8,
-                  color: Color(0xFF6FCF97),
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'Conectado',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const VitalBadge.info(label: 'Conectado', showDot: true),
         ],
       ),
     );
@@ -202,7 +205,9 @@ class PatientDetailScreen extends StatelessWidget {
         children: [
           _buildStatsGrid(),
           const SizedBox(height: 20),
-          _buildQuickActions(context),
+          _buildQuickActions(context, patient),
+          const SizedBox(height: 20),
+          _buildFamilySection(context, patient),
           const SizedBox(height: 20),
           _buildWeeklyChart(),
           const SizedBox(height: 20),
@@ -306,7 +311,7 @@ class PatientDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, Patient patient) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -343,6 +348,103 @@ class PatientDetailScreen extends StatelessWidget {
           label: 'Alerta SOS',
           onTap: () => Navigator.pushNamed(context, AppRoutes.sosEmergency),
         ),
+      ],
+    );
+  }
+
+  Widget _buildFamilySection(BuildContext context, Patient patient) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Text('Familiares vinculados',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
+                  child: Text(_loadingCaregivers ? '...' : '${_caregivers.length}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                ),
+              ],
+            ),
+            GestureDetector(
+              onTap: () => Navigator.pushNamed(context, AppRoutes.familyMembers, arguments: patient.id),
+              child: const Text('Ver todos',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_loadingCaregivers)
+          const Center(child: Padding(
+            padding: EdgeInsets.all(20),
+            child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
+          ))
+        else if (_caregivers.isEmpty)
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, AppRoutes.sendRequests, arguments: {'patientId': patient.id}),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
+                boxShadow: AppDimensions.cardShadow,
+              ),
+              child: Column(
+                children: [
+                  Container(width: 48, height: 48,
+                    decoration: BoxDecoration(color: AppColors.primaryLight, shape: BoxShape.circle),
+                    child: const Icon(LucideIcons.userPlus, size: 24, color: AppColors.primary)),
+                  const SizedBox(height: 12),
+                  const Text('Vincular cuidador', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                  const SizedBox(height: 4),
+                  const Text('Agrega un cuidador para compartir la gestión de este paciente', textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+            ),
+          )
+        else
+          ..._caregivers.take(3).map((c) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: AppDimensions.cardShadow,
+              ),
+              child: Row(children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(LucideIcons.user, size: 18, color: AppColors.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Cuidador #${c.id}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+                      const SizedBox(height: 2),
+                      Text('Prioridad: ${c.emergencyCallPriority ?? 'Normal'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    ],
+                  ),
+                ),
+                const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
+              ]),
+            ),
+          )),
       ],
     );
   }

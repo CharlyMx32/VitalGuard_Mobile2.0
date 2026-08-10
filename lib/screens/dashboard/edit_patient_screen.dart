@@ -3,13 +3,14 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
-import '../../widgets/vital_input.dart';
+import '../../widgets/vital_form_field.dart';
 import '../../widgets/vital_button.dart';
 import '../../widgets/vital_modal.dart';
 import '../../services/patient_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/patient.dart';
 import '../../models/enums.dart';
+import '../../utils/vital_validator.dart';
 
 class EditPatientScreen extends StatefulWidget {
   const EditPatientScreen({super.key});
@@ -28,10 +29,18 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
   String _tipoSangre = 'O+';
   int? _patientId;
   bool _loading = true;
+  bool _argsRead = false;
 
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsRead) return;
+    _argsRead = true;
     _patientId =
         ModalRoute.of(context)?.settings.arguments as int?;
     _loadPatient();
@@ -40,7 +49,7 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
   Future<void> _loadPatient() async {
     final patientService = context.read<PatientService>();
     final auth = context.read<AuthService>();
-    final id = _patientId ?? auth.patientId;
+    final id = _patientId ?? auth.patientId ?? 0;
     _patientId = id;
     Patient? patient;
     try {
@@ -137,12 +146,25 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
                   actions: [
                     TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
                     TextButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(ctx);
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Paciente eliminado'), backgroundColor: AppColors.dangerDark),
-                        );
+                        if (_patientId == null) return;
+                        final patientService = context.read<PatientService>();
+                        try {
+                          await patientService.deletePatient(_patientId!);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Paciente eliminado'), backgroundColor: AppColors.dangerDark),
+                            );
+                            Navigator.pop(context);
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('No se pudo eliminar. Intenta de nuevo.'), backgroundColor: AppColors.dangerDark),
+                            );
+                          }
+                        }
                       },
                       child: const Text('Eliminar', style: TextStyle(color: AppColors.dangerDark)),
                     ),
@@ -215,7 +237,7 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
     final patientService = context.read<PatientService>();
     final auth = context.read<AuthService>();
     final patients = await patientService.getPatients();
-    final id = _patientId ?? auth.patientId;
+    final id = _patientId ?? auth.patientId ?? 0;
     final existing = patients.where((p) => p.id == id).firstOrNull;
     final bloodType = BloodType.values
         .where((b) => b.displayValue == _tipoSangre)
@@ -252,29 +274,36 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
     }
   }
 
-  Widget _buildForm() {    return Column(
+  Widget _buildForm() {
+    return Column(
       children: [
-        VitalInput(
-          label: 'NOMBRE',
+        VitalFormField(
+          label: 'Nombre',
           controller: _nombreController,
-          hintText: 'Nombre del paciente',
+          hint: 'Nombre del paciente',
+          validator: VitalValidator.firstName,
+          onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 14),
         Row(
           children: [
             Expanded(
-              child: VitalInput(
-                label: 'APELLIDO PATERNO',
+              child: VitalFormField(
+                label: 'Apellido paterno',
                 controller: _apellidoPaternoController,
-                hintText: 'Apellido paterno',
+                hint: 'Apellido paterno',
+                validator: VitalValidator.paternalLastName,
+                onChanged: (_) => setState(() {}),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: VitalInput(
-                label: 'APELLIDO MATERNO',
+              child: VitalFormField(
+                label: 'Apellido materno',
                 controller: _apellidoMaternoController,
-                hintText: 'Apellido materno',
+                hint: 'Apellido materno',
+                validator: VitalValidator.maternalLastName,
+                onChanged: (_) => setState(() {}),
               ),
             ),
           ],
@@ -283,20 +312,22 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
         Row(
           children: [
             Expanded(
-              child: VitalInput(
-                label: 'TELÉFONO',
+              child: VitalFormField(
+                label: 'Telefono',
                 controller: _telefonoController,
-                hintText: 'Teléfono',
-                keyboardType: TextInputType.phone,
+                hint: '10 digitos',
+                inputType: VitalInputType.phone,
+                validator: VitalValidator.phone,
+                onChanged: (_) => setState(() {}),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: VitalInput(
-                label: 'FECHA NACIMIENTO',
-                controller: _fechaNacimientoController,
-                hintText: 'Fecha',
-                readOnly: true,
+              child: VitalFormField(
+                label: 'Fecha nacimiento',
+                inputType: VitalInputType.date,
+                displayValue: _fechaNacimientoController.text.isNotEmpty ? _fechaNacimientoController.text : null,
+                hint: 'Fecha',
                 onTap: () async {
                   final date = await showDatePicker(
                     context: context,
@@ -305,7 +336,9 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
                     lastDate: DateTime.now(),
                   );
                   if (date != null) {
-                    _fechaNacimientoController.text = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                    setState(() {
+                      _fechaNacimientoController.text = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                    });
                   }
                 },
               ),
@@ -313,114 +346,32 @@ class _EditPatientScreenState extends State<EditPatientScreen> {
           ],
         ),
         const SizedBox(height: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'TIPO DE SANGRE',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textLight,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              height: AppDimensions.inputHeight,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: AppColors.bgInput,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusInput),
-                border: Border.all(
-                  width: 1.33,
-                  color: AppColors.borderLight,
+        VitalFormField(
+          label: 'Tipo de sangre',
+          inputType: VitalInputType.dropdown,
+          displayValue: _tipoSangre,
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              builder: (context) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bt) => ListTile(
+                    title: Text(bt),
+                    onTap: () { setState(() => _tipoSangre = bt); Navigator.pop(context); },
+                  )).toList(),
                 ),
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _tipoSangre,
-                  isExpanded: true,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textDark,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'A+', child: Text('A+')),
-                    DropdownMenuItem(value: 'A-', child: Text('A-')),
-                    DropdownMenuItem(value: 'B+', child: Text('B+')),
-                    DropdownMenuItem(value: 'B-', child: Text('B-')),
-                    DropdownMenuItem(value: 'AB+', child: Text('AB+')),
-                    DropdownMenuItem(value: 'AB-', child: Text('AB-')),
-                    DropdownMenuItem(value: 'O+', child: Text('O+')),
-                    DropdownMenuItem(value: 'O-', child: Text('O-')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _tipoSangre = value);
-                    }
-                  },
-                ),
-              ),
-            ),
-          ],
+            );
+          },
         ),
         const SizedBox(height: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'NOTAS MÉDICAS (OPCIONAL)',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textLight,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _notasController,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'Alergias, condiciones médicas, etc.',
-                hintStyle: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textPlaceholder,
-                ),
-                filled: true,
-                fillColor: AppColors.bgInput,
-                contentPadding: const EdgeInsets.all(14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusInput),
-                  borderSide: const BorderSide(
-                    width: 1.33,
-                    color: AppColors.borderLight,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusInput),
-                  borderSide: const BorderSide(
-                    width: 1.33,
-                    color: AppColors.borderLight,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusInput),
-                  borderSide: const BorderSide(
-                    width: 1.33,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textDark,
-              ),
-            ),
-          ],
+        VitalFormField(
+          label: 'Notas medicas (opcional)',
+          controller: _notasController,
+          hint: 'Alergias, condiciones medicas, etc.',
+          validator: VitalValidator.doseInfo,
+          onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 24),
       ],

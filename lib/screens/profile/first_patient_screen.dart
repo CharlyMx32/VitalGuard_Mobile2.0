@@ -30,7 +30,11 @@ class FirstPatientScreen extends StatelessWidget {
                     iconFg: AppColors.primary,
                     name: 'Agregar paciente',
                     desc: 'Registra los datos de la persona que cuidarás',
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.registerPatient),
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.registerPatient,
+                      arguments: {'returnToDashboard': true},
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _buildOptionCard(

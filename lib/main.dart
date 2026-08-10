@@ -14,6 +14,9 @@ import 'services/voice_service.dart';
 import 'services/caregiver_service.dart';
 import 'services/avatar_service.dart';
 import 'services/medication_service.dart';
+import 'services/notification_service.dart';
+import 'services/onboarding_service.dart';
+import 'services/patient_current_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,10 +30,11 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => PatientCurrentService()),
         Provider(create: (_) => StorageService()),
         ProxyProvider<AuthService, ApiClient>(
           create: (context) => ApiClient(context.read<AuthService>()),
-          update: (context, auth, previous) => previous!,
+          update: (context, auth, previous) => previous ?? ApiClient(auth),
         ),
         ProxyProvider2<ApiClient, StorageService, PatientService>(
           update: (context, apiClient, storage, previous) =>
@@ -61,6 +65,14 @@ void main() {
         ProxyProvider2<ApiClient, StorageService, MedicationService>(
           update: (context, apiClient, storage, previous) =>
               previous ?? MedicationService(apiClient, storage),
+        ),
+        ProxyProvider<ApiClient, NotificationService>(
+          update: (context, apiClient, previous) =>
+              previous ?? NotificationService(apiClient),
+        ),
+        ProxyProvider<ApiClient, OnboardingService>(
+          update: (context, apiClient, previous) =>
+              previous ?? OnboardingService(apiClient),
         ),
       ],
       child: const VitalGuardApp(),

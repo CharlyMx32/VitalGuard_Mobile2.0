@@ -8,6 +8,7 @@ import '../../widgets/vital_empty_state.dart';
 import '../../services/caregiver_service.dart';
 import '../../services/sos_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/patient_current_service.dart';
 import '../../models/caregiver.dart';
 import '../../models/sos_event.dart';
 
@@ -34,15 +35,21 @@ class _SosEmergencyScreenState extends State<SosEmergencyScreen>
 
   Future<void> _loadContacts() async {
     final caregiverService = context.read<CaregiverService>();
+    final patientCurrent = context.read<PatientCurrentService>();
     final auth = context.read<AuthService>();
-    final contacts = await caregiverService.getCaregivers(auth.patientId);
+    final patientId = patientCurrent.patientId ?? auth.patientId;
+    if (patientId == null) return;
+    final contacts = await caregiverService.getCaregivers(patientId);
     if (mounted) setState(() { _contacts = contacts; _loadingContacts = false; });
   }
 
   Future<void> _loadActiveEvents() async {
     final sosService = context.read<SosService>();
+    final patientCurrent = context.read<PatientCurrentService>();
     final auth = context.read<AuthService>();
-    final events = await sosService.getActiveSosEvents(auth.patientId);
+    final patientId = patientCurrent.patientId ?? auth.patientId;
+    if (patientId == null) return;
+    final events = await sosService.getActiveSosEvents(patientId);
     if (mounted) setState(() => _activeEvents = events);
   }
 

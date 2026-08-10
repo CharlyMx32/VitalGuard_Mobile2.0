@@ -54,11 +54,13 @@ class Patient {
 
   factory Patient.fromJson(Map<String, dynamic> json) {
     return Patient(
-      id: json['id'] as int,
-      firstName: json['firstName'] as String,
-      paternalLastName: json['paternalLastName'] as String,
+      id: json['id'] as int? ?? 0,
+      firstName: json['firstName'] as String? ?? '',
+      paternalLastName: json['paternalLastName'] as String? ?? '',
       maternalLastName: json['maternalLastName'] as String?,
-      birthDate: DateTime.parse(json['birthDate'] as String),
+      birthDate: json['birthDate'] != null
+          ? DateTime.parse(json['birthDate'] as String)
+          : DateTime(2000),
       gender: json['gender'] == 'M' ? GenderType.m : GenderType.f,
       phone: json['phone'] as String?,
       address: json['address'] as String?,
@@ -86,6 +88,13 @@ class Patient {
       if (address != null) 'address': address,
       if (bloodType != null) 'bloodType': bloodType!.apiValue,
       if (medicalNotes != null) 'medicalNotes': medicalNotes,
+    };
+  }
+
+  Map<String, dynamic> toJsonWithId() {
+    return {
+      'id': id,
+      ...toJson(),
     };
   }
 }

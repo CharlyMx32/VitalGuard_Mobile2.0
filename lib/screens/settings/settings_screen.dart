@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
+import '../../services/auth_service.dart';
 import '../../services/avatar_service.dart';
+import '../../data/avatar_data.dart';
 import '../../widgets/vital_avatar.dart';
+import '../../utils/session_utils.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -87,51 +90,9 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                       ),
                     ]),
                     const SizedBox(height: 20),
-                    _buildSection('Dispositivo', AppColors.accent, [
-                      _SettingsItem(
-                        icon: LucideIcons.monitor,
-                        iconBg: AppColors.primaryLight,
-                        iconFg: AppColors.primary,
-                        label: 'Mi VitalGuard',
-                        description: 'Información del dispositivo',
-                        onTap: () => Navigator.pushNamed(context, AppRoutes.myVitalGuard),
-                      ),
-                      _SettingsItem(
-                        icon: LucideIcons.wifi,
-                        iconBg: AppColors.iconGrayBg,
-                        iconFg: AppColors.iconGrayFg,
-                        label: 'Configurar WiFi',
-                        description: 'Conectar a una red',
-                        onTap: () => Navigator.pushNamed(context, AppRoutes.wifiSetup),
-                      ),
-                    ]),
+                    _buildDeviceSection(context),
                     const SizedBox(height: 20),
-                    _buildSection('Preferencias', AppColors.warning, [
-                      _SettingsItem(
-                        icon: LucideIcons.bell,
-                        iconBg: AppColors.warningBg,
-                        iconFg: AppColors.warning,
-                        label: 'Notificaciones',
-                        description: 'Alertas y recordatorios',
-                        onTap: () => Navigator.pushNamed(context, AppRoutes.notificationsConfig),
-                      ),
-                      _SettingsItem(
-                        icon: LucideIcons.mic,
-                        iconBg: AppColors.accentLight,
-                        iconFg: AppColors.accent,
-                        label: 'Asistente de voz',
-                        description: 'Configurar Alexa',
-                        onTap: () => Navigator.pushNamed(context, AppRoutes.voiceAssistant),
-                      ),
-                      _SettingsItem(
-                        icon: LucideIcons.alertTriangle,
-                        iconBg: AppColors.dangerBg,
-                        iconFg: AppColors.dangerDark,
-                        label: 'Botón SOS',
-                        description: 'Configurar emergencias',
-                        onTap: () => Navigator.pushNamed(context, AppRoutes.sosConfig),
-                      ),
-                    ]),
+                    _buildPreferencesSection(context),
                     const SizedBox(height: 20),
                     _buildSection('Soporte', AppColors.textMuted, [
                       _SettingsItem(
@@ -143,6 +104,8 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                         onTap: () => Navigator.pushNamed(context, AppRoutes.helpSupport),
                       ),
                     ]),
+                    const SizedBox(height: 24),
+                    _buildLogoutButton(),
                   ],
                 ),
               ),
@@ -167,7 +130,15 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
   }
 
   Widget _buildProfileCard() {
-    final avatarConfig = context.watch<AvatarService>().config;
+    final avatarConfig = context.select<AvatarService, AvatarConfig>((s) => s.config);
+    final auth = context.select<AuthService, AuthService>((s) => s);
+    final fullName = [auth.firstName, auth.paternalLastName, auth.maternalLastName]
+        .where((s) => s != null && s.isNotEmpty)
+        .join(' ');
+    final displayName = fullName.isNotEmpty ? fullName : 'Sin perfil';
+    final displayEmail = auth.email ?? '---';
+    final roleLabel = auth.isSelfCare ? 'Autocuidado' : 'Cuidador';
+
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, AppRoutes.myProfile),
       child: Container(
@@ -198,9 +169,9 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('---', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                  Text(displayName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
                   const SizedBox(height: 2),
-                  const Text('---', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                  Text(displayEmail, style: const TextStyle(fontSize: 12, color: Colors.white70)),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -208,7 +179,7 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text('Sin perfil', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
+                    child: Text(roleLabel, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
                   ),
                 ],
               ),
@@ -218,6 +189,97 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
         ),
       ),
     );
+  }
+
+  Widget _buildLogoutButton() {
+    return GestureDetector(
+      onTap: () => confirmAndLogout(context),
+      child: Container(
+        width: double.infinity,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+          boxShadow: AppDimensions.cardShadow,
+          border: Border.all(color: AppColors.dangerBg),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(LucideIcons.logOut, size: 18, color: AppColors.dangerDark),
+            const SizedBox(width: 8),
+            const Text('Cerrar sesión', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.dangerDark)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeviceSection(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    final isSelfCare = auth.isSelfCare;
+
+    if (isSelfCare) {
+      return _buildSection('Dispositivo', AppColors.accent, [
+        _SettingsItem(
+          icon: LucideIcons.monitor,
+          iconBg: AppColors.primaryLight,
+          iconFg: AppColors.primary,
+          label: 'Mi VitalGuard',
+          description: 'Información del dispositivo',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.myVitalGuard),
+        ),
+        _SettingsItem(
+          icon: LucideIcons.wifi,
+          iconBg: AppColors.iconGrayBg,
+          iconFg: AppColors.iconGrayFg,
+          label: 'Configurar WiFi',
+          description: 'Conectar a una red',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.wifiSetup),
+        ),
+      ]);
+    }
+
+    return _buildSection('Dispositivos', AppColors.accent, [
+      _SettingsItem(
+        icon: LucideIcons.monitor,
+        iconBg: AppColors.primaryLight,
+        iconFg: AppColors.primary,
+        label: 'Gestionar dispositivos',
+        description: 'Ver y configurar VitalGuard de cada paciente',
+        onTap: () => Navigator.pushNamed(context, AppRoutes.devices),
+      ),
+    ]);
+  }
+
+  Widget _buildPreferencesSection(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    return _buildSection('Preferencias', AppColors.warning, [
+      _SettingsItem(
+        icon: LucideIcons.bell,
+        iconBg: AppColors.warningBg,
+        iconFg: AppColors.warning,
+        label: 'Notificaciones',
+        description: 'Alertas y recordatorios',
+        onTap: () => Navigator.pushNamed(context, AppRoutes.notificationsConfig),
+      ),
+      _SettingsItem(
+        icon: LucideIcons.mic,
+        iconBg: AppColors.accentLight,
+        iconFg: AppColors.accent,
+        label: 'Asistente de voz',
+        description: 'Configurar Alexa',
+        onTap: () => Navigator.pushNamed(context, AppRoutes.voiceAssistant),
+      ),
+      _SettingsItem(
+        icon: LucideIcons.alertTriangle,
+        iconBg: AppColors.dangerBg,
+        iconFg: AppColors.dangerDark,
+        label: 'Configurar SOS',
+        description: auth.isSelfCare ? 'Configurar emergencias' : 'Seleccionar paciente para configurar SOS',
+        onTap: () => Navigator.pushNamed(context, auth.isSelfCare ? AppRoutes.sosConfig : AppRoutes.sosPatient),
+      ),
+    ]);
   }
 
   Widget _buildSection(String title, Color color, List<Widget> items) {

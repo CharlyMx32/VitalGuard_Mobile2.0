@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../widgets/vital_empty_state.dart';
+import '../../widgets/vital_badge.dart';
+import '../../widgets/vital_header.dart';
 import '../../services/voice_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/patient_current_service.dart';
 import '../../models/voice_message.dart';
 
 class VoiceMessagesScreen extends StatefulWidget {
@@ -27,8 +30,11 @@ class _VoiceMessagesScreenState extends State<VoiceMessagesScreen> {
 
   Future<void> _loadMessages() async {
     final voiceService = context.read<VoiceService>();
+    final patientCurrent = context.read<PatientCurrentService>();
     final auth = context.read<AuthService>();
-    final messages = await voiceService.getVoiceMessages(auth.patientId);
+    final patientId = patientCurrent.patientId ?? auth.patientId;
+    if (patientId == null) return;
+    final messages = await voiceService.getVoiceMessages(patientId);
     if (mounted) setState(() { _messages = messages; _loading = false; });
   }
 
@@ -38,7 +44,7 @@ class _VoiceMessagesScreenState extends State<VoiceMessagesScreen> {
       backgroundColor: AppColors.bg,
       body: Column(
         children: [
-          _buildHeader(context),
+          VitalHeader.white(title: 'Mensajes de Voz'),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 16),
@@ -55,18 +61,6 @@ class _VoiceMessagesScreenState extends State<VoiceMessagesScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Row(children: [
-        GestureDetector(onTap: () => Navigator.of(context).pop(), child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: AppColors.textDark))),
-        const Expanded(child: Text('Mensajes de Voz', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textDark))),
-        const SizedBox(width: 32),
-      ]),
     );
   }
 
@@ -124,7 +118,7 @@ class _VoiceMessagesScreenState extends State<VoiceMessagesScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(msg.isPlayed ?? false ? 'Reproducido' : 'Pendiente', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+              msg.isPlayed ?? false ? const VitalBadge.completed(label: 'Reproducido') : const VitalBadge.pending(label: 'Pendiente'),
               const SizedBox(height: 2),
               Text(_formatDate(msg.createdAt ?? DateTime.now()), style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
             ])),

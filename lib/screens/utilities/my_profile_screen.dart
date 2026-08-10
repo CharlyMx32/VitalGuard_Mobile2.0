@@ -1,49 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
-import '../../services/avatar_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/avatar_service.dart';
+import '../../data/avatar_data.dart';
 import '../../widgets/vital_avatar.dart';
-import '../../widgets/vital_button.dart';
-import '../../widgets/vital_modal.dart';
+import '../../widgets/vital_header.dart';
+import '../../utils/session_utils.dart';
 
 class MyProfileScreen extends StatelessWidget {
   const MyProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    final fullName = [auth.firstName, auth.paternalLastName, auth.maternalLastName]
+        .where((s) => s != null && s.isNotEmpty)
+        .join(' ');
+    final displayName = fullName.isNotEmpty ? fullName : 'Sin perfil';
+    final displayEmail = auth.email ?? '---';
+    final displayPhone = auth.phone ?? '---';
+    final displayBirthDate = _formatDate(auth.birthDate);
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: Column(
         children: [
-          _buildHeader(context),
+          VitalHeader.white(title: 'Mi Perfil'),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 16),
               child: Column(
                 children: [
-                  _buildProfileCard(context),
+                  _buildProfileCard(context, displayName),
                   const SizedBox(height: 20),
                   _buildSectionTitle('Información personal'),
                   const SizedBox(height: 8),
                   _buildInfoGroup([
-                    ('Nombre completo', '---'),
-                    ('Correo electrónico', '---'),
-                    ('Teléfono', '---'),
-                    ('Fecha de nacimiento', '---'),
+                    ('Nombre completo', displayName),
+                    ('Correo electrónico', displayEmail),
+                    ('Teléfono', displayPhone),
+                    ('Fecha de nacimiento', displayBirthDate),
                   ]),
                   const SizedBox(height: 20),
-                  _buildButton('Guardar cambios', AppColors.primary, Colors.white,
-                      onTap: () => VitalFeedback.success(
-                            context,
-                            code: 'PROFILE_SAVED',
-                            message: 'Perfil actualizado correctamente',
-                          )),
-                  const SizedBox(height: 12),
+                  _buildInfoNote(),
+                  const SizedBox(height: 20),
                   _buildButton('Cerrar sesión', Colors.white, AppColors.textDark,
                       border: true, onTap: () => _confirmLogout(context)),
                 ],
@@ -55,20 +59,8 @@ class MyProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Row(children: [
-        GestureDetector(onTap: () => Navigator.of(context).pop(), child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: AppColors.textDark))),
-        const Expanded(child: Text('Mi Perfil', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark))),
-        const SizedBox(width: 32),
-      ]),
-    );
-  }
-
-  Widget _buildProfileCard(BuildContext context) {
-    final avatarConfig = context.watch<AvatarService>().config;
+  Widget _buildProfileCard(BuildContext context, String displayName) {
+    final avatarConfig = context.select<AvatarService, AvatarConfig>((s) => s.config);
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, AppRoutes.avatarPicker),
       child: Container(
@@ -80,10 +72,10 @@ class MyProfileScreen extends StatelessWidget {
             child: Hero(tag: 'avatar_hero', child: VitalAvatar(style: avatarConfig.style, seed: avatarConfig.seed, size: 60)),
           ),
           const SizedBox(width: 14),
-          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Sin perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
-            SizedBox(height: 2),
-            Text('Toca para personalizar', style: TextStyle(fontSize: 12, color: Colors.white70)),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(displayName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+            const SizedBox(height: 2),
+            const Text('Toca para personalizar', style: TextStyle(fontSize: 12, color: Colors.white70)),
           ])),
           const Icon(LucideIcons.chevronRight, size: 18, color: Colors.white54),
         ]),
@@ -110,7 +102,6 @@ class MyProfileScreen extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(item.$2, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
               ])),
-              const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
             ]),
           );
         }),
@@ -118,31 +109,41 @@ class MyProfileScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
-    final auth = context.read<AuthService>();
-    final shouldLogout = await VitalModal.show<bool>(
-      context: context,
-      title: 'Cerrar sesión',
-      description: '¿Seguro que deseas cerrar sesión?',
-      iconType: ModalIconType.warning,
-      icon: LucideIcons.logOut,
-      actions: [
-        VitalButton.ghost(
-          label: 'Cancelar',
-          onPressed: () => Navigator.of(context).pop(false),
-        ),
-        const SizedBox(height: 8),
-        VitalButton(
-          label: 'Cerrar sesión',
-          onPressed: () => Navigator.of(context).pop(true),
-        ),
-      ],
-    );
-    if (shouldLogout == true && context.mounted) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('onboarding_seen', true);
-      await auth.logout();
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '---';
+    try {
+      final date = DateTime.parse(dateStr);
+      const months = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      return '${date.day} ${months[date.month]} ${date.year}';
+    } catch (_) {
+      return dateStr;
     }
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    await confirmAndLogout(context);
+  }
+
+  Widget _buildInfoNote() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(LucideIcons.info, size: 18, color: AppColors.primary),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Tu información personal se administra desde Vital ID.',
+              style: TextStyle(fontSize: 12, color: AppColors.textDark),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildButton(String label, Color bg, Color fg, {bool border = false, VoidCallback? onTap}) {

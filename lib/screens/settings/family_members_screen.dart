@@ -7,7 +7,9 @@ import '../../routes/app_routes.dart';
 import '../../widgets/vital_empty_state.dart';
 import '../../services/caregiver_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/patient_current_service.dart';
 import '../../models/caregiver.dart';
+import '../../widgets/vital_header.dart';
 
 class FamilyMembersScreen extends StatefulWidget {
   const FamilyMembersScreen({super.key});
@@ -19,17 +21,27 @@ class FamilyMembersScreen extends StatefulWidget {
 class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
   List<Caregiver> _caregivers = [];
   bool _loading = true;
+  int? _patientId;
 
   @override
-  void initState() {
-    super.initState();
-    _loadCaregivers();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_patientId == null) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is int) {
+        _patientId = args;
+      } else {
+        final patientCurrent = context.read<PatientCurrentService>();
+        final auth = context.read<AuthService>();
+        _patientId = patientCurrent.patientId ?? auth.patientId;
+      }
+      _loadCaregivers();
+    }
   }
 
   Future<void> _loadCaregivers() async {
     final caregiverService = context.read<CaregiverService>();
-    final auth = context.read<AuthService>();
-    final caregivers = await caregiverService.getCaregivers(auth.patientId);
+    final caregivers = await caregiverService.getCaregivers(_patientId!);
     if (mounted) setState(() { _caregivers = caregivers; _loading = false; });
   }
 
@@ -39,7 +51,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
       backgroundColor: AppColors.bg,
       body: Column(
         children: [
-          _buildHeader(context),
+          VitalHeader.white(title: 'Cuidadores vinculados'),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 16),
@@ -60,20 +72,6 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Row(
-        children: [
-          GestureDetector(onTap: () => Navigator.of(context).pop(), child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.chevronLeft, size: 18, color: AppColors.textDark))),
-          const Expanded(child: Text('Cuidadores', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark))),
-          const SizedBox(width: 32),
         ],
       ),
     );
@@ -130,7 +128,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
 
   Widget _buildAddButton() {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, AppRoutes.sendRequests),
+      onTap: () => Navigator.pushNamed(context, AppRoutes.sendRequests, arguments: {'patientId': _patientId}),
       child: Container(
         width: double.infinity, height: 48,
         decoration: BoxDecoration(border: Border.all(color: AppColors.borderLight, width: 1.5), borderRadius: BorderRadius.circular(16)),
