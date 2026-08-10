@@ -7,15 +7,61 @@ import '../theme/app_colors.dart';
 class VitalBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final bool showPacientes;
 
   const VitalBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.showPacientes = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final items = <_NavItem>[
+      _NavItem(
+        icon: LucideIcons.home,
+        activeIcon: LucideIcons.home,
+        label: 'Inicio',
+        isActive: currentIndex == 0,
+        onTap: () { HapticFeedback.selectionClick(); onTap(0); },
+      ),
+    ];
+
+    if (showPacientes) {
+      items.add(_NavItem(
+        icon: LucideIcons.users,
+        activeIcon: LucideIcons.users,
+        label: 'Pacientes',
+        isActive: currentIndex == 1,
+        onTap: () { HapticFeedback.selectionClick(); onTap(1); },
+      ));
+    }
+
+    items.add(_NavItem(
+      icon: LucideIcons.box,
+      activeIcon: LucideIcons.box,
+      label: 'Pastillero',
+      isActive: currentIndex == (showPacientes ? 2 : 1),
+      onTap: () { HapticFeedback.selectionClick(); onTap(showPacientes ? 2 : 1); },
+    ));
+
+    items.add(_NavItem(
+      icon: LucideIcons.calendar,
+      activeIcon: LucideIcons.calendar,
+      label: 'Horario',
+      isActive: currentIndex == (showPacientes ? 3 : 2),
+      onTap: () { HapticFeedback.selectionClick(); onTap(showPacientes ? 3 : 2); },
+    ));
+
+    items.add(_NavItem(
+      icon: LucideIcons.settings,
+      activeIcon: LucideIcons.settings,
+      label: 'Ajustes',
+      isActive: currentIndex == (showPacientes ? 4 : 3),
+      onTap: () { HapticFeedback.selectionClick(); onTap(showPacientes ? 4 : 3); },
+    ));
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -26,51 +72,10 @@ class VitalBottomNav extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: LucideIcons.home,
-                activeIcon: LucideIcons.home,
-                label: 'Inicio',
-                isActive: currentIndex == 0,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTap(0);
-                },
-              ),
-              _NavItem(
-                icon: LucideIcons.calendar,
-                activeIcon: LucideIcons.calendar,
-                label: 'Horario',
-                isActive: currentIndex == 1,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTap(1);
-                },
-              ),
-              _NavItem(
-                icon: LucideIcons.bookmark,
-                activeIcon: LucideIcons.bookmark,
-                label: 'Tratamientos',
-                isActive: currentIndex == 2,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTap(2);
-                },
-              ),
-              _NavItem(
-                icon: LucideIcons.settings,
-                activeIcon: LucideIcons.settings,
-                label: 'Ajustes',
-                isActive: currentIndex == 3,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTap(3);
-                },
-              ),
-            ],
+            children: items,
           ),
         ),
       ),

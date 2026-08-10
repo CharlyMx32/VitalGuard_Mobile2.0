@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/vital_bottom_nav.dart';
 import '../screens/dashboard/dashboard_screen.dart';
+import '../screens/dashboard/patients_content.dart';
+import '../screens/treatments/dispenser_screen.dart';
 import '../screens/treatments/schedule_screen.dart';
-import '../screens/treatments/medications_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../services/auth_service.dart';
+import '../services/patient_service.dart';
+import '../services/patient_current_service.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -15,15 +20,35 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    DashboardContent(key: ValueKey('dashboard')),
-    ScheduleContent(key: ValueKey('schedule')),
-    MedicationsContent(key: ValueKey('medications')),
-    SettingsContent(key: ValueKey('settings')),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPatients());
+  }
+
+  Future<void> _loadPatients() async {
+    final patientService = context.read<PatientService>();
+    final patientCurrent = context.read<PatientCurrentService>();
+    final patients = await patientService.getPatients();
+    patientCurrent.setPatients(patients);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    final isSelfCare = auth.isSelfCare;
+
+    final pages = <Widget>[
+      const DashboardContent(),
+      if (!isSelfCare) const PatientsContent(),
+      const DispenserContent(),
+      const ScheduleContent(),
+      const SettingsContent(),
+    ];
+
+    final maxIndex = pages.length - 1;
+    final safeIndex = _currentIndex.clamp(0, maxIndex);
+
     return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 280),
@@ -35,18 +60,19 @@ class _MainShellState extends State<MainShell> {
             child: child,
           );
         },
-        child: _pages[_currentIndex],
+        child: pages[safeIndex],
       ),
       bottomNavigationBar: VitalBottomNav(
-        currentIndex: _currentIndex,
+        currentIndex: safeIndex,
+        showPacientes: !isSelfCare,
         onTap: (index) {
           if (index != _currentIndex) {
-            setState(() => _currentIndex = index);
+            setState(() {
+              _currentIndex = index;
+            });
           }
         },
       ),
     );
   }
 }
-
-

@@ -16,6 +16,7 @@ import '../screens/auth/login_screen.dart';
 
 // ── Profile ──
 import '../screens/profile/complete_profile_screen.dart';
+import '../screens/profile/select_role_screen.dart';
 import '../screens/profile/first_patient_screen.dart';
 import '../screens/profile/self_care_profile_screen.dart';
 
@@ -53,6 +54,8 @@ import '../screens/settings/my_vitalguard_screen.dart';
 import '../screens/settings/notifications_config_screen.dart';
 import '../screens/settings/voice_assistant_screen.dart';
 import '../screens/settings/sos_config_screen.dart';
+import '../screens/settings/sos_patient_screen.dart';
+import '../screens/settings/devices_screen.dart';
 import '../screens/settings/help_support_screen.dart';
 import '../screens/settings/family_members_screen.dart';
 import '../screens/settings/security_settings_screen.dart';
@@ -85,6 +88,7 @@ class AppRoutes {
   static const String login = '/login';
 
   static const String completeProfile = '/profile/complete';
+  static const String selectRole = '/profile/select-role';
   static const String firstPatient = '/profile/first-patient';
   static const String selfCareProfile = '/profile/self-care';
 
@@ -112,11 +116,12 @@ class AppRoutes {
   static const String selfCare = '/utilities/self-care';
   static const String myProfile = '/utilities/profile';
 
-  static const String settings = '/settings';
   static const String myVitalGuard = '/settings/my-vitalguard';
   static const String notificationsConfig = '/settings/notifications';
   static const String voiceAssistant = '/settings/voice-assistant';
   static const String sosConfig = '/settings/sos';
+  static const String sosPatient = '/settings/sos-patient';
+  static const String devices = '/settings/devices';
   static const String helpSupport = '/settings/help';
   static const String familyMembers = '/settings/family';
   static const String securitySettings = '/settings/security';
@@ -145,6 +150,7 @@ class AppRoutes {
       case vitalIdSecurity: page = const VitalIdSecurityScreen(); break;
       case login: page = const LoginScreen(); break;
       case completeProfile: page = const CompleteProfileScreen(); break;
+      case selectRole: page = const SelectRoleScreen(); break;
       case firstPatient: page = const FirstPatientScreen(); break;
       case selfCareProfile: page = const SelfCareProfileScreen(); break;
       case linkDevice: page = const LinkDeviceScreen(); break;
@@ -152,8 +158,7 @@ class AppRoutes {
       case registerPatient: page = const RegisterPatientScreen(); break;
       case sendRequests: page = const SendRequestsScreen(); break;
       case dashboard:
-      case medications:
-      case settings: page = const MainShell(); break;
+      case medications: page = const MainShell(); break;
       case patientList: page = const PatientListScreen(); break;
       case patientDetail: page = const PatientDetailScreen(); break;
       case editPatient: page = const EditPatientScreen(); break;
@@ -172,6 +177,8 @@ class AppRoutes {
       case notificationsConfig: page = const NotificationsConfigScreen(); break;
       case voiceAssistant: page = const VoiceAssistantScreen(); break;
       case sosConfig: page = const SosConfigScreen(); break;
+      case sosPatient: page = const SosPatientScreen(); break;
+      case devices: page = const DevicesScreen(); break;
       case helpSupport: page = const HelpSupportScreen(); break;
       case familyMembers: page = const FamilyMembersScreen(); break;
       case securitySettings: page = const SecuritySettingsScreen(); break;
