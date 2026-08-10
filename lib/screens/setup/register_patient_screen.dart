@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
+import '../../routes/app_routes.dart';
 import '../../services/patient_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/patient.dart';
 import '../../models/enums.dart';
 import '../../widgets/vital_modal.dart';
+import '../../widgets/vital_form_field.dart';
+import '../../utils/vital_validator.dart';
 
 class RegisterPatientScreen extends StatefulWidget {
   const RegisterPatientScreen({super.key});
@@ -25,6 +28,7 @@ class _RegisterPatientScreenState extends State<RegisterPatientScreen> {
   DateTime? _birthDate;
   GenderType _gender = GenderType.m;
   BloodType? _bloodType;
+  KinshipType _kinship = KinshipType.otro;
   bool _isSaving = false;
 
   @override
@@ -37,6 +41,8 @@ class _RegisterPatientScreenState extends State<RegisterPatientScreen> {
     _medicalNotesController.dispose();
     super.dispose();
   }
+
+  bool get _isProfileComplete => context.read<AuthService>().isProfileComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -94,12 +100,34 @@ class _RegisterPatientScreenState extends State<RegisterPatientScreen> {
   Widget _buildForm() {
     return Column(children: [
       Row(children: [
-        Expanded(child: _buildField('Nombre', _nameController, 'Nombre')),
+        Expanded(
+          child: VitalFormField(
+            label: 'Nombre',
+            controller: _nameController,
+            hint: 'Nombre',
+            validator: VitalValidator.firstName,
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _buildField('Apellido paterno', _lastNameController, 'Apellido')),
+        Expanded(
+          child: VitalFormField(
+            label: 'Apellido paterno',
+            controller: _lastNameController,
+            hint: 'Apellido',
+            validator: VitalValidator.paternalLastName,
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
       ]),
       const SizedBox(height: 14),
-      _buildField('Apellido materno (opcional)', _maternalLastNameController, 'Apellido materno'),
+      VitalFormField(
+        label: 'Apellido materno (opcional)',
+        controller: _maternalLastNameController,
+        hint: 'Apellido materno',
+        validator: VitalValidator.maternalLastName,
+        onChanged: (_) => setState(() {}),
+      ),
       const SizedBox(height: 14),
       Row(children: [
         Expanded(child: _buildDateField()),
@@ -107,98 +135,131 @@ class _RegisterPatientScreenState extends State<RegisterPatientScreen> {
         Expanded(child: _buildGenderField()),
       ]),
       const SizedBox(height: 14),
-      _buildField('Telefono (opcional)', _phoneController, 'Ej: +52 55 1234 5678'),
+      VitalFormField(
+        label: 'Telefono (opcional)',
+        controller: _phoneController,
+        hint: '10 digitos',
+        inputType: VitalInputType.phone,
+        validator: VitalValidator.phone,
+        onChanged: (_) => setState(() {}),
+      ),
       const SizedBox(height: 14),
-      _buildField('Direccion (opcional)', _addressController, 'Calle y numero'),
+      VitalFormField(
+        label: 'Direccion (opcional)',
+        controller: _addressController,
+        hint: 'Calle y numero',
+        validator: VitalValidator.address,
+        onChanged: (_) => setState(() {}),
+      ),
       const SizedBox(height: 14),
       _buildBloodTypeField(),
       const SizedBox(height: 14),
-      _buildField('Notas medicas (opcional)', _medicalNotesController, 'Enfermedades cronicas, alergias...'),
-    ]);
-  }
-
-  Widget _buildField(String label, TextEditingController controller, String hint) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted, letterSpacing: 0.5)),
-      const SizedBox(height: 5),
-      Container(
-        height: 48,
-        decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-        child: TextField(
-          controller: controller,
-          decoration: InputDecoration(border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 14), hintText: hint, hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
-        ),
+      _buildKinshipField(),
+      const SizedBox(height: 14),
+      VitalFormField(
+        label: 'Notas medicas (opcional)',
+        controller: _medicalNotesController,
+        hint: 'Enfermedades cronicas, alergias...',
+        validator: VitalValidator.doseInfo,
+        onChanged: (_) => setState(() {}),
       ),
     ]);
   }
 
   Widget _buildDateField() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('FECHA NACIMIENTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted, letterSpacing: 0.5)),
-      const SizedBox(height: 5),
-      GestureDetector(
-        onTap: () async {
-          final picked = await showDatePicker(context: context, initialDate: _birthDate ?? DateTime(2000), firstDate: DateTime(1900), lastDate: DateTime.now());
-          if (picked != null) setState(() => _birthDate = picked);
-        },
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-          child: Row(children: [
-            const SizedBox(width: 14),
-            Expanded(child: Text(
-              _birthDate != null ? '${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}' : 'DD/MM/AAAA',
-              style: TextStyle(fontSize: 14, color: _birthDate != null ? AppColors.textDark : AppColors.textMuted),
-            )),
-            const Icon(LucideIcons.calendar, size: 16, color: AppColors.textMuted),
-            const SizedBox(width: 14),
-          ]),
-        ),
-      ),
-    ]);
+    return VitalFormField(
+      label: 'Fecha nacimiento',
+      inputType: VitalInputType.date,
+      displayValue: _birthDate != null
+          ? '${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}'
+          : null,
+      hint: 'DD/MM/AAAA',
+      validator: VitalValidator.birthDate,
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _birthDate ?? DateTime(2000),
+          firstDate: DateTime(1900),
+          lastDate: DateTime.now(),
+        );
+        if (picked != null) {
+          setState(() => _birthDate = picked);
+        }
+      },
+    );
   }
 
   Widget _buildGenderField() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('GENERO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted, letterSpacing: 0.5)),
-      const SizedBox(height: 5),
-      Container(
-        height: 48,
-        decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-        child: Row(children: [
-          const SizedBox(width: 14),
-          Expanded(child: Text(_gender == GenderType.m ? 'Masculino' : 'Femenino', style: const TextStyle(fontSize: 14, color: AppColors.textDark))),
-          PopupMenuButton<GenderType>(
-            icon: const Icon(LucideIcons.chevronDown, size: 16, color: AppColors.textMuted),
-            onSelected: (v) => setState(() => _gender = v),
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: GenderType.m, child: Text('Masculino')),
-              const PopupMenuItem(value: GenderType.f, child: Text('Femenino')),
-            ],
+    return VitalFormField(
+      label: 'Genero',
+      inputType: VitalInputType.dropdown,
+      displayValue: _gender == GenderType.m ? 'Masculino' : 'Femenino',
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('Masculino'),
+                  onTap: () { setState(() => _gender = GenderType.m); Navigator.pop(context); },
+                ),
+                ListTile(
+                  title: const Text('Femenino'),
+                  onTap: () { setState(() => _gender = GenderType.f); Navigator.pop(context); },
+                ),
+              ],
+            ),
           ),
-        ]),
-      ),
-    ]);
+        );
+      },
+    );
   }
 
   Widget _buildBloodTypeField() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('TIPO DE SANGRE (OPCIONAL)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted, letterSpacing: 0.5)),
-      const SizedBox(height: 5),
-      Container(
-        height: 48,
-        decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
-        child: Row(children: [
-          const SizedBox(width: 14),
-          Expanded(child: Text(_bloodType?.displayValue ?? 'Seleccionar', style: TextStyle(fontSize: 14, color: _bloodType != null ? AppColors.textDark : AppColors.textMuted))),
-          PopupMenuButton<BloodType>(
-            icon: const Icon(LucideIcons.chevronDown, size: 16, color: AppColors.textMuted),
-            onSelected: (v) => setState(() => _bloodType = v),
-            itemBuilder: (context) => BloodType.values.map((bt) => PopupMenuItem(value: bt, child: Text(bt.displayValue))).toList(),
+    return VitalFormField(
+      label: 'Tipo de sangre (opcional)',
+      inputType: VitalInputType.dropdown,
+      displayValue: _bloodType?.displayValue,
+      hint: 'Seleccionar',
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: BloodType.values.map((bt) => ListTile(
+                title: Text(bt.displayValue),
+                onTap: () { setState(() => _bloodType = bt); Navigator.pop(context); },
+              )).toList(),
+            ),
           ),
-        ]),
-      ),
-    ]);
+        );
+      },
+    );
+  }
+
+  Widget _buildKinshipField() {
+    return VitalFormField(
+      label: 'Parentesco',
+      inputType: VitalInputType.dropdown,
+      displayValue: _kinship.displayValue,
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: KinshipType.values.map((k) => ListTile(
+                title: Text(k.displayValue),
+                onTap: () { setState(() => _kinship = k); Navigator.pop(context); },
+              )).toList(),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildFooter(BuildContext context) {
@@ -217,56 +278,78 @@ class _RegisterPatientScreenState extends State<RegisterPatientScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Text('Completar despues', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
-        ),
+        if (!_isProfileComplete) ...[
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const Text('Completar despues', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          ),
+        ],
       ]),
     );
   }
 
   Future<void> _onSave() async {
-    if (_nameController.text.trim().isEmpty || _lastNameController.text.trim().isEmpty) {
+    // Run all validators
+    final nameErr = VitalValidator.firstName(_nameController.text);
+    final lastErr = VitalValidator.paternalLastName(_lastNameController.text);
+    final birthErr = VitalValidator.birthDate(null);
+    final phoneErr = VitalValidator.phone(_phoneController.text);
+
+    if (nameErr != null || lastErr != null || birthErr != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El nombre y apellido son obligatorios'), backgroundColor: AppColors.warning),
+        const SnackBar(content: Text('Completa los campos obligatorios'), backgroundColor: AppColors.warning),
       );
       return;
     }
-    if (_birthDate == null) {
+    if (phoneErr != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La fecha de nacimiento es obligatoria'), backgroundColor: AppColors.warning),
+        SnackBar(content: Text(phoneErr), backgroundColor: AppColors.warning),
       );
       return;
     }
+
     setState(() => _isSaving = true);
 
     final patientService = context.read<PatientService>();
     final auth = context.read<AuthService>();
+    final phoneDigits = _phoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
 
     final patient = Patient(
-      id: DateTime.now().millisecondsSinceEpoch,
+      id: 0,
       firstName: _nameController.text.trim(),
       paternalLastName: _lastNameController.text.trim(),
       maternalLastName: _maternalLastNameController.text.trim().isEmpty ? null : _maternalLastNameController.text.trim(),
       birthDate: _birthDate!,
       gender: _gender,
-      phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      phone: phoneDigits.isEmpty ? null : phoneDigits,
       address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
       bloodType: _bloodType,
       medicalNotes: _medicalNotesController.text.trim().isEmpty ? null : _medicalNotesController.text.trim(),
     );
 
-    final saved = await patientService.createPatient(patient);
-    await auth.setPatientId(saved.id);
+    try {
+      final saved = await patientService.createPatient(patient, kinship: _kinship);
+      await auth.setPatientId(saved.id);
 
-    if (mounted) {
+      if (!mounted) return;
+      final args = ModalRoute.of(context)?.settings.arguments;
+      final returnToDashboard = args is Map ? (args['returnToDashboard'] as bool? ?? false) : false;
       VitalFeedback.success(
         context,
         code: 'PATIENT_CREATED',
         message: 'Paciente ${saved.fullName} registrado correctamente',
-        onAction: () => Navigator.pop(context),
+        onAction: () => returnToDashboard
+            ? Navigator.pushNamedAndRemoveUntil(context, AppRoutes.dashboard, (route) => false)
+            : Navigator.pop(context),
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al guardar: ${e.toString()}'), backgroundColor: AppColors.danger),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 }
