@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
+import '../../services/auth_service.dart';
+import '../../services/alexa_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../widgets/vital_modal.dart';
@@ -14,6 +17,8 @@ class VoiceAssistantScreen extends StatefulWidget {
 
 class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
   bool _enabled = false;
+  bool _isLinked = false;
+  bool _isLoading = false;
 
   final _commands = [
     '"Alexa, toma mis medicamentos"',
@@ -21,6 +26,80 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
     '"Alexa, reportar que tomé mi pastilla"',
     '"Alexa, llamar a mi cuidador"',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLinkStatus();
+  }
+
+  Future<void> _loadLinkStatus() async {
+    final linked = await AlexaService.isAlexaLinked();
+    if (mounted) {
+      setState(() => _isLinked = linked);
+    }
+  }
+
+  Future<void> _onVinculateAlexa() async {
+    final auth = context.read<AuthService>();
+    final token = auth.token;
+
+    if (token == null) {
+      if (!mounted) return;
+      VitalFeedback.info(
+        context,
+        code: 'ALEXA_NO_TOKEN',
+        title: 'Sesión requerida',
+        message: 'Inicia sesión para vincular Alexa.',
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await AlexaService.startLinking(accessToken: token);
+
+      if (!mounted) return;
+
+      if (result.success) {
+        setState(() {
+          _isLinked = true;
+          _enabled = true;
+        });
+        VitalFeedback.info(
+          context,
+          code: 'ALEXA_LINK_SUCCESS',
+          title: 'Alexa vinculada',
+          message: 'Tu cuenta de Alexa ha sido vinculada exitosamente.',
+        );
+      } else if (result.error == 'user_cancelled') {
+        VitalFeedback.info(
+          context,
+          code: 'ALEXA_LINK_CANCELLED',
+          title: 'Vinculación cancelada',
+          message: 'No se completó la vinculación con Alexa.',
+        );
+      } else {
+        VitalFeedback.info(
+          context,
+          code: 'ALEXA_LINK_ERROR',
+          title: 'Error de vinculación',
+          message: 'No se pudo vincular Alexa. Intenta de nuevo.',
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      VitalFeedback.info(
+        context,
+        code: 'ALEXA_LINK_ERROR',
+        title: 'Error inesperado',
+        message: 'Ocurrió un error al vincular Alexa.',
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +156,14 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
           const SizedBox(height: 12),
           const Text('Amazon Alexa', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark)),
           const SizedBox(height: 4),
-          const Text('No vinculado', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          Text(
+            _isLinked ? 'Vinculado' : 'No vinculado',
+            style: TextStyle(
+              fontSize: 12,
+              color: _isLinked ? AppColors.accent : AppColors.textMuted,
+              fontWeight: _isLinked ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
           const SizedBox(height: 12),
           const Text('El mensaje se reproducirá por el altavoz del pastillero',
             textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
@@ -147,19 +233,69 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
   }
 
   Widget _buildLinkButton() {
+    if (_isLinked) {
+      return GestureDetector(
+        onTap: _onDesvincularAlexa,
+        child: Container(
+          width: double.infinity, height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.danger, width: 1.5),
+          ),
+          child: const Center(
+            child: Text('Desvincular Alexa', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.danger)),
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
-      onTap: () => VitalFeedback.info(
-        context,
-        code: 'ALEXA_LINK_STARTED',
-        title: 'Vincular dispositivo Alexa',
-        message: 'Para vincular Amazon Alexa, descarga la skill de VitalGuard en la app de Alexa '
-            'y sigue los pasos de la skill con tu cuenta VitalGuard.',
-      ),
+      onTap: _isLoading ? null : _onVinculateAlexa,
       child: Container(
         width: double.infinity, height: 44,
-        decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
-        child: const Center(child: Text('Vincular dispositivo Alexa', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
+        decoration: BoxDecoration(
+          color: _isLoading ? AppColors.primary.withValues(alpha: 0.6) : AppColors.primary,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: _isLoading
+            ? const SizedBox(
+                width: 20, height: 20,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+            : const Text('Vincular dispositivo Alexa', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+        ),
       ),
     );
+  }
+
+  Future<void> _onDesvincularAlexa() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Desvincular Alexa'),
+        content: const Text('¿Estás seguro de que deseas desvincular Alexa?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Desvincular', style: TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await AlexaService.setAlexaLinked(false);
+      setState(() {
+        _isLinked = false;
+        _enabled = false;
+      });
+      if (!mounted) return;
+      VitalFeedback.info(
+        context,
+        code: 'ALEXA_UNLINKED',
+        title: 'Alexa desvinculada',
+        message: 'Alexa ha sido desvinculada de tu cuenta.',
+      );
+    }
   }
 }

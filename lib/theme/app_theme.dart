@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,7 +16,9 @@ class AppTheme {
       useMaterial3: true,
       fontFamily: GoogleFonts.inter().fontFamily,
       brightness: brightness,
-      scaffoldBackgroundColor: isDark ? const Color(0xFF0F1419) : AppColors.bgSecondary,
+      scaffoldBackgroundColor: isDark
+          ? const Color(0xFF0F1419)
+          : AppColors.bgSecondary,
       colorScheme: isDark
           ? const ColorScheme.dark(
               primary: Color(0xFF6BA3E8),
@@ -45,10 +48,14 @@ class AppTheme {
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        foregroundColor: isDark ? const Color(0xFFE2E8F0) : AppColors.textPrimary,
+        foregroundColor: isDark
+            ? const Color(0xFFE2E8F0)
+            : AppColors.textPrimary,
         elevation: 0,
         centerTitle: true,
-        systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+        systemOverlayStyle: isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -64,24 +71,22 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: isDark ? const Color(0xFF94A3B8) : AppColors.textMuted,
+          foregroundColor: isDark
+              ? const Color(0xFF94A3B8)
+              : AppColors.textMuted,
           minimumSize: const Size(double.infinity, 48),
-          side: BorderSide(color: isDark ? const Color(0xFF334155) : AppColors.borderLight),
+          side: BorderSide(
+            color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -107,10 +112,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            width: 1.33,
-            color: AppColors.primary,
-          ),
+          borderSide: const BorderSide(width: 1.33, color: AppColors.primary),
         ),
         hintStyle: TextStyle(
           fontSize: 14,

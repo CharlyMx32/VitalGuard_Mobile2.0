@@ -24,7 +24,9 @@ class DeviceService {
       if (response.data == null) return null;
       final data = response.data;
       if (data is! Map<String, dynamic>) {
-        debugPrint('[DeviceService] getPatientDevice: unexpected response type: ${data.runtimeType}, data: $data');
+        debugPrint(
+          '[DeviceService] getPatientDevice: unexpected response type: ${data.runtimeType}, data: $data',
+        );
         return null;
       }
       final normalized = normalizeJsonKeys(data) as Map<String, dynamic>;
@@ -41,14 +43,15 @@ class DeviceService {
 
   Future<Device> saveDeviceByCode(String code, {int? patientId}) async {
     try {
-      final response = await _client.post('/devices/vincular', data: {
-        'deviceId': code,
-        if (patientId != null) 'patientId': patientId,
-      });
+      final response = await _client.post(
+        '/devices/vincular',
+        data: {'deviceId': code, 'patientId': ?patientId},
+      );
       debugPrint('[DeviceService] vincular response: ${response.data}');
       final data = response.data;
       if (data is Map<String, dynamic> && data['device'] is Map) {
-        final normalized = normalizeJsonKeys(data['device']) as Map<String, dynamic>;
+        final normalized =
+            normalizeJsonKeys(data['device']) as Map<String, dynamic>;
         final device = Device.fromJson(normalized);
         _cached = device;
         await _storage.saveDevice(device);
@@ -56,7 +59,9 @@ class DeviceService {
       }
       throw Exception('Respuesta inesperada del servidor');
     } on DioException catch (e) {
-      debugPrint('[DeviceService] vincular error: ${e.response?.statusCode} ${e.response?.data}');
+      debugPrint(
+        '[DeviceService] vincular error: ${e.response?.statusCode} ${e.response?.data}',
+      );
       rethrow;
     }
   }

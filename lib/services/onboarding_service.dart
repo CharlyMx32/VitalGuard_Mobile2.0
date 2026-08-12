@@ -17,26 +17,30 @@ class OnboardingService {
     String? medicalNotes,
     String? kinship,
   }) async {
-    final response = await _client.post('/app-profiles/onboarding', data: {
-      'role': 'PATIENT',
-      'patientData': {
-        'firstName': firstName,
-        'paternalLastName': paternalLastName,
-        if (maternalLastName != null) 'maternalLastName': maternalLastName,
-        'birthDate': birthDate.toIso8601String().split('T')[0],
-        'gender': gender == GenderType.m ? 'M' : 'F',
-        if (bloodType != null) 'bloodType': bloodType.apiValue,
-        if (medicalNotes != null) 'medicalNotes': medicalNotes,
+    final response = await _client.post(
+      '/app-profiles/onboarding',
+      data: {
+        'role': 'PATIENT',
+        'patientData': {
+          'firstName': firstName,
+          'paternalLastName': paternalLastName,
+          'maternalLastName': ?maternalLastName,
+          'birthDate': birthDate.toIso8601String().split('T')[0],
+          'gender': gender == GenderType.m ? 'M' : 'F',
+          if (bloodType != null) 'bloodType': bloodType.apiValue,
+          'medicalNotes': ?medicalNotes,
+        },
+        'kinship': ?kinship,
       },
-      if (kinship != null) 'kinship': kinship,
-    });
+    );
     return OnboardingResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<OnboardingResponse> completeOnboardingAsCaregiver() async {
-    final response = await _client.post('/app-profiles/onboarding', data: {
-      'role': 'CAREGIVER',
-    });
+    final response = await _client.post(
+      '/app-profiles/onboarding',
+      data: {'role': 'CAREGIVER'},
+    );
     return OnboardingResponse.fromJson(response.data as Map<String, dynamic>);
   }
 }

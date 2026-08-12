@@ -59,7 +59,7 @@ class PatientService {
 
   Future<Patient> updatePatient(Patient patient) async {
     try {
-      await _client.put('/patients/${patient.id}', data: patient.toJson());
+      await _client.patch('/patients/${patient.id}', data: patient.toJson());
     } on DioException {
       // persistir localmente si el backend no esta disponible
     }

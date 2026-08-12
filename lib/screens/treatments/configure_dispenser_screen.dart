@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
@@ -14,7 +14,8 @@ class ConfigureDispenserScreen extends StatefulWidget {
   const ConfigureDispenserScreen({super.key});
 
   @override
-  State<ConfigureDispenserScreen> createState() => _ConfigureDispenserScreenState();
+  State<ConfigureDispenserScreen> createState() =>
+      _ConfigureDispenserScreenState();
 }
 
 class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
@@ -39,7 +40,9 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
     final patientCurrent = context.read<PatientCurrentService>();
     final auth = context.read<AuthService>();
     final treatmentService = context.read<TreatmentService>();
-    _treatmentsFuture = treatmentService.getTreatments(patientCurrent.patientId ?? auth.patientId ?? 0);
+    _treatmentsFuture = treatmentService.getTreatments(
+      patientCurrent.patientId ?? auth.patientId ?? 0,
+    );
   }
 
   @override
@@ -60,17 +63,27 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
               VitalHeader.white(title: 'Configurar Pastillero'),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal) + const EdgeInsets.only(top: 16, bottom: 80),
+                  padding:
+                      const EdgeInsets.symmetric(
+                        horizontal: AppDimensions.paddingHorizontal,
+                      ) +
+                      const EdgeInsets.only(top: 16, bottom: 80),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildDispenserVisual(allDetails),
                       const SizedBox(height: 20),
-                      _buildSectionHeader('Selecciona un medicamento de tu tratamiento', ''),
+                      _buildSectionHeader(
+                        'Selecciona un medicamento de tu tratamiento',
+                        '',
+                      ),
                       const SizedBox(height: 4),
                       const Text(
                         'Solo puedes asignar medicamentos que ya estén en tu tratamiento activo.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       _buildTreatmentsList(allDetails),
@@ -80,7 +93,8 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
                         const SizedBox(height: 8),
                         _buildCompartmentSelector(),
                       ],
-                      if (_selectedDetailId != null && _selectedCompartment != null) ...[
+                      if (_selectedDetailId != null &&
+                          _selectedCompartment != null) ...[
                         const SizedBox(height: 16),
                         _buildAssignButton(),
                       ],
@@ -118,21 +132,22 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
           final isSelected = _selectedCompartment == compartment;
           final color = _compartmentColors[compartment]!;
           return Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             margin: const EdgeInsets.symmetric(horizontal: 3),
             decoration: BoxDecoration(
               color: isSelected
                   ? AppColors.primary
                   : isOccupied
-                      ? color.withValues(alpha: 0.12)
-                      : Colors.white,
+                  ? color.withValues(alpha: 0.12)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
                     ? AppColors.primary
                     : isOccupied
-                        ? color.withValues(alpha: 0.4)
-                        : AppColors.borderLight,
+                    ? color.withValues(alpha: 0.4)
+                    : AppColors.borderLight,
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -145,8 +160,8 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
                   color: isSelected
                       ? Colors.white
                       : isOccupied
-                          ? color
-                          : AppColors.textMuted,
+                      ? color
+                      : AppColors.textMuted,
                 ),
               ),
             ),
@@ -157,13 +172,26 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
   }
 
   Widget _buildSectionHeader(String title, String subtitle) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textDark)),
-      if (subtitle.isNotEmpty) ...[
-        const SizedBox(height: 2),
-        Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textDark,
+          ),
+        ),
+        if (subtitle.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+          ),
+        ],
       ],
-    ]);
+    );
   }
 
   Widget _buildTreatmentsList(List<TreatmentDetail> allDetails) {
@@ -177,7 +205,11 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
         ),
         child: Row(
           children: [
-            const Icon(LucideIcons.alertTriangle, size: 18, color: AppColors.warning),
+            const Icon(
+              LucideIcons.alertTriangle,
+              size: 18,
+              color: AppColors.warning,
+            ),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
@@ -201,27 +233,34 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
         shrinkWrap: true,
         padding: const EdgeInsets.symmetric(vertical: 4),
         itemCount: allDetails.length,
-        separatorBuilder: (_, _i) => const Divider(height: 1, indent: 16, endIndent: 16),
+        separatorBuilder: (_, i) =>
+            const Divider(height: 1, indent: 16, endIndent: 16),
         itemBuilder: (context, index) {
           final detail = allDetails[index];
           final isSelected = _selectedDetailId == detail.id;
-          final alreadyAssigned = detail.compartmentNumber != null && detail.compartmentNumber! > 0;
-          final compartmentColor = alreadyAssigned ? _compartmentColors[detail.compartmentNumber] : null;
+          final alreadyAssigned =
+              detail.compartmentNumber != null && detail.compartmentNumber! > 0;
+          final compartmentColor = alreadyAssigned
+              ? _compartmentColors[detail.compartmentNumber]
+              : null;
 
           return InkWell(
-            onTap: alreadyAssigned ? null : () {
-              setState(() {
-                _selectedDetailId = detail.id;
-                _selectedCompartment = null;
-              });
-            },
+            onTap: alreadyAssigned
+                ? null
+                : () {
+                    setState(() {
+                      _selectedDetailId = detail.id;
+                      _selectedCompartment = null;
+                    });
+                  },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               color: isSelected ? AppColors.primaryLight : null,
               child: Row(
                 children: [
                   Container(
-                    width: 36, height: 36,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: alreadyAssigned
                           ? compartmentColor!.withValues(alpha: 0.12)
@@ -231,49 +270,74 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
                     child: Icon(
                       alreadyAssigned ? LucideIcons.check : LucideIcons.pill,
                       size: 16,
-                      color: alreadyAssigned ? compartmentColor : AppColors.primary,
+                      color: alreadyAssigned
+                          ? compartmentColor
+                          : AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        detail.medication?.name ?? 'Medicamento',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: alreadyAssigned ? AppColors.textMuted : AppColors.textDark,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      if (alreadyAssigned)
-                        Row(
-                          children: [
-                            Container(
-                              width: 6, height: 6,
-                              decoration: BoxDecoration(color: compartmentColor, borderRadius: BorderRadius.circular(3)),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Compartimento #${detail.compartmentNumber}',
-                              style: TextStyle(fontSize: 11, color: compartmentColor, fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        )
-                      else
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          '${detail.doseInfo ?? "Sin dosis"} · Cada ${detail.frequencyHours}h',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                          detail.medication?.name ?? 'Medicamento',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: alreadyAssigned
+                                ? AppColors.textMuted
+                                : AppColors.textDark,
+                          ),
                         ),
-                    ],
-                  )),
+                        const SizedBox(height: 2),
+                        if (alreadyAssigned)
+                          Row(
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: compartmentColor,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Compartimento #${detail.compartmentNumber}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: compartmentColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          Text(
+                            '${detail.doseInfo ?? "Sin dosis"} · Cada ${detail.frequencyHours}h',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                   if (isSelected)
-                    const Icon(LucideIcons.checkCircle, size: 18, color: AppColors.primary)
+                    const Icon(
+                      LucideIcons.checkCircle,
+                      size: 18,
+                      color: AppColors.primary,
+                    )
                   else if (alreadyAssigned)
                     Icon(LucideIcons.check, size: 16, color: compartmentColor)
                   else
-                    const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
+                    const Icon(
+                      LucideIcons.chevronRight,
+                      size: 16,
+                      color: AppColors.textMuted,
+                    ),
                 ],
               ),
             ),
@@ -321,16 +385,22 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
 
   Widget _buildAssignButton() {
     return SizedBox(
-      width: double.infinity, height: 48,
+      width: double.infinity,
+      height: 48,
       child: ElevatedButton(
         onPressed: _onAssign,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 0,
         ),
-        child: const Text('Asignar al compartimento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        child: const Text(
+          'Asignar al compartimento',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
@@ -340,7 +410,10 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
       onTap: () => Navigator.pushNamed(context, AppRoutes.addMedication),
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.circular(10),
+        ),
         child: Row(
           children: [
             const Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
@@ -348,10 +421,18 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
             const Expanded(
               child: Text(
                 '¿No tienes tratamientos? Crear uno nuevo',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.primary),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primary,
+                ),
               ),
             ),
-            const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.primary),
+            const Icon(
+              LucideIcons.chevronRight,
+              size: 16,
+              color: AppColors.primary,
+            ),
           ],
         ),
       ),
@@ -364,7 +445,9 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
     // TODO: Llamar al backend para actualizar el treatment_detail con el compartment_number
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Medicamento asignado al compartimento #$_selectedCompartment'),
+        content: Text(
+          'Medicamento asignado al compartimento #$_selectedCompartment',
+        ),
         backgroundColor: AppColors.accent,
       ),
     );

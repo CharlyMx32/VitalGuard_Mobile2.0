@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme/app_colors.dart';
 
 typedef ValidatorFn = String? Function(String? value);
@@ -102,7 +102,7 @@ class _VitalFormFieldState extends State<VitalFormField> {
   }
 
   bool get _isValid {
-    if (widget.validator == null) return false;
+    if (widget.validator == null) return true;
     return widget.validator!(_currentValue) == null;
   }
 

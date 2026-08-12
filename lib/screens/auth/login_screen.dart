@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
@@ -295,7 +295,7 @@ class _LoginScreenState extends State<LoginScreen>
                         final storage = context.read<StorageService>();
                         try {
                           final res = await apiClient.post('/auth/dev-login', data: {
-                            'vitalId': 'a0000000-0000-0000-0000-000000000001',
+                            'vitalId': 'a0000000-0000-0000-0000-000000000002',
                           });
                           final token = res.data['token'] as String;
                           await authService.login(token);

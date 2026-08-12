@@ -39,8 +39,8 @@ class VitalHeader extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.actions,
     this.height,
-  })  : colored = false,
-        gradient = null;
+  }) : colored = false,
+       gradient = null;
 
   @override
   Size get preferredSize => Size.fromHeight(height ?? (colored ? 160 : 100));
@@ -85,9 +85,7 @@ class VitalHeader extends StatelessWidget implements PreferredSizeWidget {
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: AppColors.border, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
       ),
       child: Row(
         children: [
@@ -109,7 +107,7 @@ class VitalHeader extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-          if (actions != null) ...actions!,
+          ...?actions,
           if (actions == null) const SizedBox(width: 40),
         ],
       ),
