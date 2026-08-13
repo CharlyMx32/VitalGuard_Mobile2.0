@@ -293,7 +293,9 @@ class _RegisterPatientScreenState extends State<RegisterPatientScreen> {
     // Run all validators
     final nameErr = VitalValidator.firstName(_nameController.text);
     final lastErr = VitalValidator.paternalLastName(_lastNameController.text);
-    final birthErr = VitalValidator.birthDate(null);
+    final birthErr = VitalValidator.birthDate(
+      _birthDate != null ? _birthDate!.toIso8601String().split('T')[0] : null,
+    );
     final phoneErr = VitalValidator.phone(_phoneController.text);
 
     if (nameErr != null || lastErr != null || birthErr != null) {

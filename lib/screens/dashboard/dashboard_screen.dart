@@ -458,7 +458,7 @@ class _DashboardContentState extends State<DashboardContent>
       {bool isSelfCare = false}) {
     final items = treatments
         .expand((t) => t.details ?? [])
-        .expand((d) => d.schedules ?? [])
+        .expand((d) => (d.schedules ?? []).map((s) => (schedule: s, detail: d)))
         .take(5)
         .toList();
     return Column(
@@ -486,18 +486,18 @@ class _DashboardContentState extends State<DashboardContent>
         ),
         const SizedBox(height: 12),
         if (items.isNotEmpty)
-          ...items.map((s) => _TimelineItem(
-                time: s.timeDisplay,
-                label: s.medicationName ?? 'Dosis',
-                dose: s.doseInfo ?? '',
-                isCompleted: s.logs?.any((l) => l.status == LogStatus.confirmado) ?? false,
+          ...items.map((e) => _TimelineItem(
+                time: e.schedule.timeDisplay,
+                label: e.detail.medication?.name ?? e.schedule.medicationName ?? 'Dosis',
+                dose: e.detail.doseInfo ?? e.schedule.doseInfo ?? '',
+                isCompleted: e.schedule.logs?.any((l) => l.status == LogStatus.confirmado) ?? false,
                 onMarkTaken: !isSelfCare
                     ? null
-                    : (s.logs?.any((l) => l.status == LogStatus.confirmado) ?? false)
+                    : (e.schedule.logs?.any((l) => l.status == LogStatus.confirmado) ?? false)
                         ? null
                         : () async {
                             final svc = context.read<TreatmentService>();
-                            await svc.confirmDose(s);
+                            await svc.confirmDose(e.schedule);
                             if (mounted) setState(() {});
                           },
               ))
@@ -913,7 +913,7 @@ class _TimelineItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final circleColor = isCompleted ? AppColors.accent : AppColors.warning;
+    final completed = isCompleted;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -923,16 +923,19 @@ class _TimelineItem extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  width: isCompleted ? 16 : 14,
-                  height: isCompleted ? 16 : 14,
+                  width: completed ? 20 : 14,
+                  height: completed ? 20 : 14,
                   margin: const EdgeInsets.only(top: 4),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: circleColor,
+                    color: completed ? AppColors.accent : AppColors.warning,
+                    border: completed
+                        ? null
+                        : Border.all(color: AppColors.warning, width: 3),
                   ),
-                  child: isCompleted
+                  child: completed
                       ? const Icon(LucideIcons.check,
-                          size: 10, color: Colors.white)
+                          size: 12, color: Colors.white)
                       : null,
                 ),
                 Expanded(
@@ -946,47 +949,110 @@ class _TimelineItem extends StatelessWidget {
           ),
           Expanded(
             child: Container(
-              margin: const EdgeInsets.only(bottom: 4),
+              margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: completed
+                      ? AppColors.accent.withValues(alpha: 0.4)
+                      : AppColors.borderLight,
+                ),
                 boxShadow: AppDimensions.cardShadow,
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(label,
-                          style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textDark)),
-                      const SizedBox(height: 2),
-                      Text(dose,
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.textMuted)),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: completed
+                                  ? AppColors.textMuted
+                                  : AppColors.textDark,
+                              decoration: completed
+                                  ? TextDecoration.lineThrough
+                                  : null),
+                        ),
+                        const SizedBox(height: 4),
+                        if (dose.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(dose,
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary)),
+                          ),
+                        if (completed) ...[
+                          const SizedBox(height: 4),
+                          const Text('Tomada',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.accent)),
+                        ],
+                      ],
+                    ),
                   ),
-                  const Spacer(),
-                  if (!isCompleted && onMarkTaken != null)
-                    GestureDetector(
-                      onTap: onMarkTaken,
-                      child: Container(
-                        width: 28, height: 28,
-                        decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(LucideIcons.check, size: 14, color: AppColors.primary),
-                      ),
+                  const SizedBox(width: 10),
+                  if (!completed && onMarkTaken != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        GestureDetector(
+                          onTap: onMarkTaken,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(LucideIcons.check,
+                                size: 18, color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(time,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.warning)),
+                      ],
                     )
                   else
-                    Text(time,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: completed
+                            ? AppColors.accent.withValues(alpha: 0.12)
+                            : AppColors.warning.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        time,
                         style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: isCompleted
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: completed
                                 ? AppColors.accent
-                                : AppColors.warning)),
+                                : AppColors.warning),
+                      ),
+                    ),
                 ],
               ),
             ),
