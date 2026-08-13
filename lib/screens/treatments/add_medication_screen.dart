@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:dio/dio.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
@@ -28,6 +29,21 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   bool _isSaving = false;
   bool _deviceChecked = false;
   bool _hasDevice = false;
+  int _step = 0;
+
+  List<DateTime> _computeScheduleTimes(Map<String, dynamic> med) {
+    final frequencyHours = med['frequencyHours'] as int? ?? 8;
+    final hour = med['firstTakeHour'] as int? ?? 8;
+    final minute = med['firstTakeMinute'] as int? ?? 0;
+    final firstTake = DateTime(
+      _startDate.year, _startDate.month, _startDate.day, hour, minute,
+    );
+    final count = frequencyHours >= 24 ? 1 : 24 ~/ frequencyHours;
+    return List.generate(
+      count,
+      (i) => firstTake.add(Duration(hours: frequencyHours * i)),
+    );
+  }
 
   @override
   void initState() {
@@ -193,20 +209,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 children: [
                   _buildProgressSection(),
                   const SizedBox(height: 16),
-                  _buildDateFields(),
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('Medicamentos del tratamiento', '${_medications.length} agregados'),
-                  const SizedBox(height: 8),
-                  if (_medications.isEmpty)
-                    const VitalEmptyState(
-                      icon: LucideIcons.pill,
-                      title: 'Sin medicamentos',
-                      description: 'Busca los medicamentos en el catalogo\ny agregalos a tu tratamiento.',
-                    )
-                  else
-                    ..._medications.asMap().entries.map((e) => _buildMedItem(e.key, e.value)),
-                  const SizedBox(height: 8),
-                  _buildAddMedButton(),
+                  if (_step == 0) _buildDateFields(),
+                  if (_step == 1) _buildMedicationsSection(),
+                  if (_step == 2) _buildHorariosSection(),
                   const SizedBox(height: 16),
                   _buildFooterButtons(),
                 ],
@@ -216,6 +221,95 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildMedicationsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Medicamentos del tratamiento', '${_medications.length} agregados'),
+        const SizedBox(height: 8),
+        if (_medications.isEmpty)
+          const VitalEmptyState(
+            icon: LucideIcons.pill,
+            title: 'Sin medicamentos',
+            description: 'Busca los medicamentos en el catalogo\ny agregalos a tu tratamiento.',
+          )
+        else
+          ..._medications.asMap().entries.map((e) => _buildMedItem(e.key, e.value)),
+        const SizedBox(height: 8),
+        _buildAddMedButton(),
+      ],
+    );
+  }
+
+  Widget _buildHorariosSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Horarios generados', '${_computeScheduleCount()} dosis'),
+        const SizedBox(height: 8),
+        if (_medications.isEmpty)
+          const VitalEmptyState(
+            icon: LucideIcons.clock,
+            title: 'Sin horarios',
+            description: 'Agrega medicamentos para generar sus horarios.',
+          )
+        else
+          ..._medications.asMap().entries.map((e) => _buildScheduleItem(e.key, e.value)),
+      ],
+    );
+  }
+
+  int _computeScheduleCount() {
+    var count = 0;
+    for (final med in _medications) {
+      count += _computeScheduleTimes(med).length;
+    }
+    return count;
+  }
+
+  Widget _buildScheduleItem(int index, Map<String, dynamic> med) {
+    final times = _computeScheduleTimes(med);
+    final frequencyHours = med['frequencyHours'] as int? ?? 8;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
+              child: const Icon(LucideIcons.pill, size: 20, color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(med['medicationName'] as String, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+              Text('Cada $frequencyHours horas', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            ])),
+          ]),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: times.map((t) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(8)),
+              child: Text(_formatTimeOfDay(t), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
+            )).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTimeOfDay(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   Widget _buildMedItem(int index, Map<String, dynamic> med) {
@@ -244,17 +338,23 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }
 
   Widget _buildProgressSection() {
-    final progress = _medications.isEmpty ? 0.3 : 0.7;
+    final value = switch (_step) {
+      0 => 0.3,
+      1 => 0.7,
+      _ => 1.0,
+    };
+    Color labelColor(int step) =>
+        _step >= step ? AppColors.primary : AppColors.textMuted;
     return Column(
       children: [
         ClipRRect(borderRadius: BorderRadius.circular(2),
-          child: LinearProgressIndicator(value: progress, minHeight: 4, backgroundColor: AppColors.borderLight, valueColor: const AlwaysStoppedAnimation(AppColors.primary)),
+          child: LinearProgressIndicator(value: value, minHeight: 4, backgroundColor: AppColors.borderLight, valueColor: const AlwaysStoppedAnimation(AppColors.primary)),
         ),
         const SizedBox(height: 8),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Text('Tratamiento', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.primary)),
-          Text('Medicamentos', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: _medications.isNotEmpty ? AppColors.primary : AppColors.textMuted)),
-          const Text('Horarios', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textMuted)),
+          Text('Tratamiento', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: labelColor(0))),
+          Text('Medicamentos', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: labelColor(1))),
+          Text('Horarios', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: labelColor(2))),
         ]),
       ],
     );
@@ -340,23 +440,33 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }
 
   Widget _buildFooterButtons() {
+    final canContinue = _step == 0 || _medications.isNotEmpty;
+    final primaryLabel = switch (_step) {
+      0 => 'Continuar a medicamentos',
+      1 => 'Continuar a horarios',
+      _ => 'Guardar Tratamiento',
+    };
     return Column(
       children: [
         SizedBox(width: double.infinity, height: 48,
           child: ElevatedButton(
-            onPressed: _medications.isEmpty ? null : _onSaveTreatment,
+            onPressed: canContinue
+                ? (_step == 2 ? _onSaveTreatment : () => setState(() => _step++))
+                : null,
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0, disabledBackgroundColor: AppColors.borderLight),
             child: _isSaving
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Guardar Tratamiento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                : Text(primaryLabel, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
           ),
         ),
         const SizedBox(height: 12),
         SizedBox(width: double.infinity, height: 48,
           child: OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: _step > 0
+                ? () => setState(() => _step--)
+                : () => Navigator.of(context).pop(),
             style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: const BorderSide(color: AppColors.borderLight), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: const Text('Cancelar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            child: Text(_step > 0 ? 'Atrás' : 'Cancelar', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           ),
         ),
       ],
@@ -370,48 +480,56 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     final auth = context.read<AuthService>();
     final patientId = patientCurrent.patientId ?? auth.patientId ?? 0;
 
-    final treatment = await treatmentService.createTreatment(
-      patientId, _startDate, _endDate,
-    );
-
-    for (final med in _medications) {
-      final firstTakeHour = med['firstTakeHour'] as int? ?? 8;
-      final firstTakeMinute = med['firstTakeMinute'] as int? ?? 0;
-      final firstTake = DateTime(
-        _startDate.year, _startDate.month, _startDate.day, firstTakeHour, firstTakeMinute,
+    try {
+      final treatment = await treatmentService.createTreatment(
+        patientId, _startDate, _endDate,
       );
-      final frequencyHours = med['frequencyHours'] as int? ?? 8;
-      final detail = TreatmentDetail(
-        id: DateTime.now().millisecondsSinceEpoch + med.hashCode,
-        treatmentId: treatment.id,
-        medicationId: med['medicationId'] as int? ?? 0,
-        doseInfo: med['doseInfo'] as String?,
-        frequencyHours: frequencyHours,
-        firstTakeTime: firstTake,
-        endDate: med['endDate'] as DateTime?,
-        status: MedicationStatus.enCurso,
-        compartmentNumber: med['compartmentNumber'] as int?,
-        isExternal: med['isExternal'] as bool?,
-      );
-      final saved = await treatmentService.addDetail(treatment.id, detail);
 
-      if (saved.id != 0) {
-        for (var i = 0; i < 24 ~/ frequencyHours; i++) {
+      for (final med in _medications) {
+        final frequencyHours = med['frequencyHours'] as int? ?? 8;
+        final times = _computeScheduleTimes(med);
+        final detail = TreatmentDetail(
+          id: 0,
+          treatmentId: treatment.id,
+          medicationId: med['medicationId'] as int? ?? 0,
+          doseInfo: med['doseInfo'] as String?,
+          frequencyHours: frequencyHours,
+          firstTakeTime: times.isNotEmpty ? times.first : DateTime(_startDate.year, _startDate.month, _startDate.day),
+          endDate: med['endDate'] as DateTime?,
+          status: MedicationStatus.enCurso,
+          compartmentNumber: med['compartmentNumber'] as int?,
+          isExternal: med['isExternal'] as bool?,
+        );
+        final saved = await treatmentService.addDetail(treatment.id, detail);
+
+        for (final t in times) {
           await treatmentService.addSchedule(Schedule(
-            id: DateTime.now().millisecondsSinceEpoch + med.hashCode + i,
+            id: 0,
             treatmentDetailId: saved.id,
-            timeOfDay: firstTake.add(Duration(hours: frequencyHours * i)),
+            timeOfDay: t,
           ));
         }
       }
-    }
 
-    if (mounted) {
-      VitalFeedback.success(
-        context,
-        message: 'Tratamiento guardado correctamente',
-        onAction: () => Navigator.of(context).pop(),
-      );
+      if (mounted) {
+        VitalFeedback.success(
+          context,
+          message: 'Tratamiento guardado correctamente',
+          onAction: () => Navigator.of(context).pop(),
+        );
+      }
+    } on DioException {
+      if (mounted) {
+        VitalFeedback.error(
+          context,
+          message:
+              'No se pudo guardar el tratamiento. Verifica tu conexión a internet e inténtalo de nuevo.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 }

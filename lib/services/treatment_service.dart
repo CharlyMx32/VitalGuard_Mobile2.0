@@ -227,48 +227,29 @@ class TreatmentService {
 
   Future<Treatment> createTreatment(int patientId, DateTime startDate, DateTime? endDate) async {
     final treatment = Treatment(
-      id: DateTime.now().millisecondsSinceEpoch,
+      id: 0,
       patientId: patientId,
       startDate: startDate,
       endDate: endDate,
       status: TreatmentStatus.activo,
       createdAt: DateTime.now(),
     );
-    try {
-      final response = await _client.post('/treatments', data: treatment.toJson());
-      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
-      final saved = Treatment.fromJson(normalized);
-      final cached = await _loadTreatmentsCache();
-      cached.add(saved);
-      await _storage.saveTreatments(cached);
-      _cachedTreatments = cached;
-      return saved;
-    } on DioException {
-      List<Treatment> cached;
-      try {
-        cached = await _loadTreatmentsCache();
-      } catch (_) {
-        cached = [];
-        _cachedTreatments = cached;
-      }
-      cached.add(treatment);
-      await _storage.saveTreatments(cached);
-      _cachedTreatments = cached;
-      return treatment;
-    }
+    final response = await _client.post('/treatments', data: treatment.toJson());
+    final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+    final saved = Treatment.fromJson(normalized);
+    final cached = await _loadTreatmentsCache();
+    cached.add(saved);
+    await _storage.saveTreatments(cached);
+    _cachedTreatments = cached;
+    return saved;
   }
 
   Future<TreatmentDetail> addDetail(int treatmentId, TreatmentDetail detail) async {
-    try {
-      final response = await _client.post('/treatment-details', data: detail.toJson());
-      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
-      final saved = TreatmentDetail.fromJson(normalized);
-      _attachDetail(treatmentId, saved);
-      return saved;
-    } on DioException {
-      _attachDetail(treatmentId, detail);
-      return detail;
-    }
+    final response = await _client.post('/treatment-details', data: detail.toJson());
+    final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+    final saved = TreatmentDetail.fromJson(normalized);
+    _attachDetail(treatmentId, saved);
+    return saved;
   }
 
   void _attachDetail(int treatmentId, TreatmentDetail detail) {
@@ -297,16 +278,11 @@ class TreatmentService {
   }
 
   Future<Schedule> addSchedule(Schedule schedule) async {
-    try {
-      final response = await _client.post('/schedules', data: schedule.toJson());
-      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
-      final saved = Schedule.fromJson(normalized);
-      _attachSchedule(saved);
-      return saved;
-    } on DioException {
-      _attachSchedule(schedule);
-      return schedule;
-    }
+    final response = await _client.post('/schedules', data: schedule.toJson());
+    final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+    final saved = Schedule.fromJson(normalized);
+    _attachSchedule(saved);
+    return saved;
   }
 
   void _attachSchedule(Schedule schedule) {

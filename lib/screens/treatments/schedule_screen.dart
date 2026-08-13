@@ -311,6 +311,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
   }
 
   Widget _buildTimelineItem(Schedule sched, bool isLast, bool isCompleted) {
+    final canMark = context.read<AuthService>().isSelfCare;
     final circleColor = isCompleted ? AppColors.accent : AppColors.warning;
     final isFuture = sched.timeOfDay.isAfter(DateTime.now());
     return IntrinsicHeight(
@@ -391,7 +392,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
                       ),
                     ],
                   ),
-                  if (!isCompleted && !isFuture) ...[
+                  if (!isCompleted && !isFuture && canMark) ...[
                     const SizedBox(height: 10),
                     SizedBox(
                       height: 32,
@@ -424,25 +425,6 @@ class _ScheduleContentState extends State<ScheduleContent> {
   }
 
   Future<void> _confirmDose(BuildContext context, Schedule sched) async {
-    final auth = context.read<AuthService>();
-    final isCaregiver = !auth.isSelfCare;
-
-    if (isCaregiver) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Marcar dosis'),
-          content: const Text(
-              'Es preferible que el paciente marque su propia dosis para llevar un seguimiento correcto de adherencia.\n\n¿Deseas marcarla de todos modos?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Marcar de todos modos')),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-    }
-
     final treatmentService = context.read<TreatmentService>();
     await treatmentService.confirmDose(sched);
     if (!mounted) return;

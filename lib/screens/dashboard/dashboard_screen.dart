@@ -5,6 +5,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../services/treatment_service.dart';
+import '../../services/patient_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/avatar_service.dart';
 import '../../services/patient_current_service.dart';
@@ -42,6 +43,9 @@ class _DashboardContentState extends State<DashboardContent>
   late AnimationController _glowController;
   int _dashboardRefreshKey = 0;
   late Future<List<Treatment>> _treatmentsFuture;
+  PatientCurrentService? _patientSvc;
+  int? _loadedForPatientId;
+  bool _started = false;
 
   @override
   void initState() {
@@ -50,18 +54,57 @@ class _DashboardContentState extends State<DashboardContent>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _loadTreatments();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final svc = context.read<PatientCurrentService>();
+    if (!identical(svc, _patientSvc)) {
+      _patientSvc?.removeListener(_onPatientChanged);
+      _patientSvc = svc;
+      _patientSvc!.addListener(_onPatientChanged);
+    }
+    if (!_started) {
+      _started = true;
+      _loadTreatments();
+    }
+  }
+
+  void _onPatientChanged() {
+    final svc = _patientSvc;
+    if (svc == null || svc.patientId == _loadedForPatientId) return;
+    setState(_loadTreatments);
   }
 
   void _loadTreatments() {
     final patientCurrent = context.read<PatientCurrentService>();
+    final patientService = context.read<PatientService>();
     final auth = context.read<AuthService>();
     final treatmentService = context.read<TreatmentService>();
-    _treatmentsFuture = treatmentService.getTreatments(patientCurrent.patientId ?? auth.patientId ?? 0);
+    _loadedForPatientId = patientCurrent.patientId;
+    _treatmentsFuture = _fetchPatientsThenTreatments(
+      patientCurrent, patientService, auth, treatmentService,
+    );
+  }
+
+  Future<List<Treatment>> _fetchPatientsThenTreatments(
+    PatientCurrentService patientCurrent,
+    PatientService patientService,
+    AuthService auth,
+    TreatmentService treatmentService,
+  ) async {
+    try {
+      final patients = await patientService.getPatients();
+      patientCurrent.setPatients(patients);
+    } catch (_) {}
+    final pid = patientCurrent.patientId ?? auth.patientId ?? 0;
+    return treatmentService.getTreatments(pid);
   }
 
   @override
   void dispose() {
+    _patientSvc?.removeListener(_onPatientChanged);
     _glowController.dispose();
     super.dispose();
   }
@@ -218,7 +261,7 @@ class _DashboardContentState extends State<DashboardContent>
           if (!isSelfCare) _buildPatientsSection(context, treatments),
           if (isSelfCare) _buildSelfCareInfo(context),
           const SizedBox(height: 20),
-          _buildTimelineSection(context, treatments),
+          _buildTimelineSection(context, treatments, isSelfCare: isSelfCare),
         ],
       ),
     );
@@ -411,7 +454,8 @@ class _DashboardContentState extends State<DashboardContent>
   }
 
   Widget _buildTimelineSection(
-      BuildContext context, List<Treatment> treatments) {
+      BuildContext context, List<Treatment> treatments,
+      {bool isSelfCare = false}) {
     final items = treatments
         .expand((t) => t.details ?? [])
         .expand((d) => d.schedules ?? [])
@@ -444,16 +488,18 @@ class _DashboardContentState extends State<DashboardContent>
         if (items.isNotEmpty)
           ...items.map((s) => _TimelineItem(
                 time: s.timeDisplay,
-                label: 'Dosis',
-                dose: '',
+                label: s.medicationName ?? 'Dosis',
+                dose: s.doseInfo ?? '',
                 isCompleted: s.logs?.any((l) => l.status == LogStatus.confirmado) ?? false,
-                onMarkTaken: (s.logs?.any((l) => l.status == LogStatus.confirmado) ?? false)
+                onMarkTaken: !isSelfCare
                     ? null
-                    : () async {
-                        final svc = context.read<TreatmentService>();
-                        await svc.confirmDose(s);
-                        if (mounted) setState(() {});
-                      },
+                    : (s.logs?.any((l) => l.status == LogStatus.confirmado) ?? false)
+                        ? null
+                        : () async {
+                            final svc = context.read<TreatmentService>();
+                            await svc.confirmDose(s);
+                            if (mounted) setState(() {});
+                          },
               ))
         else
           const VitalEmptyState(

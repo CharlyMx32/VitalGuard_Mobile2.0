@@ -3,7 +3,7 @@ class AppConfig {
 
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://d40f-187-190-56-49.ngrok-free.app',
+    defaultValue: 'https://api.vitalguard.app',
   );
 
   static bool get isNgrok => apiBaseUrl.contains('ngrok');
@@ -17,7 +17,7 @@ class AppConfig {
 
   static const String vitalIdBaseUrl = String.fromEnvironment(
     'VITAL_ID_BASE_URL',
-    defaultValue: 'http://localhost:3000',
+    defaultValue: 'https://id.vitalguard.app',
   );
 
   static const String alexaRedirectUri = 'mivitalguard://oauth/callback';

@@ -20,7 +20,7 @@ class PatientService {
 
   Future<List<Patient>> getPatients() async {
     try {
-      final response = await _client.get('/patients');
+      final response = await _client.get('/patients', queryParameters: {'limit': 50});
       final normalized = normalizeJsonKeys(response.data) as List;
       final data = normalized
           .map((e) => Patient.fromJson(e as Map<String, dynamic>))
