@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../config.dart';
@@ -6,6 +7,9 @@ import 'auth_service.dart';
 class ApiClient {
   late final Dio _dio;
   final AuthService _authService;
+  final StreamController<void> _onUnauthorized = StreamController<void>.broadcast();
+
+  Stream<void> get onUnauthorized => _onUnauthorized.stream;
 
   ApiClient(this._authService) {
     _dio = Dio(
@@ -16,7 +20,6 @@ class ApiClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          if (AppConfig.isNgrok) 'ngrok-skip-browser-warning': 'true',
         },
       ),
     );
@@ -32,7 +35,14 @@ class ApiClient {
           handler.next(options);
         },
         onError: (error, handler) {
-          debugPrint('[API] Error ${error.response?.statusCode}: ${error.message}');
+          final statusCode = error.response?.statusCode;
+          debugPrint('[API] Error $statusCode: ${error.message}');
+
+          if (statusCode == 401 || statusCode == 403) {
+            _authService.logout();
+            _onUnauthorized.add(null);
+          }
+
           handler.next(error);
         },
       ),

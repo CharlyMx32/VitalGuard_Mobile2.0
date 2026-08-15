@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "997229042036",
+    "project_id": "vitalguard-c1b6f",
+    "storage_bucket": "vitalguard-c1b6f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:997229042036:android:e4a56cd9149fa077773421",
+        "android_client_info": {
+          "package_name": "com.vitalguard.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChftMRC8aC_lLqXx-QHdbgx4VvREJnEhk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

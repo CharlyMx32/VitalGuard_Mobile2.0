@@ -9,12 +9,14 @@ import '../../services/patient_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/avatar_service.dart';
 import '../../services/patient_current_service.dart';
+import '../../services/notification_service.dart';
 import '../../data/avatar_data.dart';
 import '../../widgets/vital_tap.dart';
 import '../../widgets/vital_avatar.dart';
 import '../../widgets/vital_card.dart';
 import '../../widgets/vital_shimmer.dart';
 import '../../widgets/vital_empty_state.dart';
+import '../../widgets/notification_badge.dart';
 import '../../widgets/patient_selector_header.dart';
 import '../../models/treatment.dart';
 import '../../models/enums.dart';
@@ -184,18 +186,25 @@ class _DashboardContentState extends State<DashboardContent>
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.iconContainerRadius)),
-              child: const Icon(LucideIcons.bell,
-                  size: 20, color: AppColors.textMuted),
-            ),
+          Consumer<NotificationService>(
+            builder: (context, notificationService, _) {
+              return GestureDetector(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
+                child: NotificationBadge(
+                  count: notificationService.unreadCount,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.iconContainerRadius)),
+                    child: const Icon(LucideIcons.bell,
+                        size: 20, color: AppColors.textMuted),
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 12),
           GestureDetector(

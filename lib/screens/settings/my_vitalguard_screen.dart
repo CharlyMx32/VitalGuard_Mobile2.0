@@ -269,7 +269,7 @@ class _MyVitalGuardScreenState extends State<MyVitalGuardScreen> {
     final confirmed = await VitalModal.show<bool>(
       context: context,
       title: 'Desconectar dispositivo',
-      description: 'Se eliminará la vinculación local del dispositivo. ¿Deseas continuar?',
+      description: 'Se eliminará la vinculación del dispositivo. ¿Deseas continuar?',
       iconType: ModalIconType.warning,
       icon: LucideIcons.unlink,
       actions: [
@@ -285,7 +285,23 @@ class _MyVitalGuardScreenState extends State<MyVitalGuardScreen> {
       ],
     );
     if (confirmed == true && mounted) {
-      await deviceService.disconnect();
+      final deviceId = _device?.id;
+      if (deviceId != null) {
+        try {
+          await deviceService.unlinkDevice(deviceId);
+        } catch (e) {
+          if (!mounted) return;
+          VitalFeedback.info(
+            context,
+            code: 'DEVICE_DISCONNECT_ERROR',
+            title: 'Error',
+            message: 'No se pudo desconectar el dispositivo. Intenta de nuevo.',
+          );
+          return;
+        }
+      } else {
+        await deviceService.disconnect();
+      }
       if (!mounted) return;
       setState(() => _device = null);
       VitalFeedback.info(

@@ -293,31 +293,38 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
         );
       }
     } on DioException catch (e) {
-      // Si el backend no está disponible o el token no funciona, usar mock
-      debugPrint('[LinkDevice] Backend error ${e.response?.statusCode}, usando mock');
-      await deviceService.saveDeviceMock(_code, patientId: _patientId);
+      debugPrint('[LinkDevice] Backend error ${e.response?.statusCode}');
+      if (!mounted) return;
 
-      if (mounted) {
-        VitalFeedback.success(
-          context,
-          code: 'DEVICE_LINKED',
-          message: 'Dispositivo vinculado (modo local)',
-          onAction: _continue,
-        );
+      String message;
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 401 || statusCode == 403) {
+        message = 'Sesión expirada. Inicia sesión de nuevo.';
+      } else if (statusCode == 404) {
+        message = 'Código de dispositivo no encontrado. Verifica el código.';
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+                 e.type == DioExceptionType.sendTimeout ||
+                 e.type == DioExceptionType.receiveTimeout) {
+        message = 'Sin conexión al servidor. Verifica tu internet.';
+      } else {
+        message = 'Error del servidor. Intenta de nuevo.';
       }
+
+      VitalFeedback.info(
+        context,
+        code: 'DEVICE_LINK_ERROR',
+        title: 'Error de vinculación',
+        message: message,
+      );
     } catch (e) {
-      // Cualquier otro error: usar mock también
-      debugPrint('[LinkDevice] Unexpected error: $e, usando mock');
-      await deviceService.saveDeviceMock(_code, patientId: _patientId);
-
-      if (mounted) {
-        VitalFeedback.success(
-          context,
-          code: 'DEVICE_LINKED',
-          message: 'Dispositivo vinculado (modo local)',
-          onAction: _continue,
-        );
-      }
+      debugPrint('[LinkDevice] Unexpected error: $e');
+      if (!mounted) return;
+      VitalFeedback.info(
+        context,
+        code: 'DEVICE_LINK_ERROR',
+        title: 'Error inesperado',
+        message: 'Ocurrió un error al vincular el dispositivo.',
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
