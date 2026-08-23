@@ -39,16 +39,16 @@ class VitalBottomNav extends StatelessWidget {
     }
 
     items.add(_NavItem(
-      icon: LucideIcons.box,
-      activeIcon: LucideIcons.box,
+      icon: LucideIcons.pill,
+      activeIcon: LucideIcons.pill,
       label: 'Pastillero',
       isActive: currentIndex == (showPacientes ? 2 : 1),
       onTap: () { HapticFeedback.selectionClick(); onTap(showPacientes ? 2 : 1); },
     ));
 
     items.add(_NavItem(
-      icon: LucideIcons.calendar,
-      activeIcon: LucideIcons.calendar,
+      icon: LucideIcons.clock,
+      activeIcon: LucideIcons.clock,
       label: 'Horario',
       isActive: currentIndex == (showPacientes ? 3 : 2),
       onTap: () { HapticFeedback.selectionClick(); onTap(showPacientes ? 3 : 2); },
@@ -126,7 +126,7 @@ class _NavItem extends StatelessWidget {
                 ),
                 child: Icon(
                   isActive ? activeIcon : icon,
-                  size: 15,
+                  size: 16,
                   color: isActive ? Colors.white : AppColors.textLight,
                 ),
               ),

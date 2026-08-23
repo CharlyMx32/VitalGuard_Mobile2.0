@@ -20,6 +20,7 @@ import '../../widgets/notification_badge.dart';
 import '../../widgets/patient_selector_header.dart';
 import '../../models/treatment.dart';
 import '../../models/enums.dart';
+import '../../models/patient.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -40,23 +41,12 @@ class DashboardContent extends StatefulWidget {
   State<DashboardContent> createState() => _DashboardContentState();
 }
 
-class _DashboardContentState extends State<DashboardContent>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _glowController;
+class _DashboardContentState extends State<DashboardContent> {
   int _dashboardRefreshKey = 0;
-  late Future<List<Treatment>> _treatmentsFuture;
+  late Future<_DashboardData> _dashboardFuture;
   PatientCurrentService? _patientSvc;
   int? _loadedForPatientId;
   bool _started = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-  }
 
   @override
   void didChangeDependencies() {
@@ -69,45 +59,62 @@ class _DashboardContentState extends State<DashboardContent>
     }
     if (!_started) {
       _started = true;
-      _loadTreatments();
+      _loadDashboard();
     }
   }
 
   void _onPatientChanged() {
     final svc = _patientSvc;
     if (svc == null || svc.patientId == _loadedForPatientId) return;
-    setState(_loadTreatments);
+    setState(_loadDashboard);
   }
 
-  void _loadTreatments() {
+  void _loadDashboard() {
     final patientCurrent = context.read<PatientCurrentService>();
     final patientService = context.read<PatientService>();
     final auth = context.read<AuthService>();
     final treatmentService = context.read<TreatmentService>();
     _loadedForPatientId = patientCurrent.patientId;
-    _treatmentsFuture = _fetchPatientsThenTreatments(
+    _dashboardFuture = _fetchDashboardData(
       patientCurrent, patientService, auth, treatmentService,
     );
   }
 
-  Future<List<Treatment>> _fetchPatientsThenTreatments(
+  Future<_DashboardData> _fetchDashboardData(
     PatientCurrentService patientCurrent,
     PatientService patientService,
     AuthService auth,
     TreatmentService treatmentService,
   ) async {
+    List<Patient> patients = [];
     try {
-      final patients = await patientService.getPatients();
+      patients = await patientService.getPatients();
       patientCurrent.setPatients(patients);
     } catch (_) {}
     final pid = patientCurrent.patientId ?? auth.patientId ?? 0;
-    return treatmentService.getTreatments(pid);
+    var treatments = <Treatment>[];
+    var adherence = 0.0;
+    try {
+      treatments = await treatmentService.getTreatments(pid);
+    } catch (_) {}
+    try {
+      adherence = await treatmentService.getAdherence(pid);
+    } catch (_) {}
+    return _DashboardData(
+      patientId: pid,
+      patients: patients,
+      treatments: treatments,
+      adherence: adherence,
+    );
+  }
+
+  void _reload() {
+    setState(_loadDashboard);
   }
 
   @override
   void dispose() {
     _patientSvc?.removeListener(_onPatientChanged);
-    _glowController.dispose();
     super.dispose();
   }
 
@@ -120,12 +127,12 @@ class _DashboardContentState extends State<DashboardContent>
       onRefresh: () async {
         setState(() {
           _dashboardRefreshKey++;
-          _loadTreatments();
+          _loadDashboard();
         });
       },
-      child: FutureBuilder<List<Treatment>>(
+      child: FutureBuilder<_DashboardData>(
         key: ValueKey('dashboard_$_dashboardRefreshKey'),
-        future: _treatmentsFuture,
+        future: _dashboardFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(
@@ -133,14 +140,14 @@ class _DashboardContentState extends State<DashboardContent>
               child: SkeletonDashboard(),
             );
           }
-          final treatments = snapshot.data ?? [];
+          final data = snapshot.data ?? _DashboardData.empty();
           final avatarConfig = context.select<AvatarService, AvatarConfig>((s) => s.config);
           return SingleChildScrollView(
             physics: AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
                 _buildHeader(context, avatarConfig, isSelfCare: isSelfCare, userName: userName),
-                _buildContent(context, treatments: treatments, isSelfCare: isSelfCare),
+                _buildContent(context, data: data, isSelfCare: isSelfCare),
               ],
             ),
           );
@@ -223,28 +230,11 @@ class _DashboardContentState extends State<DashboardContent>
     );
   }
 
-  static const _avatarGradients = [
-    LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF4A90E2), Color(0xFF3A7BD5)]),
-    LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF6FCF97), Color(0xFF27AE60)]),
-    LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF9B59B6), Color(0xFF8E44AD)]),
-    LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFF39C12), Color(0xFFE67E22)]),
-  ];
-
   Widget _buildContent(BuildContext context,
-      {required List<Treatment> treatments, required bool isSelfCare}) {
+      {required _DashboardData data, required bool isSelfCare}) {
+    final treatments = data.treatments;
     final hasData = treatments.isNotEmpty;
+    final nextDose = _computeNextDose(treatments);
     return Padding(
       padding: const EdgeInsets.symmetric(
               horizontal: AppDimensions.paddingHorizontal) +
@@ -255,19 +245,18 @@ class _DashboardContentState extends State<DashboardContent>
           const PatientSelectorHeader(),
           const SizedBox(height: 8),
           hasData
-              ? _NextDoseCard(targetHour: _computeNextDoseHour(treatments), targetMinute: _computeNextDoseMinute(treatments))
+              ? _NextDoseCard(nextDose: nextDose)
               : _EmptyNextDose(),
           const SizedBox(height: 12),
-          _buildStatCards(treatments, isSelfCare: isSelfCare),
+          _buildStatCards(data, isSelfCare: isSelfCare),
           const SizedBox(height: 16),
-          _QuickActionsGrid(onTapAddMed: () => Navigator.pushNamed(context, AppRoutes.addMedication), onTapHistory: () => Navigator.pushNamed(context, AppRoutes.history), onTapSos: () => Navigator.pushNamed(context, AppRoutes.sosEmergency)),
+          _QuickActionsGrid(
+            onTapAddMed: () => Navigator.pushNamed(context, AppRoutes.addMedication),
+            onTapHistory: () => Navigator.pushNamed(context, AppRoutes.history),
+            onTapDevice: () => Navigator.pushNamed(context, AppRoutes.devices),
+          ),
           const SizedBox(height: 16),
-          _SOSGlowButton(
-              glowController: _glowController,
-              onTap: () =>
-                  Navigator.pushNamed(context, AppRoutes.sosEmergency)),
-          const SizedBox(height: 24),
-          if (!isSelfCare) _buildPatientsSection(context, treatments),
+          if (!isSelfCare) _TreatmentPanel(data: data, onRefresh: _reload),
           if (isSelfCare) _buildSelfCareInfo(context),
           const SizedBox(height: 20),
           _buildTimelineSection(context, treatments, isSelfCare: isSelfCare),
@@ -276,40 +265,64 @@ class _DashboardContentState extends State<DashboardContent>
     );
   }
 
-  int _computeNextDoseHour(List<Treatment> treatments) {
+  _NextDose _computeNextDose(List<Treatment> treatments) {
     final now = DateTime.now();
-    final times = <DateTime>[];
+    DateTime? bestTime;
     for (final t in treatments) {
       for (final d in (t.details ?? [])) {
         for (final s in (d.schedules ?? [])) {
           final tTime = s.timeOfDay;
-          final scheduled = DateTime(now.year, now.month, now.day, tTime.hour, tTime.minute);
-          if (scheduled.isAfter(now)) times.add(scheduled);
-          times.add(scheduled.add(const Duration(days: 1)));
+          var scheduled =
+              DateTime(now.year, now.month, now.day, tTime.hour, tTime.minute);
+          if (!scheduled.isAfter(now)) {
+            scheduled = scheduled.add(const Duration(days: 1));
+          }
+          if (bestTime == null || scheduled.isBefore(bestTime)) {
+            bestTime = scheduled;
+          }
         }
       }
     }
-    if (times.isEmpty) return 8;
-    times.sort();
-    return times.first.hour;
-  }
+    if (bestTime == null) {
+      return const _NextDose(hour: 8, minute: 0, hasNext: false);
+    }
 
-  int _computeNextDoseMinute(List<Treatment> treatments) {
-    final now = DateTime.now();
-    final times = <DateTime>[];
+    final items = <_NextDoseItem>[];
     for (final t in treatments) {
       for (final d in (t.details ?? [])) {
         for (final s in (d.schedules ?? [])) {
           final tTime = s.timeOfDay;
-          final scheduled = DateTime(now.year, now.month, now.day, tTime.hour, tTime.minute);
-          if (scheduled.isAfter(now)) times.add(scheduled);
-          times.add(scheduled.add(const Duration(days: 1)));
+          var scheduled =
+              DateTime(now.year, now.month, now.day, tTime.hour, tTime.minute);
+          if (!scheduled.isAfter(now)) {
+            scheduled = scheduled.add(const Duration(days: 1));
+          }
+          if (scheduled.hour == bestTime.hour &&
+              scheduled.minute == bestTime.minute) {
+            final name = d.medication?.name ?? s.medicationName ?? '';
+            final presentation = d.medication?.presentation;
+            final dose = d.doseInfo ?? s.doseInfo ?? '';
+            final key = '$name|$dose';
+            final existing = items.any((e) =>
+                '${e.name}|${e.dose}' == key || (name.isNotEmpty && e.name == name));
+            if (!existing) {
+              items.add(_NextDoseItem(
+                name: name,
+                presentation: presentation,
+                dose: dose,
+              ));
+            }
+          }
         }
       }
     }
-    if (times.isEmpty) return 0;
-    times.sort();
-    return times.first.minute;
+
+    return _NextDose(
+      hour: bestTime.hour,
+      minute: bestTime.minute,
+      hasNext: true,
+      items: items,
+    );
   }
 
   Widget _buildSelfCareInfo(BuildContext context) {
@@ -348,10 +361,12 @@ class _DashboardContentState extends State<DashboardContent>
     );
   }
 
-  Widget _buildStatCards(List<Treatment> treatments, {bool isSelfCare = false}) {
-    final hasData = treatments.isNotEmpty;
-    final patientCount = treatments.map((t) => t.patientId).toSet().length;
-    final todaySchedules = treatments
+  Widget _buildStatCards(_DashboardData data, {bool isSelfCare = false}) {
+    final hasData = data.treatments.isNotEmpty;
+    final hasPatients = data.patients.isNotEmpty;
+    final patientCount = data.patients.length;
+    final adherencePct = (data.adherence * 100).round();
+    final todaySchedules = data.treatments
         .expand((t) => t.details ?? [])
         .expand((d) => d.schedules ?? [])
         .length;
@@ -359,16 +374,16 @@ class _DashboardContentState extends State<DashboardContent>
       children: [
         _MiniStatCard(
             icon: LucideIcons.heartPulse,
-            value: hasData ? '${treatments.length}' : '--',
+            value: hasData ? '$adherencePct%' : '--',
             label: 'Adherencia',
             color: hasData ? AppColors.accent : AppColors.textMuted),
         if (!isSelfCare) ...[
           const SizedBox(width: 10),
           _MiniStatCard(
               icon: LucideIcons.users,
-              value: hasData ? '$patientCount' : '--',
+              value: hasPatients ? '$patientCount' : '--',
               label: 'Pacientes',
-              color: hasData ? AppColors.primary : AppColors.textMuted),
+              color: hasPatients ? AppColors.primary : AppColors.textMuted),
         ],
         const SizedBox(width: 10),
         _MiniStatCard(
@@ -376,88 +391,6 @@ class _DashboardContentState extends State<DashboardContent>
             value: hasData ? '$todaySchedules' : '--',
             label: 'Dosis hoy',
             color: hasData ? AppColors.warning : AppColors.textMuted),
-      ],
-    );
-  }
-
-  Widget _buildPatientsSection(
-      BuildContext context, List<Treatment> treatments) {
-    final patients = treatments
-        .where((t) => t.patient != null)
-        .map((t) => t.patient!)
-        .toSet()
-        .toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Mis Pacientes',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark)),
-            if (patients.isNotEmpty)
-              GestureDetector(
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.patientList),
-                child: const Text('Ver todos',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary)),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (patients.isNotEmpty)
-          ...patients.asMap().entries.map(
-                (e) => VitalCard(
-                  borderColor: _avatarGradients[e.key % _avatarGradients.length]
-                      .colors
-                      .first,
-                  padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: _PatientRow(
-                    initials: e.value.initials,
-                    name: e.value.fullName,
-                    relation: '${e.value.age} años',
-                    adherence: '--',
-                    adherenceColor: AppColors.textMuted,
-                    avatarGradient:
-                        _avatarGradients[e.key % _avatarGradients.length],
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.patientDetail,
-                        arguments: e.value.id),
-                  ),
-                ),
-              )
-        else
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, AppRoutes.registerPatient),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
-                boxShadow: AppDimensions.cardShadow,
-              ),
-              child: Column(
-                children: [
-                  Container(width: 48, height: 48,
-                    decoration: BoxDecoration(color: AppColors.primaryLight, shape: BoxShape.circle),
-                    child: const Icon(LucideIcons.userPlus, size: 24, color: AppColors.primary)),
-                  const SizedBox(height: 12),
-                  const Text('Agregar primer paciente', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary)),
-                  const SizedBox(height: 4),
-                  const Text('Registra los datos de la persona que cuidarás', textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                ],
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -528,16 +461,382 @@ class _DashboardContentState extends State<DashboardContent>
   }
 }
 
+class _DashboardData {
+  final int patientId;
+  final List<Patient> patients;
+  final List<Treatment> treatments;
+  final double adherence;
+  const _DashboardData({
+    this.patientId = 0,
+    this.patients = const [],
+    this.treatments = const [],
+    this.adherence = 0,
+  });
+
+  const _DashboardData.empty()
+      : patientId = 0,
+        patients = const [],
+        treatments = const [],
+        adherence = 0;
+}
+
+class _TreatmentPanel extends StatelessWidget {
+  final _DashboardData data;
+  final VoidCallback onRefresh;
+  const _TreatmentPanel({required this.data, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    final treatments = data.treatments;
+    final current = context.watch<PatientCurrentService>().current;
+    final name = current?.fullName ?? '';
+
+    if (treatments.isEmpty) {
+      return VitalCard(
+        borderRadius: 16,
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(LucideIcons.pill,
+                        size: 22, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Tratamiento',
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark)),
+                        const SizedBox(height: 2),
+                        Text(
+                          name.isEmpty
+                              ? 'Sin tratamiento activo'
+                              : 'Sin tratamiento activo para $name',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: VitalTap(
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRoutes.addMedication),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12)),
+                    child: const Center(
+                      child: Text('Crear tratamiento',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final treatment = _preferred(treatments);
+    final details = treatment.details ?? [];
+    final endDate = treatment.endDate;
+    final paused = treatment.status == TreatmentStatus.pausado;
+    final finished = treatment.status == TreatmentStatus.finalizado;
+    final progress = treatment.progress;
+
+    return VitalCard(
+      borderRadius: 16,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name.isEmpty ? 'Tratamiento' : 'Tratamiento de $name',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          _StatusChip(status: treatment.status),
+                          if (endDate != null) ...[
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Fin: ${endDate.day}/${endDate.month}/${endDate.year}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 11, color: AppColors.textMuted),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(
+                      context, AppRoutes.treatmentDetail),
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    margin: const EdgeInsets.only(left: 8),
+                    decoration: BoxDecoration(
+                        color: AppColors.bg,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(LucideIcons.eye,
+                        size: 18, color: AppColors.primary),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 5,
+                backgroundColor: AppColors.borderLight,
+                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${treatment.elapsedDays} de ${treatment.totalDays} días',
+                    style: const TextStyle(
+                        fontSize: 10, color: AppColors.textMuted)),
+                Text('${(progress * 100).round()}%',
+                    style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary)),
+              ],
+            ),
+            if (details.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('Medicamentos',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted)),
+              const SizedBox(height: 8),
+              ...details.take(4).map((d) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(LucideIcons.pill,
+                              size: 16, color: AppColors.primary),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            d.medication?.name ?? 'Medicamento',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textDark),
+                          ),
+                        ),
+                        if (d.doseInfo != null && d.doseInfo!.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                                color: AppColors.bg,
+                                borderRadius: BorderRadius.circular(6)),
+                            child: Text(d.doseInfo!,
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary)),
+                          ),
+                      ],
+                    ),
+                  )),
+            ],
+            if (!finished) ...[
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity,
+                child: VitalTap(
+                  onTap: () => _toggle(context, treatment),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: paused
+                          ? AppColors.accentLight
+                          : AppColors.warningBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: paused ? AppColors.accent : AppColors.warning,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          paused ? LucideIcons.play : LucideIcons.pause,
+                          size: 16,
+                          color: paused ? AppColors.accent : AppColors.warning,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          paused
+                              ? 'Reanudar tratamiento'
+                              : 'Pausar tratamiento',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: paused
+                                  ? AppColors.accent
+                                  : AppColors.warning),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Treatment _preferred(List<Treatment> ts) {
+    for (final t in ts) {
+      if (t.status == TreatmentStatus.activo) return t;
+    }
+    return ts.first;
+  }
+
+  void _toggle(BuildContext context, Treatment t) async {
+    final svc = context.read<TreatmentService>();
+    final newStatus =
+        t.status == TreatmentStatus.pausado ? 'Activo' : 'Pausado';
+    await svc.updateTreatmentFields(t.id, {'status': newStatus});
+    onRefresh();
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final TreatmentStatus status;
+  const _StatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (String label, Color bg, Color fg) = switch (status) {
+      TreatmentStatus.activo => (
+          'Activo',
+          AppColors.accentLight,
+          AppColors.accent,
+        ),
+      TreatmentStatus.pausado => (
+          'Pausado',
+          AppColors.warningBg,
+          AppColors.warning,
+        ),
+      TreatmentStatus.finalizado => (
+          'Finalizado',
+          AppColors.bg,
+          AppColors.textMuted,
+        ),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
+    );
+  }
+}
+
+class _NextDoseItem {
+  final String name;
+  final String? presentation;
+  final String dose;
+  const _NextDoseItem({
+    this.name = '',
+    this.presentation,
+    this.dose = '',
+  });
+}
+
+class _NextDose {
+  final int hour;
+  final int minute;
+  final bool hasNext;
+  final List<_NextDoseItem> items;
+  const _NextDose({
+    required this.hour,
+    required this.minute,
+    this.hasNext = false,
+    this.items = const [],
+  });
+}
+
 class _NextDoseCard extends StatelessWidget {
-  final int targetHour;
-  final int targetMinute;
-  const _NextDoseCard(
-      {required this.targetHour, required this.targetMinute});
+  final _NextDose nextDose;
+  const _NextDoseCard({required this.nextDose});
 
   Duration _timeUntil() {
     final now = DateTime.now();
-    var next = DateTime(now.year, now.month, now.day, targetHour, targetMinute);
-    if (next.isBefore(now)) {
+    var next = DateTime(now.year, now.month, now.day, nextDose.hour, nextDose.minute);
+    if (!next.isAfter(now)) {
       next = next.add(const Duration(days: 1));
     }
     return next.difference(now);
@@ -550,46 +849,168 @@ class _NextDoseCard extends StatelessWidget {
     return '$m min';
   }
 
+  String _doseTime() {
+    final hour = nextDose.hour;
+    final minute = nextDose.minute.toString().padLeft(2, '0');
+    final amPm = hour >= 12 ? 'PM' : 'AM';
+    final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    return '$hour12:$minute $amPm';
+  }
+
+  Widget _medChip(_NextDoseItem item) {
+    final hasDose = item.dose.isNotEmpty;
+    return SizedBox(
+      width: 150,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(10, 8, hasDose ? 6 : 10, 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(LucideIcons.pill,
+                  size: 14, color: AppColors.accent),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.name.isNotEmpty ? item.name : 'Medicamento',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark),
+                  ),
+                  if (item.presentation != null &&
+                      item.presentation!.isNotEmpty)
+                    Text(
+                      item.presentation!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textMuted),
+                    ),
+                ],
+              ),
+            ),
+            if (hasDose) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(item.dose,
+                    style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.accent)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final remaining = _timeUntil();
+    final items = nextDose.items;
     return VitalCard(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      padding: const EdgeInsets.all(16),
       backgroundColor: AppColors.accentLight,
       borderRadius: 16,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(LucideIcons.clock,
-                size: 26, color: AppColors.accent),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Próxima dosis',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.accent)),
-                const SizedBox(height: 2),
-                Text(
-                  'en ${_format(remaining)}',
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark),
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-              ],
-            ),
+                child: const Icon(LucideIcons.clock,
+                    size: 26, color: AppColors.accent),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Próxima dosis',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.accent)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'en ${_format(remaining)}',
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(_doseTime(),
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.accent)),
+              ),
+            ],
           ),
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              child: Row(
+                children: [
+                  for (var i = 0; i < items.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    _medChip(items[i]),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -657,35 +1078,42 @@ class _MiniStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: AppDimensions.cardShadow,
         ),
-        child: Column(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: color),
               ),
-              child: Icon(icon, size: 20, color: color),
-            ),
-            const SizedBox(height: 6),
-            Text(value,
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: color)),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textMuted)),
-          ],
+              const SizedBox(height: 4),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: color)),
+              const SizedBox(height: 2),
+              Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textMuted)),
+            ],
+          ),
         ),
       ),
     );
@@ -695,11 +1123,11 @@ class _MiniStatCard extends StatelessWidget {
 class _QuickActionsGrid extends StatelessWidget {
   final VoidCallback onTapAddMed;
   final VoidCallback onTapHistory;
-  final VoidCallback onTapSos;
+  final VoidCallback onTapDevice;
   const _QuickActionsGrid({
     required this.onTapAddMed,
     required this.onTapHistory,
-    required this.onTapSos,
+    required this.onTapDevice,
   });
 
   @override
@@ -721,10 +1149,10 @@ class _QuickActionsGrid extends StatelessWidget {
         )),
         const SizedBox(width: 12),
         Expanded(child: _QuickActionTile(
-          icon: LucideIcons.alertTriangle,
-          label: 'Emergencia\nSOS',
-          onTap: onTapSos,
-          color: AppColors.warning,
+          icon: LucideIcons.monitor,
+          label: 'Mi\ndispositivo',
+          onTap: onTapDevice,
+          color: AppColors.iconPurpleFg,
         )),
       ],
     );
@@ -774,135 +1202,6 @@ class _QuickActionTile extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _SOSGlowButton extends StatelessWidget {
-  final AnimationController glowController;
-  final VoidCallback onTap;
-  const _SOSGlowButton(
-      {required this.glowController, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: glowController,
-      builder: (context, child) {
-        final glow = glowController.value;
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.warning.withValues(alpha: 0.15 + glow * 0.25),
-                blurRadius: 8 + glow * 12,
-                spreadRadius: glow * 4,
-              ),
-            ],
-          ),
-          child: child,
-        );
-      },
-      child: VitalTap(
-        onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFE53935), Color(0xFFD32F2F)],
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(LucideIcons.alertTriangle,
-                  size: 22, color: Colors.white),
-              SizedBox(width: 10),
-              Text('SOS - Emergencia',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PatientRow extends StatelessWidget {
-  final String initials;
-  final String name;
-  final String relation;
-  final String adherence;
-  final Color adherenceColor;
-  final Gradient avatarGradient;
-  final VoidCallback onTap;
-
-  const _PatientRow({
-    required this.initials,
-    required this.name,
-    required this.relation,
-    required this.adherence,
-    required this.adherenceColor,
-    required this.avatarGradient,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: avatarGradient,
-          ),
-          child: Center(
-            child: Text(initials,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name,
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textDark)),
-              const SizedBox(height: 2),
-              Text(relation,
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.textMuted)),
-            ],
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(adherence,
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: adherenceColor)),
-            const Text('Adherencia',
-                style: TextStyle(
-                    fontSize: 10, color: AppColors.textMuted)),
-          ],
-        ),
-      ],
     );
   }
 }

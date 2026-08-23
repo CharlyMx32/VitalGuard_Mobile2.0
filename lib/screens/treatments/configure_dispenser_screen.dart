@@ -439,24 +439,38 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
     );
   }
 
-  void _onAssign() {
+  Future<void> _onAssign() async {
     if (_selectedDetailId == null || _selectedCompartment == null) return;
 
-    // TODO: Llamar al backend para actualizar el treatment_detail con el compartment_number
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Medicamento asignado al compartimento #$_selectedCompartment',
+    final treatmentService = context.read<TreatmentService>();
+    try {
+      await treatmentService.updateTreatmentDetail(
+        _selectedDetailId!,
+        {'compartmentNumber': _selectedCompartment},
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Medicamento asignado al compartimento #$_selectedCompartment',
+          ),
+          backgroundColor: AppColors.accent,
         ),
-        backgroundColor: AppColors.accent,
-      ),
-    );
-
-    setState(() {
-      _selectedDetailId = null;
-      _selectedCompartment = null;
-    });
-
-    _loadTreatments();
+      );
+      setState(() {
+        _selectedDetailId = null;
+        _selectedCompartment = null;
+      });
+      _loadTreatments();
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo asignar al compartimento. Intenta de nuevo.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
   }
 }

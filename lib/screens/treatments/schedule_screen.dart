@@ -35,6 +35,8 @@ class _ScheduleContentState extends State<ScheduleContent> {
   int _selectedDayIndex = 0;
   int _scheduleRefreshKey = 0;
   late Future<List<Schedule>> _schedulesFuture;
+  PatientCurrentService? _patientSvc;
+  int? _loadedForPatientId;
 
   @override
   void initState() {
@@ -42,12 +44,40 @@ class _ScheduleContentState extends State<ScheduleContent> {
     _loadSchedules();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final svc = context.read<PatientCurrentService>();
+    if (!identical(svc, _patientSvc)) {
+      _patientSvc?.removeListener(_onPatientChanged);
+      _patientSvc = svc;
+      _patientSvc!.addListener(_onPatientChanged);
+    }
+  }
+
+  void _onPatientChanged() {
+    final svc = _patientSvc;
+    if (svc == null || svc.patientId == _loadedForPatientId) return;
+    setState(() {
+      _selectedDayIndex = 0;
+      _loadSchedules();
+    });
+  }
+
   void _loadSchedules() {
     final patientCurrent = context.read<PatientCurrentService>();
     final auth = context.read<AuthService>();
     final treatmentService = context.read<TreatmentService>();
+    final pid = patientCurrent.patientId ?? auth.patientId ?? 0;
+    _loadedForPatientId = pid;
     final selectedDay = _days()[_selectedDayIndex].fullDate;
-    _schedulesFuture = treatmentService.getSchedulesForDay(patientCurrent.patientId ?? auth.patientId ?? 0, selectedDay);
+    _schedulesFuture = treatmentService.getSchedulesForDay(pid, selectedDay);
+  }
+
+  @override
+  void dispose() {
+    _patientSvc?.removeListener(_onPatientChanged);
+    super.dispose();
   }
 
   List<_DayData> _days() {
@@ -357,43 +387,96 @@ class _ScheduleContentState extends State<ScheduleContent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: const Icon(LucideIcons.pill,
+                            size: 20, color: AppColors.primary),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              sched.medicationName ?? 'Dosis #${sched.id}',
-                              style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textDark),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    sched.medicationName ??
+                                        'Dosis #${sched.id}',
+                                    style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textDark),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _ScheduleChip(
+                                  label: sched.timeDisplay,
+                                  bg: isCompleted
+                                      ? AppColors.accentLight
+                                      : (isFuture
+                                          ? AppColors.primaryLight
+                                          : AppColors.warningBg),
+                                  fg: isCompleted
+                                      ? AppColors.accent
+                                      : (isFuture
+                                          ? AppColors.primary
+                                          : AppColors.warning),
+                                ),
+                              ],
                             ),
-                            if (sched.doseInfo != null && sched.doseInfo!.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                sched.doseInfo!,
-                                style: const TextStyle(
-                                    fontSize: 12, color: AppColors.textMuted),
+                            if (sched.medicationPresentation != null &&
+                                sched.medicationPresentation!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  sched.medicationPresentation!,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textMuted),
+                                ),
                               ),
-                            ],
+                            if (sched.doseInfo != null &&
+                                sched.doseInfo!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: _ScheduleChip(
+                                  label: sched.doseInfo!,
+                                  bg: AppColors.bg,
+                                  fg: AppColors.textDark,
+                                ),
+                              ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        sched.timeDisplay,
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: isCompleted
-                                ? AppColors.accent
-                                : AppColors.warning),
-                      ),
                     ],
                   ),
-                  if (!isCompleted && !isFuture && canMark) ...[
+                  if (isCompleted) ...[
                     const SizedBox(height: 10),
+                    const Row(
+                      children: [
+                        Icon(LucideIcons.checkCircle,
+                            size: 14, color: AppColors.accent),
+                        SizedBox(width: 6),
+                        Text('Tomada',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.accent)),
+                      ],
+                    ),
+                  ],
+                  if (!isCompleted && !isFuture && canMark) ...[
+                    const SizedBox(height: 12),
                     SizedBox(
                       height: 32,
                       child: OutlinedButton.icon(
@@ -429,6 +512,27 @@ class _ScheduleContentState extends State<ScheduleContent> {
     await treatmentService.confirmDose(sched);
     if (!mounted) return;
     setState(() => _scheduleRefreshKey = _scheduleRefreshKey + 1);
+  }
+}
+
+class _ScheduleChip extends StatelessWidget {
+  final String label;
+  final Color bg;
+  final Color fg;
+  const _ScheduleChip({required this.label, required this.bg, required this.fg});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w700, color: fg)),
+    );
   }
 }
 

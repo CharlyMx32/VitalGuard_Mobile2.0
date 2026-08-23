@@ -150,7 +150,7 @@ class _MyVitalGuardScreenState extends State<MyVitalGuardScreen> {
           Container(
             width: 100, height: 100,
             decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.primary, Color(0xFF3A7BD5)]), borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 24, offset: const Offset(0, 8))]),
-            child: const Icon(LucideIcons.box, size: 48, color: Colors.white),
+            child: const Icon(LucideIcons.monitor, size: 48, color: Colors.white),
           ),
           const SizedBox(height: 16),
           Row(

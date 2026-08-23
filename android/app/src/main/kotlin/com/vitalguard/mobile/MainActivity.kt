@@ -1,4 +1,4 @@
-package com.vitalguard.vitalguard_mobile
+package com.vitalguard.mobile
 
 import android.content.Context
 import android.media.MediaPlayer

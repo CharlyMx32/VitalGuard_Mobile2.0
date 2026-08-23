@@ -61,6 +61,14 @@ class AppDimensions {
   // ── Bottom Nav ──
   static const double navIconSize = 24;
 
+  // ── Icon sizes (uniforme) ──
+  static const double iconXs = 12;
+  static const double iconSm = 16;
+  static const double iconMd = 20;
+  static const double iconLg = 24;
+  static const double iconXl = 32;
+  static const double iconHero = 48;
+
   // ── Input ──
   static const double inputHeight = 44;
 

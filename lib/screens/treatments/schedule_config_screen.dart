@@ -170,7 +170,7 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
         const SizedBox(height: 6),
         Row(
           children: [
-            _buildTypeOption(0, LucideIcons.rectangleVertical, 'En pastillero'),
+            _buildTypeOption(0, LucideIcons.package, 'En pastillero'),
             const SizedBox(width: 8),
             _buildTypeOption(1, LucideIcons.clock, 'Fuera del pastillero'),
           ],
@@ -248,7 +248,7 @@ class _ScheduleConfigScreenState extends State<ScheduleConfigScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        isOccupied ? LucideIcons.lock : LucideIcons.box,
+                        isOccupied ? LucideIcons.lock : LucideIcons.package,
                         size: 14,
                         color: isSelected
                             ? Colors.white

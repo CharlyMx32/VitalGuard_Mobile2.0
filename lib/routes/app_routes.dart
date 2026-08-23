@@ -60,6 +60,7 @@ import '../screens/settings/help_support_screen.dart';
 import '../screens/settings/family_members_screen.dart';
 import '../screens/settings/security_settings_screen.dart';
 import '../screens/settings/avatar_picker_screen.dart';
+import '../screens/settings/pending_invitations_screen.dart';
 
 // ── SOS ──
 import '../screens/sos/sos_alarm_screen.dart';
@@ -126,6 +127,7 @@ class AppRoutes {
   static const String familyMembers = '/settings/family';
   static const String securitySettings = '/settings/security';
   static const String avatarPicker = '/settings/avatar';
+  static const String pendingInvitations = '/invitations';
 
   static const String sosAlarm = '/sos/alarm';
 
@@ -183,6 +185,7 @@ class AppRoutes {
       case familyMembers: page = const FamilyMembersScreen(); break;
       case securitySettings: page = const SecuritySettingsScreen(); break;
       case avatarPicker: page = const AvatarPickerScreen(); break;
+      case pendingInvitations: page = const PendingInvitationsScreen(); break;
       case sosAlarm: page = const SosAlarmScreen(); break;
       case errorNetwork: page = const ErrorNetworkScreen(); break;
       case errorServer: page = const ErrorServerScreen(); break;
@@ -190,7 +193,17 @@ class AppRoutes {
       case errorDevice: page = const ErrorDeviceScreen(); break;
       case errorTreatment: page = const ErrorTreatmentScreen(); break;
       case errorGeneric: page = const ErrorGenericScreen(); break;
-      default: page = const ErrorGenericScreen(); break;
+      default: {
+        // Deep link de invitación: vitalguard://invite/<token>
+        final raw = routeSettings.name;
+        if (raw != null && raw.startsWith('vitalguard://invite/')) {
+          final token = raw.replaceFirst('vitalguard://invite/', '').split('/').first;
+          page = PendingInvitationsScreen(initialToken: token.isEmpty ? null : token);
+          break;
+        }
+        page = const ErrorGenericScreen();
+        break;
+      }
     }
 
     final name = routeSettings.name ?? '';

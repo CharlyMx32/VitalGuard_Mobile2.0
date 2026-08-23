@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
@@ -12,6 +13,22 @@ class AlexaLinkResult {
   final String? state;
 
   AlexaLinkResult({required this.success, this.code, this.error, this.state});
+}
+
+class AlexaLinkStatus {
+  final bool linked;
+  final String? vitalId;
+  final String? clientName;
+  final String? scope;
+  final DateTime? linkedAt;
+
+  const AlexaLinkStatus({
+    required this.linked,
+    this.vitalId,
+    this.clientName,
+    this.scope,
+    this.linkedAt,
+  });
 }
 
 class AlexaService {
@@ -114,6 +131,85 @@ class AlexaService {
         return AlexaLinkResult(success: false, error: 'user_cancelled');
       }
       return AlexaLinkResult(success: false, error: e.toString());
+    }
+  }
+
+  /// Consulta el estado real de vinculación en el backend de Vital ID
+  /// usando el access_token SSO del usuario (JwtAuthGuard).
+  ///
+  /// [onRefresh] permite renovar el access token si expiró (401): debe devolver
+  /// el nuevo access token (y persistirlo) o null si no se pudo refrescar.
+  static Future<AlexaLinkStatus> fetchLinkStatus({
+    required String accessToken,
+    Future<String?> Function()? onRefresh,
+  }) async {
+    var token = accessToken;
+    var triedRefresh = false;
+
+    while (true) {
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConfig.vitalIdApiBaseUrl,
+        headers: {'Authorization': 'Bearer $token'},
+      ));
+      try {
+        final res = await dio.get('/oauth/link-status');
+        final body = res.data as Map<String, dynamic>;
+        final data = (body['data'] ?? body) as Map<String, dynamic>;
+        return AlexaLinkStatus(
+          linked: data['linked'] == true,
+          vitalId: data['vital_id'] as String?,
+          clientName: data['client_name'] as String?,
+          scope: data['scope'] as String?,
+          linkedAt: data['linked_at'] != null
+              ? DateTime.tryParse(data['linked_at'] as String)
+              : null,
+        );
+      } on DioException catch (e) {
+        final is401 = e.response?.statusCode == 401;
+        if (is401 && !triedRefresh && onRefresh != null) {
+          final newToken = await onRefresh();
+          if (newToken != null && newToken.isNotEmpty) {
+            token = newToken;
+            triedRefresh = true;
+            continue;
+          }
+        }
+        rethrow;
+      }
+    }
+  }
+
+  /// Desvincula de verdad: revoca los tokens OAuth del usuario en Vital ID
+  /// (DELETE /oauth/links) y además limpia la bandera local.
+  static Future<bool> unlink({
+    required String accessToken,
+    Future<String?> Function()? onRefresh,
+  }) async {
+    var token = accessToken;
+    var triedRefresh = false;
+
+    while (true) {
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConfig.vitalIdApiBaseUrl,
+        headers: {'Authorization': 'Bearer $token'},
+      ));
+      try {
+        await dio.delete('/oauth/links');
+        await setAlexaLinked(false);
+        return true;
+      } on DioException catch (e) {
+        final is401 = e.response?.statusCode == 401;
+        if (is401 && !triedRefresh && onRefresh != null) {
+          final newToken = await onRefresh();
+          if (newToken != null && newToken.isNotEmpty) {
+            token = newToken;
+            triedRefresh = true;
+            continue;
+          }
+        }
+        await setAlexaLinked(false);
+        return false;
+      }
     }
   }
 }

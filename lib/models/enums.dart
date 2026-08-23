@@ -113,6 +113,7 @@ enum NotificationType {
   medicamentoSolicitud,
   dosisRecordatorio,
   sosAlerta,
+  invitacionCuidador,
   sistema;
 
   String get apiValue {
@@ -120,6 +121,7 @@ enum NotificationType {
       case NotificationType.medicamentoSolicitud: return 'MEDICAMENTO_SOLICITUD';
       case NotificationType.dosisRecordatorio: return 'DOSIS_RECORDATORIO';
       case NotificationType.sosAlerta: return 'SOS_ALERTA';
+      case NotificationType.invitacionCuidador: return 'INVITACION_CUIDADOR';
       case NotificationType.sistema: return 'SISTEMA';
     }
   }
@@ -129,6 +131,7 @@ enum NotificationType {
       case 'MEDICAMENTO_SOLICITUD': return NotificationType.medicamentoSolicitud;
       case 'DOSIS_RECORDATORIO': return NotificationType.dosisRecordatorio;
       case 'SOS_ALERTA': return NotificationType.sosAlerta;
+      case 'INVITACION_CUIDADOR': return NotificationType.invitacionCuidador;
       case 'SISTEMA': return NotificationType.sistema;
       default: return NotificationType.sistema;
     }

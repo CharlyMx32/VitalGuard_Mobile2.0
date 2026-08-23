@@ -9,6 +9,7 @@ class AppNotification {
   final bool isRead;
   final Patient? patient;
   final DateTime? createdAt;
+  final Map<String, dynamic>? metadata;
 
   const AppNotification({
     required this.id,
@@ -18,7 +19,15 @@ class AppNotification {
     this.isRead = false,
     this.patient,
     this.createdAt,
+    this.metadata,
   });
+
+  int? get invitationId {
+    final v = metadata?['invitation_id'] ?? metadata?['invitationId'];
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
@@ -37,6 +46,7 @@ class AppNotification {
           : json['created_at'] != null
               ? DateTime.parse(json['created_at'] as String)
               : null,
+      metadata: json['metadata'] as Map<String, dynamic>?,
     );
   }
 

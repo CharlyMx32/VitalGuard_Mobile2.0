@@ -106,7 +106,7 @@ class _DispenserContentState extends State<DispenserContent> {
                           if (withCompartment.isEmpty) ...[
                             const SizedBox(height: 8),
                             const VitalEmptyState(
-                              icon: LucideIcons.box,
+                              icon: LucideIcons.package,
                               title: 'Sin asignaciones',
                               description: 'Aún no se han asignado medicamentos a los compartimentos.',
                             ),

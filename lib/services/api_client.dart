@@ -35,14 +35,11 @@ class ApiClient {
           handler.next(options);
         },
         onError: (error, handler) {
-          final statusCode = error.response?.statusCode;
-          debugPrint('[API] Error $statusCode: ${error.message}');
-
-          if (statusCode == 401 || statusCode == 403) {
-            _authService.logout();
+          debugPrint('[API] Error ${error.response?.statusCode}: ${error.message}');
+          debugPrint('[API] Response body: ${error.response?.data}');
+          if (error.response?.statusCode == 401 && !_onUnauthorized.isClosed) {
             _onUnauthorized.add(null);
           }
-
           handler.next(error);
         },
       ),

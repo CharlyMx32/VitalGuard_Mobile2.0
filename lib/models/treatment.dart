@@ -145,15 +145,25 @@ class TreatmentDetail {
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'] as String)
           : null,
-      medication: json['medication'] != null
-          ? Medication.fromJson(json['medication'] as Map<String, dynamic>)
-          : null,
+      medication: _parseMedication(json),
       schedules: json['schedules'] != null
           ? (json['schedules'] as List)
               .map((e) => Schedule.fromJson(e as Map<String, dynamic>))
               .toList()
           : null,
     );
+  }
+
+  static Medication? _parseMedication(Map<String, dynamic> json) {
+    final med = json['medication'] ?? json['medications'];
+    if (med == null) return null;
+    if (med is List && med.isNotEmpty) {
+      return Medication.fromJson(med.first as Map<String, dynamic>);
+    }
+    if (med is Map<String, dynamic>) {
+      return Medication.fromJson(med);
+    }
+    return null;
   }
 
   Map<String, dynamic> toJson() {
@@ -195,6 +205,7 @@ class Schedule {
   final DateTime? updatedAt;
   final List<MedicationLog>? logs;
   final String? medicationName;
+  final String? medicationPresentation;
   final String? doseInfo;
 
   const Schedule({
@@ -205,6 +216,7 @@ class Schedule {
     this.updatedAt,
     this.logs,
     this.medicationName,
+    this.medicationPresentation,
     this.doseInfo,
   });
 
@@ -237,6 +249,8 @@ class Schedule {
           : null,
       medicationName:
           medication is Map<String, dynamic> ? medication['name'] as String? : null,
+      medicationPresentation:
+          medication is Map<String, dynamic> ? medication['presentation'] as String? : null,
       doseInfo:
           details is Map<String, dynamic> ? details['doseInfo'] as String? : null,
     );
@@ -260,6 +274,8 @@ class Schedule {
       'treatmentDetailId': treatmentDetailId,
       'timeOfDay': _timeToApi(timeOfDay),
       if (medicationName != null) 'medicationName': medicationName,
+      if (medicationPresentation != null)
+        'medicationPresentation': medicationPresentation,
       if (doseInfo != null) 'doseInfo': doseInfo,
     };
   }

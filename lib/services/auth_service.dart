@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import '../config.dart';
 
 class AuthService extends ChangeNotifier {
   static const String _tokenKey = 'vitalguard_token';
@@ -64,17 +67,44 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> login(String token, {String? refreshToken}) async {
+  Future<void> setTokens(String token, {String? refreshToken}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
     _token = token;
-
     if (refreshToken != null) {
       await prefs.setString(_refreshTokenKey, refreshToken);
       _refreshToken = refreshToken;
     }
-
     notifyListeners();
+  }
+
+  Future<void> login(String token, {String? refreshToken}) async {
+    await setTokens(token, refreshToken: refreshToken);
+  }
+
+  /// Renueva el access token SSO usando el refresh token guardado
+  /// (POST /auth/refresh en Vital ID). Actualiza y persiste ambos tokens.
+  /// Devuelve el nuevo access token o null si no se pudo refrescar.
+  Future<String?> refreshAccessToken() async {
+    final refresh = _refreshToken;
+    if (refresh == null || refresh.isEmpty) return null;
+    try {
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConfig.vitalIdApiBaseUrl,
+        headers: {'Content-Type': 'application/json'},
+      ));
+      final res = await dio.post('/auth/refresh', data: {
+        'refresh_token': refresh,
+      });
+      final data = res.data as Map<String, dynamic>;
+      final newToken = data['access_token'] as String?;
+      final newRefresh = data['refresh_token'] as String?;
+      if (newToken == null || newToken.isEmpty) return null;
+      await setTokens(newToken, refreshToken: newRefresh);
+      return newToken;
+    } on Exception {
+      return null;
+    }
   }
 
   Future<void> setUser(Map<String, dynamic> user) async {
@@ -126,6 +156,10 @@ class AuthService extends ChangeNotifier {
     _patientId = null;
     _role = null;
     _user = null;
+    try {
+      final cookies = WebViewCookieManager();
+      await cookies.clearCookies();
+    } catch (_) {}
     notifyListeners();
   }
 }

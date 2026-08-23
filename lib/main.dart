@@ -19,8 +19,10 @@ import 'services/medication_service.dart';
 import 'services/notification_service.dart';
 import 'services/notification_initializer.dart';
 import 'services/fcm_service.dart';
+import 'services/realtime_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/patient_current_service.dart';
+import 'services/invitation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,7 +77,8 @@ void main() async {
           update: (context, apiClient, storage, previous) =>
               previous ?? MedicationService(apiClient, storage),
         ),
-        ProxyProvider<ApiClient, NotificationService>(
+        ChangeNotifierProxyProvider<ApiClient, NotificationService>(
+          create: (context) => NotificationService(context.read<ApiClient>()),
           update: (context, apiClient, previous) =>
               previous ?? NotificationService(apiClient),
         ),
@@ -83,9 +86,25 @@ void main() async {
           update: (context, apiClient, previous) =>
               previous ?? OnboardingService(apiClient),
         ),
-        ProxyProvider2<ApiClient, NotificationService, FcmService>(
+        ChangeNotifierProxyProvider2<ApiClient, NotificationService, FcmService>(
+          create: (context) => FcmService(
+            context.read<ApiClient>(),
+            context.read<NotificationService>(),
+          ),
           update: (context, apiClient, notificationService, previous) =>
               previous ?? FcmService(apiClient, notificationService),
+        ),
+        ChangeNotifierProxyProvider2<AuthService, NotificationService, RealtimeService>(
+          create: (context) => RealtimeService(
+            context.read<AuthService>(),
+            context.read<NotificationService>(),
+          ),
+          update: (context, auth, notif, previous) =>
+              previous ?? RealtimeService(auth, notif),
+        ),
+        ProxyProvider<ApiClient, InvitationService>(
+          update: (context, apiClient, previous) =>
+              previous ?? InvitationService(apiClient),
         ),
       ],
       child: const VitalGuardApp(),

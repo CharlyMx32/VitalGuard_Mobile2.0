@@ -94,10 +94,8 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
                   _buildVerifyButton(),
                   const SizedBox(height: 16),
                   _buildDeviceInfo(),
-                  const SizedBox(height: 24),
-                  _buildSimulateButton(),
                   if (!_fromProfile) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     _buildSkipButton(),
                   ],
                 ],
@@ -135,23 +133,40 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
   //  CODE INPUTS — 6 celdas individuales con estilo limpio
   // ══════════════════════════════════════════════════════════════
   Widget _buildCodeInputs() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ...List.generate(3, (i) => _buildSingleInput(i)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: Container(
-            width: 20, height: 2,
-            decoration: BoxDecoration(color: AppColors.textMuted, borderRadius: BorderRadius.circular(1)),
-          ),
-        ),
-        ...List.generate(3, (i) => _buildSingleInput(i + 3)),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // ancho disponible (SingleChildScrollView ya da padding horizontal 24)
+        const dashWidth = 20.0;
+        const dashGap = 6.0;
+        const spacing = 6.0; // entre inputs
+        final totalSpacing = (5 * spacing) + dashWidth + (dashGap * 2);
+        final cellWidth = ((constraints.maxWidth - totalSpacing) / 6).clamp(38.0, 52.0);
+        final cellHeight = cellWidth * 1.08;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ...List.generate(3, (i) => Padding(
+                  padding: EdgeInsets.only(right: i < 2 ? spacing : 0),
+                  child: _buildSingleInput(i, cellWidth, cellHeight),
+                )),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: dashGap),
+              child: Container(
+                width: dashWidth, height: 2,
+                decoration: BoxDecoration(color: AppColors.textMuted, borderRadius: BorderRadius.circular(1)),
+              ),
+            ),
+            ...List.generate(3, (i) => Padding(
+                  padding: EdgeInsets.only(right: i < 2 ? spacing : 0),
+                  child: _buildSingleInput(i + 3, cellWidth, cellHeight),
+                )),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildSingleInput(int index) {
+  Widget _buildSingleInput(int index, double width, double height) {
     final hasText = _controllers[index].text.isNotEmpty;
     final isFocused = _focusNodes[index].hasFocus;
 
@@ -165,45 +180,43 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
     }
 
     return Container(
-      width: 48, height: 52,
-      margin: const EdgeInsets.symmetric(horizontal: 3),
+      width: width, height: height,
       decoration: BoxDecoration(
         color: hasText ? AppColors.primaryLight : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: borderColor, width: hasText || isFocused ? 1.5 : 1),
         boxShadow: isFocused
             ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.15), blurRadius: 6, spreadRadius: 0)]
             : [],
       ),
-      child: Center(
-        child: TextField(
-          controller: _controllers[index],
-          focusNode: _focusNodes[index],
-          textAlign: TextAlign.center,
-          textAlignVertical: TextAlignVertical.center,
-          maxLength: 1,
-          textCapitalization: TextCapitalization.characters,
-          keyboardType: TextInputType.text,
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]'))],
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textDark, height: 1.0),
-          decoration: const InputDecoration(
-            counterText: '',
-            border: UnderlineInputBorder(borderSide: BorderSide.none),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide.none),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide.none),
-            contentPadding: EdgeInsets.zero,
-            isDense: true,
-            filled: false,
-          ),
-          onChanged: (v) {
-            setState(() {});
-            if (v.isNotEmpty && index < 5) {
-              _focusNodes[index + 1].requestFocus();
-            } else if (v.isEmpty && index > 0) {
-              _focusNodes[index - 1].requestFocus();
-            }
-          },
+      alignment: Alignment.center,
+      child: TextField(
+        controller: _controllers[index],
+        focusNode: _focusNodes[index],
+        textAlign: TextAlign.center,
+        textAlignVertical: TextAlignVertical.center,
+        maxLength: 1,
+        textCapitalization: TextCapitalization.characters,
+        keyboardType: TextInputType.text,
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]'))],
+        style: TextStyle(fontSize: width * 0.44, fontWeight: FontWeight.w700, color: AppColors.textDark, height: 1.0),
+        decoration: const InputDecoration(
+          counterText: '',
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+          isDense: true,
+          filled: false,
         ),
+        onChanged: (v) {
+          setState(() {});
+          if (v.isNotEmpty && index < 5) {
+            _focusNodes[index + 1].requestFocus();
+          } else if (v.isEmpty && index > 0) {
+            _focusNodes[index - 1].requestFocus();
+          }
+        },
       ),
     );
   }
@@ -241,26 +254,6 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
           Text('Ejemplo: A1B-2C3', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ])),
       ]),
-    );
-  }
-
-  /// Botón de simulación para testing sin dispositivo real
-  Widget _buildSimulateButton() {
-    return GestureDetector(
-      onTap: _onSimulate,
-      child: Container(
-        width: double.infinity, height: 44,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.accent, width: 1.2),
-        ),
-        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(LucideIcons.play, size: 16, color: AppColors.accent),
-          SizedBox(width: 8),
-          Text('Simular dispositivo', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent)),
-        ]),
-      ),
     );
   }
 
@@ -330,19 +323,4 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
     }
   }
 
-  /// Simula un dispositivo vinculado sin llamar al backend
-  void _onSimulate() async {
-    final deviceService = context.read<DeviceService>();
-    final code = _code.isNotEmpty ? _code : 'SIM001';
-    await deviceService.saveDeviceMock(code, patientId: _patientId);
-
-    if (mounted) {
-      VitalFeedback.success(
-        context,
-        code: 'DEVICE_LINKED',
-        message: 'Dispositivo simulado vinculado correctamente',
-        onAction: _continue,
-      );
-    }
-  }
 }

@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_client.dart';
+import '../../services/fcm_service.dart';
+import '../../config.dart';
 import '../../theme/app_colors.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/vital_shimmer.dart';
@@ -25,8 +27,9 @@ class _VitalIdWebViewScreenState extends State<VitalIdWebViewScreen> {
   bool _routeHashApplied = false;
   bool _loginHandled = false;
 
-  static const String _baseUrl = 'https://id.vitalguard.app';
   static const String _callbackScheme = 'vitalguard://callback';
+
+  String get _baseUrl => AppConfig.vitalIdBaseUrl;
 
   String get _initialUrl => '$_baseUrl${widget.path}';
 
@@ -45,6 +48,7 @@ class _VitalIdWebViewScreenState extends State<VitalIdWebViewScreen> {
         NavigationDelegate(
           onPageStarted: (_) {
             if (mounted) setState(() => _isLoading = true);
+            _clearWebStorage();
             _injectFetchHook();
           },
           onPageFinished: (_) {
@@ -71,7 +75,10 @@ class _VitalIdWebViewScreenState extends State<VitalIdWebViewScreen> {
           },
         ),
       )
-      ..loadRequest(Uri.parse(_initialUrl));
+      ..loadRequest(
+        Uri.parse(_initialUrl),
+        headers: const {'ngrok-skip-browser-warning': '1'},
+      );
   }
 
   void _applyRouteHash() {
@@ -86,7 +93,16 @@ class _VitalIdWebViewScreenState extends State<VitalIdWebViewScreen> {
     _controller.runJavaScript(script);
   }
 
-    void _injectFetchHook() {
+    void _clearWebStorage() {
+    _controller.runJavaScript('''
+      (function () {
+        try { window.localStorage.clear(); } catch (e) {}
+        try { window.sessionStorage.clear(); } catch (e) {}
+      })();
+    ''');
+  }
+
+  void _injectFetchHook() {
     const script = '''
       (function () {
         if (window.__vgHookInstalled) return;
@@ -272,6 +288,23 @@ class _VitalIdWebViewScreenState extends State<VitalIdWebViewScreen> {
     }
 
     debugPrint('[VitalID] _completeLogin: auth.firstName=${auth.firstName}, auth.email=${auth.email}');
+
+    // Sincroniza token FCM inmediatamente tras login (evita race con invitaciones)
+    FcmService? fcm;
+    try {
+      fcm = context.read<FcmService>();
+    } catch (_) {}
+    if (fcm != null) {
+      try {
+        // Pequeño delay para asegurar que SharedPreferences ya tenga el usuario
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (!mounted) return;
+        await fcm.ensureTokenRegistered();
+        debugPrint('[VitalID] _completeLogin: FCM token sync triggered');
+      } catch (e) {
+        debugPrint('[VitalID] _completeLogin: FCM sync failed: $e');
+      }
+    }
 
     if (!mounted) return;
 

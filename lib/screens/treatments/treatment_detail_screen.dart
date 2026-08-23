@@ -289,6 +289,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
 
   Widget _buildMedCard(TreatmentDetail detail) {
     final medication = detail.medication;
+    final pres = medication?.presentation;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -322,12 +323,25 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
                           fontWeight: FontWeight.w600,
                           color: AppColors.textDark),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      detail.doseInfo ?? '',
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.textMuted),
-                    ),
+                    if (pres != null && pres.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        pres,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textMuted),
+                      ),
+                    ],
+                    if (detail.doseInfo != null &&
+                        detail.doseInfo!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        detail.doseInfo!,
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textMuted),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -366,26 +380,44 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
               )).toList(),
             ),
           const SizedBox(height: 12),
-          Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Progreso',
-                      style: TextStyle(
-                          fontSize: 10, color: AppColors.textMuted)),
-                  Text('${detail.frequencyHours ?? 0}h',
-                      style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textDark)),
-                ],
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                const Icon(LucideIcons.calendar,
+                    size: 14, color: AppColors.textMuted),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Fin: ${_formatDate(detail.endDate)}',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textDark),
+                  ),
+                ),
+                Text('Cada ${detail.frequencyHours ?? 0}h',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary)),
+              ],
+            ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Sin fecha de fin';
+    final d = date.day.toString().padLeft(2, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    return '$d/$m/${date.year}';
   }
 }
 

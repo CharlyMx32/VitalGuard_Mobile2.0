@@ -66,22 +66,6 @@ class DeviceService {
     }
   }
 
-  /// Crea un dispositivo mock local (para testing sin backend/token real)
-  Future<Device> saveDeviceMock(String code, {int? patientId}) async {
-    final device = Device(
-      id: DateTime.now().millisecondsSinceEpoch,
-      uniqueCode: code,
-      patientId: patientId,
-      isOnline: true,
-      firmwareVersion: '1.0.0-mock',
-      createdAt: DateTime.now(),
-    );
-    _cached = device;
-    await _storage.saveDevice(device);
-    debugPrint('[DeviceService] mock device saved: ${device.uniqueCode}');
-    return device;
-  }
-
   Future<void> unlinkDevice(int deviceId) async {
     try {
       await _client.delete('/devices/$deviceId');

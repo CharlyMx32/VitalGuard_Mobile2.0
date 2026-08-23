@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dimensions.dart';
 
@@ -622,7 +623,7 @@ class AsyncWidget<T> extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.cloud_off, size: 48, color: AppColors.textLight),
+                  const Icon(LucideIcons.cloudOff, size: AppDimensions.iconHero, color: AppColors.textLight),
                   const SizedBox(height: 12),
                   Text(
                     'Error al cargar datos',

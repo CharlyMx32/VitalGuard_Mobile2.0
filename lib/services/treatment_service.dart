@@ -109,6 +109,8 @@ class TreatmentService {
             timeOfDay: scheduledAt,
             logs: dayLogs,
             medicationName: detail.medication?.name ?? s.medicationName,
+            medicationPresentation:
+                detail.medication?.presentation ?? s.medicationPresentation,
             doseInfo: detail.doseInfo ?? s.doseInfo,
           ));
         }
@@ -151,6 +153,16 @@ class TreatmentService {
   /// se guarda el log localmente.
   Future<void> confirmDose(Schedule schedule) async {
     final now = DateTime.now();
+    // Idempotencia: cada ranura de horario solo cuenta una vez al día.
+    // Evita doble conteo si se confirma varias veces (doble tap, reintento...).
+    final existing = await _loadLogsCache();
+    final already = existing.any((l) =>
+        l.scheduleId == schedule.id &&
+        l.status == LogStatus.confirmado &&
+        _sameDay(l.scheduledDatetime, schedule.timeOfDay));
+    if (already) {
+      return;
+    }
     final log = MedicationLog(
       id: DateTime.now().millisecondsSinceEpoch,
       scheduleId: schedule.id,
@@ -160,15 +172,14 @@ class TreatmentService {
       createdAt: now,
       updatedAt: now,
     );
+    existing.add(log);
     try {
       await _client.post('/medication-logs', data: log.toJson());
     } on DioException {
       // fallback local
     }
-    final logs = await _loadLogsCache();
-    logs.add(log);
-    await _storage.saveLogs(logs);
-    _cachedLogs = logs;
+    await _storage.saveLogs(existing);
+    _cachedLogs = existing;
 
     final treatments = _cachedTreatments;
     if (treatments == null) return;
