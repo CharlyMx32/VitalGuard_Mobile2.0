@@ -6,6 +6,7 @@ import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
 import '../../services/avatar_service.dart';
+import '../../services/theme_provider.dart';
 import '../../data/avatar_data.dart';
 import '../../widgets/vital_avatar.dart';
 import '../../utils/session_utils.dart';
@@ -254,7 +255,20 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
 
   Widget _buildPreferencesSection(BuildContext context) {
     final auth = context.watch<AuthService>();
+    final themeProvider = context.watch<ThemeProvider>();
     return _buildSection('Preferencias', AppColors.warning, [
+      _SettingsItem(
+        icon: themeProvider.isDark ? LucideIcons.moon : LucideIcons.sun,
+        iconBg: AppColors.accentLight,
+        iconFg: AppColors.accent,
+        label: 'Modo oscuro',
+        description: themeProvider.isDark ? 'Activado' : 'Desactivado',
+        onTap: () => themeProvider.toggle(),
+        trailing: Switch(
+          value: themeProvider.isDark,
+          onChanged: (_) => themeProvider.toggle(),
+        ),
+      ),
       _SettingsItem(
         icon: LucideIcons.bell,
         iconBg: AppColors.warningBg,
@@ -314,6 +328,7 @@ class _SettingsItem extends StatelessWidget {
   final String label;
   final String description;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   const _SettingsItem({
     required this.icon,
@@ -322,6 +337,7 @@ class _SettingsItem extends StatelessWidget {
     required this.label,
     required this.description,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -352,7 +368,7 @@ class _SettingsItem extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
+            trailing ?? const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
           ],
         ),
       ),
