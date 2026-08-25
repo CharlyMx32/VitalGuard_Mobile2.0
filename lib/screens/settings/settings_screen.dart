@@ -131,7 +131,7 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
 
   Widget _buildProfileCard() {
     final avatarConfig = context.select<AvatarService, AvatarConfig>((s) => s.config);
-    final auth = context.select<AuthService, AuthService>((s) => s);
+    final auth = context.watch<AuthService>();
     final fullName = [auth.firstName, auth.paternalLastName, auth.maternalLastName]
         .where((s) => s != null && s.isNotEmpty)
         .join(' ');
