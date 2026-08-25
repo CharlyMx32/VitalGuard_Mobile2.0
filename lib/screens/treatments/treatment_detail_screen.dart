@@ -82,26 +82,78 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
               VitalHeader.white(
                 title: list.length == 1 ? 'Detalle del Tratamiento' : 'Tratamientos',
                 actions: [
-                  GestureDetector(
-                    onTap: () async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Eliminar tratamiento'),
-                          content: Text('¿Eliminar Tratamiento ${_selectedIdx + 1}? Se borrarán ${treatment.details?.length ?? 0} medicamentos y horarios.'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar', style: TextStyle(color: AppColors.danger))),
-                          ],
-                        ),
-                      );
-                      if (confirmed == true && context.mounted) {
-                        await context.read<TreatmentService>().deleteTreatment(treatment.id);
-                        _refresh();
-                      }
-                    },
-                    child: const SizedBox(width: 32, height: 32, child: Icon(LucideIcons.trash2, size: 18, color: AppColors.danger)),
-                  ),
+                  if (treatment.status != TreatmentStatus.finalizado)
+                    PopupMenuButton<String>(
+                      icon: Container(width: 32, height: 32, decoration: const BoxDecoration(color: AppColors.bg, shape: BoxShape.circle), child: const Icon(LucideIcons.ellipsisVertical, size: 16, color: AppColors.textMuted)),
+                      onSelected: (value) async {
+                        if (value == 'finalize') {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              title: Row(children: [Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)), child: const Icon(LucideIcons.checkCircle2, size: 20, color: AppColors.primary)), const SizedBox(width: 10), const Expanded(child: Text('Finalizar tratamiento', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))]),
+                              content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text('¿Finalizar Tratamiento ${_selectedIdx + 1}?', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 8),
+                                const Text('Se marcarán todos los medicamentos como finalizados, se liberarán los compartimentos y se actualizará el pastillero por MQTT.', style: TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.4)),
+                                const SizedBox(height: 10),
+                                Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppColors.warningBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.warning.withValues(alpha: 0.2))), child: Row(children: [const Icon(LucideIcons.info, size: 14, color: AppColors.warning), const SizedBox(width: 6), Expanded(child: Text('${treatment.details?.length ?? 0} medicamentos · Fin: ${_formatDate(treatment.endDate)}', style: const TextStyle(fontSize: 12, color: AppColors.warning)))])),
+                              ]),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+                                FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: AppColors.primary), child: const Text('Finalizar')),
+                              ],
+                            ),
+                          );
+                          if (confirmed == true && context.mounted) {
+                            await context.read<TreatmentService>().finalizeTreatment(treatment.id);
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tratamiento finalizado · Compartimentos liberados y pastillero actualizado'), backgroundColor: AppColors.accent));
+                            _refresh();
+                          }
+                        } else if (value == 'pause' || value == 'resume') {
+                          final isPause = value == 'pause';
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: Text(isPause ? 'Pausar tratamiento' : 'Reanudar tratamiento'),
+                              content: Text(isPause ? 'Se pausará la dispensación y no se crearán nuevas dosis hasta reanudar.' : 'Se reanudará la dispensación del tratamiento.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+                                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(isPause ? 'Pausar' : 'Reanudar')),
+                              ],
+                            ),
+                          );
+                          if (confirmed == true && context.mounted) {
+                            await context.read<TreatmentService>().togglePauseTreatment(treatment.id, isPause);
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isPause ? 'Tratamiento pausado' : 'Tratamiento reanudado')));
+                            _refresh();
+                          }
+                        } else if (value == 'delete') {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Eliminar tratamiento'),
+                              content: Text('¿Eliminar Tratamiento ${_selectedIdx + 1}? Se borrarán ${treatment.details?.length ?? 0} medicamentos y horarios.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+                                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar', style: TextStyle(color: AppColors.danger))),
+                              ],
+                            ),
+                          );
+                          if (confirmed == true && context.mounted) {
+                            await context.read<TreatmentService>().deleteTreatment(treatment.id);
+                            _refresh();
+                          }
+                        }
+                      },
+                      itemBuilder: (ctx) => [
+                        const PopupMenuItem(value: 'finalize', child: Row(children: [Icon(LucideIcons.checkCircle2, size: 16, color: AppColors.primary), SizedBox(width: 8), Text('Finalizar tratamiento')])),
+                        PopupMenuItem(value: treatment.status == TreatmentStatus.pausado ? 'resume' : 'pause', child: Row(children: [Icon(treatment.status == TreatmentStatus.pausado ? LucideIcons.play : LucideIcons.pause, size: 16, color: AppColors.warning), SizedBox(width: 8), Text(treatment.status == TreatmentStatus.pausado ? 'Reanudar' : 'Pausar')])),
+                        const PopupMenuItem(value: 'delete', child: Row(children: [Icon(LucideIcons.trash2, size: 16, color: AppColors.danger), SizedBox(width: 8), Text('Eliminar', style: TextStyle(color: AppColors.danger))])),
+                      ],
+                    ),
                 ],
               ),
               Expanded(
@@ -119,6 +171,13 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
                       _buildHeroCard(treatment, index: _selectedIdx, total: list.length),
                       const SizedBox(height: 16),
                       _buildProgressCard(treatment),
+                      if (treatment.status != TreatmentStatus.finalizado) ...[
+                        const SizedBox(height: 12),
+                        _buildActionBar(context, treatment),
+                      ] else ...[
+                        const SizedBox(height: 12),
+                        Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight)), child: Row(children: [Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.accentLight, shape: BoxShape.circle), child: const Icon(LucideIcons.checkCircle2, size: 16, color: AppColors.accent)), const SizedBox(width: 10), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Tratamiento finalizado', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)), Text('Compartimentos liberados · Pastillero actualizado', style: TextStyle(fontSize: 11, color: AppColors.textMuted))]))])),
+                      ],
                       const SizedBox(height: 16),
                       _buildSectionHeader(context, 'Medicamentos (${treatment.details?.length ?? 0})'),
                       const SizedBox(height: 8),
@@ -253,6 +312,61 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
         ]),
       ]),
     );
+  }
+
+  Widget _buildActionBar(BuildContext context, Treatment treatment) {
+    final isPausado = treatment.status == TreatmentStatus.pausado;
+    return Row(children: [
+      Expanded(
+        child: OutlinedButton.icon(
+          onPressed: () async {
+            final isPause = !isPausado;
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text(isPause ? 'Pausar tratamiento' : 'Reanudar tratamiento'),
+                content: Text(isPause ? 'Se pausará la dispensación y no se crearán dosis hasta reanudar.' : 'Se reanudará la dispensación.'),
+                actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(isPause ? 'Pausar' : 'Reanudar'))],
+              ),
+            );
+            if (confirmed == true && context.mounted) {
+              await context.read<TreatmentService>().togglePauseTreatment(treatment.id, isPause);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isPause ? 'Tratamiento pausado' : 'Tratamiento reanudado')));
+              _refresh();
+            }
+          },
+          icon: Icon(isPausado ? LucideIcons.play : LucideIcons.pause, size: 16),
+          label: Text(isPausado ? 'Reanudar' : 'Pausar', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), side: BorderSide(color: isPausado ? AppColors.accent : AppColors.warning), foregroundColor: isPausado ? AppColors.accent : AppColors.warning),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: FilledButton.icon(
+          onPressed: () async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                title: Row(children: [Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)), child: const Icon(LucideIcons.checkCircle2, size: 20, color: AppColors.primary)), const SizedBox(width: 10), const Expanded(child: Text('Finalizar tratamiento', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))]),
+                content: const Text('Se marcarán medicamentos como finalizados, se liberarán compartimentos y se actualizará el pastillero.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: AppColors.primary), child: const Text('Finalizar'))],
+              ),
+            );
+            if (confirmed == true && context.mounted) {
+              await context.read<TreatmentService>().finalizeTreatment(treatment.id);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tratamiento finalizado · Compartimentos liberados'), backgroundColor: AppColors.accent));
+              _refresh();
+            }
+          },
+          icon: const Icon(LucideIcons.checkCircle2, size: 16),
+          label: const Text('Finalizar', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), backgroundColor: AppColors.primary),
+        ),
+      ),
+    ]);
   }
 
   String _monthName(int month) {

@@ -488,6 +488,58 @@ class TreatmentService {
     }
   }
 
+  Future<void> finalizeTreatment(int id) async {
+    try {
+      await _client.post('/treatments/$id/finalize');
+    } on DioException {
+      // fallback: PATCH status
+      try {
+        await _client.patch('/treatments/$id', data: {'status': 'Finalizado'});
+      } on DioException {}
+    }
+    final cached = await _loadTreatmentsCache();
+    final idx = cached.indexWhere((t) => t.id == id);
+    if (idx != -1) {
+      final t = cached[idx];
+      // Marca detalles también como finalizados espejo backend
+      final updatedDetails = t.details?.map((d) => TreatmentDetail(
+        id: d.id,
+        treatmentId: d.treatmentId,
+        medicationId: d.medicationId,
+        doseInfo: d.doseInfo,
+        frequencyHours: d.frequencyHours,
+        firstTakeTime: d.firstTakeTime,
+        endDate: d.endDate,
+        status: MedicationStatus.finalizado,
+        compartmentNumber: d.compartmentNumber,
+        isExternal: d.isExternal,
+        createdAt: d.createdAt,
+        updatedAt: DateTime.now(),
+        medication: d.medication,
+        schedules: d.schedules,
+      )).toList();
+      cached[idx] = Treatment(
+        id: t.id,
+        patientId: t.patientId,
+        appProfileId: t.appProfileId,
+        startDate: t.startDate,
+        endDate: t.endDate,
+        status: TreatmentStatus.finalizado,
+        createdAt: t.createdAt,
+        updatedAt: DateTime.now(),
+        patient: t.patient,
+        details: updatedDetails,
+      );
+      await _storage.saveTreatments(cached);
+      _cachedTreatments = cached;
+    }
+  }
+
+  Future<void> togglePauseTreatment(int id, bool pause) async {
+    final status = pause ? 'Pausado' : 'Activo';
+    await updateTreatmentFields(id, {'status': status});
+  }
+
   Future<void> deleteTreatment(int id) async {
     try {
       await _client.delete('/treatments/$id');
