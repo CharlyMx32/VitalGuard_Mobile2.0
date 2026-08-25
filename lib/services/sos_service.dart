@@ -36,4 +36,25 @@ class SosService {
       );
     }
   }
+
+  Future<List<SosEvent>> getRecentSosEvents(int patientId) async {
+    try {
+      final response = await _client.get('/sos-events/recent/$patientId');
+      final normalized = normalizeJsonKeys(response.data) as List;
+      return normalized.map((e) => SosEvent.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException {
+      return [];
+    }
+  }
+
+  Future<SosEvent?> updateSosStatus(int eventId, SosStatus status) async {
+    try {
+      final apiValue = status == SosStatus.atendido ? 'Atendido' : 'Falsa_Alarma';
+      final response = await _client.patch('/sos-events/$eventId/status', data: {'status': apiValue});
+      final normalized = normalizeJsonKeys(response.data) as Map<String, dynamic>;
+      return SosEvent.fromJson(normalized);
+    } on DioException {
+      return null;
+    }
+  }
 }

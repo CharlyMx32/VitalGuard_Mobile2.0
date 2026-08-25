@@ -41,11 +41,11 @@ class DeviceService {
     }
   }
 
-  Future<Device> saveDeviceByCode(String code, {int? patientId}) async {
+  Future<Device> saveDeviceByCode(String code, {int? patientId, int? responsibleCaregiverId}) async {
     try {
       final response = await _client.post(
         '/devices/vincular',
-        data: {'deviceId': code, 'patientId': ?patientId},
+        data: {'deviceId': code, 'patientId': ?patientId, 'responsibleCaregiverId': ?responsibleCaregiverId},
       );
       debugPrint('[DeviceService] vincular response: ${response.data}');
       final data = response.data;
@@ -77,6 +77,20 @@ class DeviceService {
       );
       rethrow;
     }
+  }
+
+  Future<Device> updateResponsible(int deviceId, int responsibleCaregiverId) async {
+    final response = await _client.patch(
+      '/devices/$deviceId/responsible',
+      data: {'responsibleCaregiverId': responsibleCaregiverId},
+    );
+    final data = response.data;
+    final dev = (data is Map && data['device'] is Map) ? data['device'] as Map<String, dynamic> : data as Map<String, dynamic>;
+    final normalized = normalizeJsonKeys(dev) as Map<String, dynamic>;
+    final device = Device.fromJson(normalized);
+    _cached = device;
+    await _storage.saveDevice(device);
+    return device;
   }
 
   Future<void> disconnect() async {

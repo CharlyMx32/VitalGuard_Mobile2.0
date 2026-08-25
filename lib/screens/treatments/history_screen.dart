@@ -84,6 +84,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  List<MedicationLog> get _filteredLogs {
+    final byMonth = _logs.where((l) => l.scheduledDatetime.month == _currentMonth && l.scheduledDatetime.year == _currentYear).toList();
+    if (_selectedFilter == 0) {
+      final today = DateTime.now();
+      return byMonth.where((l) => l.scheduledDatetime.day == today.day && l.scheduledDatetime.month == today.month && l.scheduledDatetime.year == today.year).toList();
+    }
+    if (_selectedFilter == 1) {
+      final now = DateTime.now();
+      final weekAgo = DateTime(now.year, now.month, now.day - 6);
+      return byMonth.where((l) => !l.scheduledDatetime.isBefore(weekAgo)).toList();
+    }
+    return byMonth;
+  }
+
   Widget _buildCalendarNav() {
     const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     return Container(
@@ -94,12 +108,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           GestureDetector(
             onTap: () => setState(() { _currentMonth--; if (_currentMonth < 1) { _currentMonth = 12; _currentYear--; } }),
-            child: const Icon(LucideIcons.chevronLeft, size: 16, color: AppColors.textMuted),
+            child: Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: AppDimensions.cardShadow), child: const Icon(LucideIcons.chevronLeft, size: 16, color: AppColors.primary)),
           ),
           Text('${months[_currentMonth - 1]} $_currentYear', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
           GestureDetector(
             onTap: () => setState(() { _currentMonth++; if (_currentMonth > 12) { _currentMonth = 1; _currentYear++; } }),
-            child: const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textMuted),
+            child: Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: AppDimensions.cardShadow), child: const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.primary)),
           ),
         ],
       ),
@@ -127,36 +141,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildAdherenceCard() {
-    final percent = (_adherence * 100).round();
-    final completed = _logs.where((l) => l.status == LogStatus.confirmado).length;
-    final missed = _logs.where((l) => l.status == LogStatus.omitida).length;
-    final total = _logs.isNotEmpty ? _logs.length : _totalLogs;
+    final logs = _filteredLogs;
+    final completed = logs.where((l) => l.status == LogStatus.confirmado).length;
+    final missed = logs.where((l) => l.status == LogStatus.omitida).length;
+    final delayed = logs.where((l) => l.status == LogStatus.retraso).length;
+    final total = logs.length;
+    final pct = total > 0 ? (completed + delayed * 0.5) / total : _adherence;
+    final percent = (pct * 100).round();
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AppDimensions.cardShadow),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Adherencia', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-              Text(_loading ? '--%' : '$percent%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textMuted)),
-            ],
-          ),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            const Text('Adherencia', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+            Text(_loading ? '--%' : '$percent%', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: pct >= 0.8 ? AppColors.accent : pct >= 0.5 ? AppColors.warning : AppColors.danger)),
+          ]),
           const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: _loading ? 0 : _adherence.clamp(0.0, 1.0), minHeight: 8, backgroundColor: AppColors.borderLight, valueColor: const AlwaysStoppedAnimation(AppColors.primary)),
-          ),
+          ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: _loading ? 0 : pct.clamp(0.0, 1.0), minHeight: 8, backgroundColor: AppColors.borderLight, valueColor: AlwaysStoppedAnimation(pct >= 0.8 ? AppColors.accent : pct >= 0.5 ? AppColors.warning : AppColors.danger))),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _StatItem(value: _loading ? '0' : '$completed', label: 'Tomadas', valueColor: AppColors.accent),
-              _StatItem(value: _loading ? '0' : '$missed', label: 'Perdidas', valueColor: AppColors.dangerDark),
-              _StatItem(value: _loading ? '0' : '$total', label: 'Total', valueColor: AppColors.textMuted),
-            ],
-          ),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            _StatItem(value: _loading ? '0' : '$completed', label: 'Tomadas', valueColor: AppColors.accent),
+            _StatItem(value: _loading ? '0' : '$missed', label: 'Perdidas', valueColor: AppColors.dangerDark),
+            _StatItem(value: _loading ? '0' : '$total', label: 'Total', valueColor: AppColors.textMuted),
+          ]),
+          const SizedBox(height: 8),
+          Text('${_filteredLogs.length} dosis en ${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][_currentMonth-1]}', style: const TextStyle(fontSize: 11, color: AppColors.textLight)),
         ],
       ),
     );
@@ -164,27 +174,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildLogsSection() {
     if (_loading) {
-      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: AppColors.primary)));
     }
-    if (_logs.isEmpty) {
-      return const VitalEmptyState(
-        icon: LucideIcons.clock,
-        title: 'Sin historial',
-        description: 'Aún no hay registro de dosis.\nEl historial se llenará automáticamente al tomar tus medicamentos.',
+    final logs = _filteredLogs;
+    if (logs.isEmpty) {
+      final months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      return VitalEmptyState(
+        icon: LucideIcons.calendarX,
+        title: 'Sin registros',
+        description: 'No hay dosis en ${months[_currentMonth-1]} $_currentYear.\nCambia de mes o registra un medicamento.',
       );
     }
     return Column(
-      children: _logs.map((log) => Padding(
+      children: logs.map((log) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: AppDimensions.cardShadow),
           child: Row(children: [
-            Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(color: _logColor(log.status).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-              child: Icon(_logIcon(log.status), size: 18, color: _logColor(log.status)),
-            ),
+            Container(width: 40, height: 40, decoration: BoxDecoration(color: _logColor(log.status).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)), child: Icon(_logIcon(log.status), size: 18, color: _logColor(log.status))),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               _logStatusBadge(log.status),

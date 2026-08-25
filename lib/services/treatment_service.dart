@@ -269,20 +269,30 @@ class TreatmentService {
     for (final t in treatments) {
       if (t.id == treatmentId) {
         final details = [...?t.details, detail];
+        // Recalcula endDate del tratamiento como max de los detalles (lógica espejo backend)
+        DateTime? newEndDate = t.endDate;
+        final withEnd = details.where((d) => d.endDate != null).toList();
+        if (withEnd.isNotEmpty) {
+          final maxDetail = withEnd.map((d) => d.endDate!).reduce((a, b) => a.isAfter(b) ? a : b);
+          if (newEndDate == null || maxDetail.isAfter(newEndDate)) {
+            newEndDate = maxDetail;
+          }
+        }
         final updated = Treatment(
           id: t.id,
           patientId: t.patientId,
           appProfileId: t.appProfileId,
           startDate: t.startDate,
-          endDate: t.endDate,
+          endDate: newEndDate,
           status: t.status,
           createdAt: t.createdAt,
-          updatedAt: t.updatedAt,
+          updatedAt: DateTime.now(),
           patient: t.patient,
           details: details,
         );
         treatments[treatments.indexOf(t)] = updated;
         _storage.saveTreatments(treatments);
+        _cachedTreatments = treatments;
         break;
       }
     }
@@ -389,6 +399,19 @@ class TreatmentService {
       final idx = details.indexWhere((d) => d.id == id);
       if (idx != -1) {
         final d = details[idx];
+        DateTime? newDetailEndDate;
+        if (fields.containsKey('endDate')) {
+          final v = fields['endDate'];
+          if (v == null) {
+            newDetailEndDate = null;
+          } else if (v is String) {
+            newDetailEndDate = DateTime.tryParse(v);
+          } else {
+            newDetailEndDate = d.endDate;
+          }
+        } else {
+          newDetailEndDate = d.endDate;
+        }
         final updated = TreatmentDetail(
           id: d.id,
           treatmentId: d.treatmentId,
@@ -398,7 +421,7 @@ class TreatmentService {
           firstTakeTime: fields['firstTakeTime'] != null
               ? DateTime.parse(fields['firstTakeTime'] as String)
               : d.firstTakeTime,
-          endDate: fields['endDate'] != null ? DateTime.parse(fields['endDate'] as String) : d.endDate,
+          endDate: newDetailEndDate,
           status: d.status,
           compartmentNumber: fields['compartmentNumber'] as int? ?? d.compartmentNumber,
           isExternal: fields['isExternal'] as bool? ?? d.isExternal,
@@ -409,12 +432,22 @@ class TreatmentService {
         );
         final updatedDetails = List<TreatmentDetail>.from(details);
         updatedDetails[idx] = updated;
+        // Recalcula endDate del tratamiento como max de los detalles (sincroniza con backend)
+        DateTime? newTreatmentEndDate;
+        final withEnd = updatedDetails.where((e) => e.endDate != null).toList();
+        if (withEnd.isNotEmpty) {
+          newTreatmentEndDate = withEnd.map((e) => e.endDate!).reduce((a, b) => a.isAfter(b) ? a : b);
+        } else {
+          // Si ningún detalle tiene fecha, tratamiento queda crónico (null)
+          // Mantiene null para reflejar backend
+          newTreatmentEndDate = null;
+        }
         cached[cached.indexOf(t)] = Treatment(
           id: t.id,
           patientId: t.patientId,
           appProfileId: t.appProfileId,
           startDate: t.startDate,
-          endDate: t.endDate,
+          endDate: newTreatmentEndDate,
           status: t.status,
           createdAt: t.createdAt,
           updatedAt: DateTime.now(),
@@ -475,17 +508,26 @@ class TreatmentService {
       if (details == null) continue;
       final idx = details.indexWhere((d) => d.id == id);
       if (idx != -1) {
+        final remaining = [...details]..removeAt(idx);
+        // Siempre recalcula al max restante (cubre cualquier borrado)
+        DateTime? newEndDate;
+        final withEnd = remaining.where((d) => d.endDate != null).toList();
+        if (withEnd.isNotEmpty) {
+          newEndDate = withEnd.map((d) => d.endDate!).reduce((a, b) => a.isAfter(b) ? a : b);
+        } else {
+          newEndDate = null;
+        }
         final updated = Treatment(
           id: t.id,
           patientId: t.patientId,
           appProfileId: t.appProfileId,
           startDate: t.startDate,
-          endDate: t.endDate,
+          endDate: newEndDate,
           status: t.status,
           createdAt: t.createdAt,
-          updatedAt: t.updatedAt,
+          updatedAt: DateTime.now(),
           patient: t.patient,
-          details: [...details]..removeAt(idx),
+          details: remaining,
         );
         cached[cached.indexOf(t)] = updated;
         break;
