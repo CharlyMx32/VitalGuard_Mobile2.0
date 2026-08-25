@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -283,7 +284,8 @@ class _LoginScreenState extends State<LoginScreen>
 
                   const Spacer(flex: 2),
 
-                  // Dev button
+                  // Dev button (solo visible en builds de debug)
+                  if (kDebugMode) ...[
                   SizedBox(
                     width: double.infinity,
                     height: 44,
@@ -389,6 +391,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ),
                   ),
+                  ],
 
                   const SizedBox(height: 16),
 
