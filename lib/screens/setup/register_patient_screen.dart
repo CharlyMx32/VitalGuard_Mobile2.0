@@ -337,14 +337,32 @@ class _RegisterPatientScreenState extends State<RegisterPatientScreen> {
       if (!mounted) return;
       final args = ModalRoute.of(context)?.settings.arguments;
       final returnToDashboard = args is Map ? (args['returnToDashboard'] as bool? ?? false) : false;
-      VitalFeedback.success(
-        context,
-        code: 'PATIENT_CREATED',
-        message: 'Paciente ${saved.fullName} registrado correctamente',
-        onAction: () => returnToDashboard
-            ? Navigator.pushNamedAndRemoveUntil(context, AppRoutes.dashboard, (route) => false)
-            : Navigator.pop(context),
-      );
+      // Si viene del flujo de onboarding (FirstPatient → returnToDashboard=true),
+      // el siguiente paso es vincular dispositivo con el patientId recién creado.
+      if (returnToDashboard) {
+        VitalFeedback.success(
+          context,
+          code: 'PATIENT_CREATED',
+          message: 'Paciente ${saved.fullName} registrado correctamente',
+          onAction: () => Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.linkDevice,
+            (route) => false,
+            arguments: {
+              'patientId': saved.id,
+              'next': AppRoutes.dashboard,
+              'fromProfile': false,
+            },
+          ),
+        );
+      } else {
+        VitalFeedback.success(
+          context,
+          code: 'PATIENT_CREATED',
+          message: 'Paciente ${saved.fullName} registrado correctamente',
+          onAction: () => Navigator.pop(context),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

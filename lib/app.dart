@@ -7,7 +7,6 @@ import 'theme/app_colors.dart';
 import 'routes/app_routes.dart';
 import 'services/auth_service.dart';
 import 'services/api_client.dart';
-import 'services/theme_provider.dart';
 import 'services/notification_service.dart';
 import 'services/fcm_service.dart';
 import 'services/realtime_service.dart';
@@ -269,39 +268,33 @@ class _VitalGuardAppState extends State<VitalGuardApp> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, theme, _) {
-        return MaterialApp(
-          navigatorKey: appNavigatorKey,
-          title: 'VitalGuard',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: theme.mode,
-          home: Consumer<AuthService>(
-            builder: (context, auth, _) {
-              if (auth.isLoading) {
-                return _buildSplashSkeleton();
-              }
+    return MaterialApp(
+      navigatorKey: appNavigatorKey,
+      title: 'VitalGuard',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      home: Consumer<AuthService>(
+        builder: (context, auth, _) {
+          if (auth.isLoading) {
+            return _buildSplashSkeleton();
+          }
 
-              if (!_splashShownThisRun) {
-                _splashShownThisRun = true;
-                return const SplashScreen();
-              }
+          if (!_splashShownThisRun) {
+            _splashShownThisRun = true;
+            return const SplashScreen();
+          }
 
-              if (auth.isLoggedIn) {
-                if (!auth.isProfileComplete) {
-                  return const _ProfileRedirect();
-                }
-                return const MainShell();
-              }
+          if (auth.isLoggedIn) {
+            if (!auth.isProfileComplete) {
+              return const _ProfileRedirect();
+            }
+            return const MainShell();
+          }
 
-              return const LoginRedirect();
-            },
-          ),
-          onGenerateRoute: AppRoutes.onGenerateRoute,
-        );
-      },
+          return const LoginRedirect();
+        },
+      ),
+      onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }
 

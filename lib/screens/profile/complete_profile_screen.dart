@@ -138,17 +138,31 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           }
           auth.completeProfile(isSelfCare: isSelfCare);
           if (!context.mounted) return;
-          final nextRoute = isSelfCare ? AppRoutes.selfCareProfile : AppRoutes.firstPatient;
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.linkDevice,
-            (route) => false,
-            arguments: {
-              'next': nextRoute,
-              'patientId': patientId,
-              ..._buildPatientData(),
-            },
-          );
+          // Si ya viene un patientId del onboarding, persistirlo
+          if (patientId != null) {
+            // patientId ya guardado arriba via auth.setPatientId
+          }
+          if (isSelfCare) {
+            // PATIENT (autocuidado): el onboarding ya creó el paciente → sí podemos vincular dispositivo
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.linkDevice,
+              (route) => false,
+              arguments: {
+                'next': AppRoutes.selfCareProfile,
+                'patientId': patientId,
+                ..._buildPatientData(),
+              },
+            );
+          } else {
+            // CAREGIVER: aún NO existe paciente → no se puede vincular dispositivo (requiere patientId).
+            // Orden correcto: primero crear paciente, luego vincular dispositivo.
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.firstPatient,
+              (route) => false,
+            );
+          }
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal, vertical: 16),

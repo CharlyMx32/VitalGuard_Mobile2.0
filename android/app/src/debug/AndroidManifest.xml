@@ -4,4 +4,9 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Solo en builds de debug: permite tráfico HTTP sin cifrar para poder
+         apuntar a backends locales (http://IP-LAN:puerto) durante pruebas.
+         No afecta los builds de release/producción. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

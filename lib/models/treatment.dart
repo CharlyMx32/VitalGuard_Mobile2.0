@@ -38,15 +38,27 @@ class Treatment {
 
   double get progress => totalDays > 0 ? elapsedDays / totalDays : 0.0;
 
+  static DateTime? _parseDateOnly(String? value) {
+    if (value == null || value.isEmpty) return null;
+    // Toma solo YYYY-MM-DD e ignora hora/zona para evitar desfase UTC vs local
+    final datePart = value.split('T').first.split(' ').first;
+    final parts = datePart.split('-');
+    if (parts.length == 3) {
+      final y = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      final d = int.tryParse(parts[2]);
+      if (y != null && m != null && d != null) return DateTime(y, m, d);
+    }
+    return DateTime.tryParse(value);
+  }
+
   factory Treatment.fromJson(Map<String, dynamic> json) {
     return Treatment(
       id: (json['id'] as int?) ?? 0,
       patientId: (json['patientId'] as int?) ?? 0,
       appProfileId: json['appProfileId'] as int?,
-      startDate: DateTime.tryParse(json['startDate'] as String? ?? '') ?? DateTime.now(),
-      endDate: json['endDate'] != null
-          ? DateTime.tryParse(json['endDate'] as String)
-          : null,
+      startDate: _parseDateOnly(json['startDate'] as String? ?? '') ?? DateTime.now(),
+      endDate: _parseDateOnly(json['endDate'] as String?),
       status: _treatmentStatusFromApi(json['status'] as String? ?? 'Activo'),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
@@ -133,9 +145,7 @@ class TreatmentDetail {
       doseInfo: json['doseInfo'] as String?,
       frequencyHours: json['frequencyHours'] as int?,
       firstTakeTime: DateTime.parse(json['firstTakeTime'] as String),
-      endDate: json['endDate'] != null
-          ? DateTime.parse(json['endDate'] as String)
-          : null,
+      endDate: Treatment._parseDateOnly(json['endDate'] as String?),
       status: _medicationStatusFromApi(json['status'] as String),
       compartmentNumber: json['compartmentNumber'] as int?,
       isExternal: json['isExternal'] as bool?,

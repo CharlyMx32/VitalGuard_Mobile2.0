@@ -41,6 +41,10 @@ class TreatmentService {
           .toList();
       _cachedTreatments = data;
       await _storage.saveTreatments(data);
+      // Auto-liberación: si el tratamiento ya venció, finaliza y libera compartimentos
+      // No bloquea el retorno: se ejecuta en background y actualiza cache/storage
+      // ignore: unawaited_futures
+      _autoReleaseExpired(data, patientId);
       return data;
     } on DioException {
       List<Treatment> treatments;
@@ -50,7 +54,72 @@ class TreatmentService {
         treatments = [];
         _cachedTreatments = treatments;
       }
+      // También intenta liberar vencidos desde cache offline
+      // ignore: unawaited_futures
+      _autoReleaseExpired(treatments, patientId);
       return treatments.where((t) => t.patientId == patientId).toList();
+    }
+  }
+
+  /// Revisa tratamientos vencidos (endDate < hoy) y los finaliza liberando compartimentos.
+  /// Usa comparación por fecha (sin hora/zona) para evitar el bug UTC: endDate 27 no debe finalizar el 26.
+  Future<void> _autoReleaseExpired(List<Treatment> treatments, int patientId) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    // Corrección retroactiva: si un detalle aparece como Finalizado pero su endDate es hoy o futuro
+    // y el tratamiento sigue activo, fue un falso positivo del bug anterior (UTC). Lo revertimos a En_curso.
+    for (final t in List<Treatment>.from(treatments)) {
+      if (t.patientId != patientId) continue;
+      if (t.status == TreatmentStatus.finalizado) continue;
+      for (final d in t.details ?? []) {
+        if (d.status != MedicationStatus.finalizado) continue;
+        final dEnd = d.endDate;
+        if (dEnd == null) continue;
+        final dEndDay = DateTime(dEnd.year, dEnd.month, dEnd.day);
+        if (!today.isAfter(dEndDay)) {
+          // endDate 27 con hoy 26 -> no debe estar finalizado
+          try {
+            await updateDetailStatus(d.id, MedicationStatus.enCurso);
+            // No restauramos compartimento automáticamente (se perdió al liberar); el usuario deberá reasignar
+          } catch (_) {}
+        }
+      }
+    }
+    for (final t in List<Treatment>.from(treatments)) {
+      if (t.patientId != patientId) continue;
+      if (t.status == TreatmentStatus.finalizado) continue;
+      final end = t.endDate;
+      if (end == null) continue;
+      final endDay = DateTime(end.year, end.month, end.day);
+      // Vencido solo si hoy es estrictamente posterior al día de fin (inclusive: fin el 27 -> activo el 27, vence el 28)
+      if (!today.isAfter(endDay)) continue;
+      try {
+        await finalizeTreatment(t.id);
+      } catch (_) {}
+    }
+    // Libera compartimentos de detalles individuales vencidos aunque el tratamiento aún no haya vencido por completo
+    for (final t in List<Treatment>.from(treatments)) {
+      if (t.patientId != patientId) continue;
+      if (t.status == TreatmentStatus.finalizado) continue;
+      for (final d in t.details ?? []) {
+        if (d.compartmentNumber == null) continue;
+        if (d.status == MedicationStatus.finalizado) {
+          // Detalle ya finalizado pero con compartimento aún asignado (inconsistencia) -> libera
+          try {
+            await updateTreatmentDetail(d.id, {'compartmentNumber': null});
+          } catch (_) {}
+          continue;
+        }
+        final dEnd = d.endDate;
+        if (dEnd == null) continue;
+        final dEndDay = DateTime(dEnd.year, dEnd.month, dEnd.day);
+        if (today.isAfter(dEndDay)) {
+          try {
+            await updateDetailStatus(d.id, MedicationStatus.finalizado);
+            await updateTreatmentDetail(d.id, {'compartmentNumber': null});
+          } catch (_) {}
+        }
+      }
     }
   }
 
@@ -415,16 +484,16 @@ class TreatmentService {
         final updated = TreatmentDetail(
           id: d.id,
           treatmentId: d.treatmentId,
-          medicationId: fields['medicationId'] as int? ?? d.medicationId,
-          doseInfo: fields['doseInfo'] as String? ?? d.doseInfo,
-          frequencyHours: fields['frequencyHours'] as int? ?? d.frequencyHours,
+          medicationId: fields.containsKey('medicationId') ? fields['medicationId'] as int? ?? d.medicationId : d.medicationId,
+          doseInfo: fields.containsKey('doseInfo') ? fields['doseInfo'] as String? ?? d.doseInfo : d.doseInfo,
+          frequencyHours: fields.containsKey('frequencyHours') ? fields['frequencyHours'] as int? ?? d.frequencyHours : d.frequencyHours,
           firstTakeTime: fields['firstTakeTime'] != null
               ? DateTime.parse(fields['firstTakeTime'] as String)
               : d.firstTakeTime,
           endDate: newDetailEndDate,
           status: d.status,
-          compartmentNumber: fields['compartmentNumber'] as int? ?? d.compartmentNumber,
-          isExternal: fields['isExternal'] as bool? ?? d.isExternal,
+          compartmentNumber: fields.containsKey('compartmentNumber') ? fields['compartmentNumber'] as int? : d.compartmentNumber,
+          isExternal: fields.containsKey('isExternal') ? fields['isExternal'] as bool? ?? d.isExternal : d.isExternal,
           createdAt: d.createdAt,
           updatedAt: DateTime.now(),
           medication: d.medication,
@@ -497,11 +566,23 @@ class TreatmentService {
         await _client.patch('/treatments/$id', data: {'status': 'Finalizado'});
       } on DioException {}
     }
+    // Intenta liberar compartimentos en backend por cada detalle (si el endpoint no lo hace, lo forzamos)
+    final cachedForPatch = await _loadTreatmentsCache();
+    final tForPatch = cachedForPatch.where((t) => t.id == id).firstOrNull;
+    if (tForPatch != null) {
+      for (final d in tForPatch.details ?? []) {
+        if (d.compartmentNumber != null) {
+          try {
+            await _client.patch('/treatment-details/${d.id}', data: {'compartmentNumber': null});
+          } on DioException {}
+        }
+      }
+    }
     final cached = await _loadTreatmentsCache();
     final idx = cached.indexWhere((t) => t.id == id);
     if (idx != -1) {
       final t = cached[idx];
-      // Marca detalles también como finalizados espejo backend
+      // Marca detalles también como finalizados y libera compartimentos (compartment_number -> null) espejo backend
       final updatedDetails = t.details?.map((d) => TreatmentDetail(
         id: d.id,
         treatmentId: d.treatmentId,
@@ -511,7 +592,7 @@ class TreatmentService {
         firstTakeTime: d.firstTakeTime,
         endDate: d.endDate,
         status: MedicationStatus.finalizado,
-        compartmentNumber: d.compartmentNumber,
+        compartmentNumber: null,
         isExternal: d.isExternal,
         createdAt: d.createdAt,
         updatedAt: DateTime.now(),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
@@ -21,6 +22,34 @@ class _SosConfigScreenState extends State<SosConfigScreen> {
   int _selectedDuration = 5;
 
   @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _enabled = prefs.getBool('sos_enabled') ?? true;
+      _vibrate = prefs.getBool('sos_vibrate') ?? true;
+      _countdown = prefs.getBool('sos_countdown') ?? true;
+      _shareLocation = prefs.getBool('sos_share_location') ?? true;
+      _notifyAll = prefs.getBool('sos_notify_all') ?? true;
+      _selectedDuration = prefs.getInt('sos_duration') ?? 5;
+    });
+  }
+
+  Future<void> _saveBool(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
+  Future<void> _saveInt(String key, int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(key, value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -33,7 +62,7 @@ class _SosConfigScreenState extends State<SosConfigScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildToggleRow('Activar botón SOS', _enabled, (v) => setState(() => _enabled = v)),
+                  _buildToggleRow('Activar botón SOS', _enabled, (v) { setState(() => _enabled = v); _saveBool('sos_enabled', v); }),
                   const SizedBox(height: 24),
 
                   _buildSectionHeader(LucideIcons.cpu, 'Dispositivo IoT', 'Configuración del botón físico'),
@@ -120,7 +149,7 @@ class _SosConfigScreenState extends State<SosConfigScreen> {
     return Row(
       children: options.map((o) => Expanded(
         child: GestureDetector(
-          onTap: () => setState(() => _selectedDuration = o.value),
+          onTap: () { setState(() => _selectedDuration = o.value); _saveInt('sos_duration', o.value); },
           child: Container(
             height: 52,
             margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -148,9 +177,9 @@ class _SosConfigScreenState extends State<SosConfigScreen> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
       child: Column(
         children: [
-          _buildToggleRow('Vibrar al pulsar', _vibrate, (v) => setState(() => _vibrate = v)),
+          _buildToggleRow('Vibrar al pulsar', _vibrate, (v) { setState(() => _vibrate = v); _saveBool('sos_vibrate', v); }),
           Divider(height: 1, indent: 64, color: AppColors.borderLight),
-          _buildToggleRow('Conteo regresivo visual', _countdown, (v) => setState(() => _countdown = v)),
+          _buildToggleRow('Conteo regresivo visual', _countdown, (v) { setState(() => _countdown = v); _saveBool('sos_countdown', v); }),
         ],
       ),
     );
@@ -221,9 +250,9 @@ class _SosConfigScreenState extends State<SosConfigScreen> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
       child: Column(
         children: [
-          _buildToggleRow('Compartir ubicación', _shareLocation, (v) => setState(() => _shareLocation = v)),
+          _buildToggleRow('Compartir ubicación', _shareLocation, (v) { setState(() => _shareLocation = v); _saveBool('sos_share_location', v); }),
           Divider(height: 1, indent: 64, color: AppColors.borderLight),
-          _buildToggleRow('Notificar a todos los cuidadores', _notifyAll, (v) => setState(() => _notifyAll = v)),
+          _buildToggleRow('Notificar a todos los cuidadores', _notifyAll, (v) { setState(() => _notifyAll = v); _saveBool('sos_notify_all', v); }),
         ],
       ),
     );

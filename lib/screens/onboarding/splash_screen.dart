@@ -57,9 +57,13 @@ class _SplashScreenState extends State<SplashScreen>
       final seen = prefs.getBool('onboarding_seen') ?? false;
       String route;
       if (auth.isLoggedIn) {
-        route = auth.isProfileComplete
-            ? AppRoutes.dashboard
-            : AppRoutes.selectRole;
+        if (auth.isProfileComplete) {
+          route = AppRoutes.dashboard;
+        } else {
+          // Autocuidado deshabilitado: siempre se asume CAREGIVER, sin preguntar rol.
+          await auth.setRole('CAREGIVER');
+          route = AppRoutes.completeProfile;
+        }
       } else {
         route = seen ? AppRoutes.login : AppRoutes.onboarding1;
       }

@@ -1,13 +1,11 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimensions.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/vital_tap.dart';
-import '../../services/auth_service.dart';
-import '../../services/api_client.dart';
-import '../../services/storage_service.dart';
 import 'vital_id_webview_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -283,120 +281,18 @@ class _LoginScreenState extends State<LoginScreen>
 
                   const Spacer(flex: 2),
 
-                  // Dev button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        final apiClient = context.read<ApiClient>();
-                        final authService = context.read<AuthService>();
-                        final navigator = Navigator.of(context);
-                        final storage = context.read<StorageService>();
-                        try {
-                          final res = await apiClient.post('/auth/dev-login', data: {
-                            'vitalId': 'a0000000-0000-0000-0000-000000000002',
-                          });
-                          final token = res.data['token'] as String;
-                          await authService.login(token);
-
-                          final statusRes = await apiClient.get('/auth/check-status');
-                          final statusData = statusRes.data;
-                          if (statusData['hasProfile'] == true) {
-                            final profile = statusData['appProfile'];
-                            final roleName = profile['roleName'] as String;
-                            await authService.setRole(roleName);
-                            await authService.completeProfile(
-                              isSelfCare: roleName == 'PATIENT',
-                            );
-                          } else {
-                            await authService.setRole('CAREGIVER');
-                            await authService.completeProfile(isSelfCare: false);
-                          }
-
-                          if (mounted) {
-                            navigator.pushReplacementNamed(AppRoutes.dashboard);
-                          }
-                        } catch (e) {
-                          await authService.login('dev-local-token');
-                          final patients = await storage.loadPatients();
-                          if (patients.isNotEmpty) {
-                            await authService.setPatientId(patients.first.id);
-                          }
-                          if (!authService.isProfileComplete) {
-                            await authService.completeProfile(
-                              isSelfCare: authService.isSelfCare,
-                            );
-                          }
-                          if (mounted) {
-                            navigator.pushReplacementNamed(AppRoutes.dashboard);
-                          }
-                        }
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textMuted,
-                        side: const BorderSide(color: AppColors.borderLight),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(LucideIcons.terminal, size: 16, color: AppColors.textMuted),
-                          SizedBox(width: 8),
-                          Text(
-                            'DEV: Ir al Dashboard',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pushReplacementNamed(context, AppRoutes.splash);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textMuted,
-                        side: const BorderSide(color: AppColors.borderLight),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(LucideIcons.repeat, size: 16, color: AppColors.textMuted),
-                          SizedBox(width: 8),
-                          Text(
-                            'DEV: Ver Onboarding',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
                   const SizedBox(height: 16),
 
-                  const Text(
-                    'VitalGuard © 2026',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textLight,
+                  GestureDetector(
+                    // Acceso oculto (solo debug): mantén presionado para
+                    // reiniciar y volver a ver el onboarding.
+                    onLongPress: kDebugMode ? () => _devResetOnboarding(context) : null,
+                    child: const Text(
+                      'VitalGuard © 2026',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                      ),
                     ),
                   ),
 
@@ -408,6 +304,16 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       ),
     );
+  }
+
+  /// Solo debug: limpia la bandera de onboarding visto y navega directo a
+  /// la primera pantalla de onboarding, sin pasar por la lógica de
+  /// SplashScreen (que prioriza la sesión activa y nunca llegaría aquí).
+  Future<void> _devResetOnboarding(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_seen', false);
+    if (!context.mounted) return;
+    Navigator.pushReplacementNamed(context, AppRoutes.onboarding1);
   }
 }
 

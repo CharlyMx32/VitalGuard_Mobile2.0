@@ -5,7 +5,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../routes/app_routes.dart';
+import '../../services/auth_service.dart';
 import '../../services/device_service.dart';
+import '../../services/patient_current_service.dart';
 import '../../widgets/vital_modal.dart';
 
 class LinkDeviceScreen extends StatefulWidget {
@@ -36,6 +38,19 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
       _patientId = args['patientId'] as int?;
       _fromProfile = args['fromProfile'] == true;
       _profileData = Map<String, dynamic>.from(args);
+    }
+    // Fallback: si no viene patientId por argumentos, intentar resolverlo desde Auth / PatientCurrent
+    if (_patientId == null) {
+      try {
+        final authPid = context.read<AuthService>().patientId;
+        if (authPid != null) _patientId = authPid;
+      } catch (_) {}
+      if (_patientId == null) {
+        try {
+          final currentPid = context.read<PatientCurrentService>().patientId;
+          if (currentPid != null) _patientId = currentPid;
+        } catch (_) {}
+      }
     }
   }
 
@@ -271,6 +286,33 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
       );
       return;
     }
+    // El backend requiere patientId (error 400 si falta). Si aún no hay paciente,
+    // no tiene sentido llamar a /devices/vincular: guiar a crear paciente primero.
+    int? effectivePatientId = _patientId;
+    if (effectivePatientId == null) {
+      try {
+        effectivePatientId = context.read<AuthService>().patientId;
+      } catch (_) {}
+    }
+    if (effectivePatientId == null) {
+      try {
+        effectivePatientId = context.read<PatientCurrentService>().patientId;
+      } catch (_) {}
+    }
+    if (effectivePatientId == null) {
+      if (!mounted) return;
+      VitalFeedback.show(
+        context,
+        code: 'DEVICE_NEEDS_PATIENT',
+        title: 'Primero crea un paciente',
+        message: 'Para vincular el dispositivo necesitas registrar un paciente. Te llevamos a ese paso.',
+        actionLabel: 'Crear paciente',
+        onAction: () => Navigator.pushNamed(context, AppRoutes.registerPatient, arguments: {'returnToDashboard': true}),
+      );
+      return;
+    }
+    // sincroniza estado local
+    _patientId = effectivePatientId;
     setState(() => _isSaving = true);
 
     final deviceService = context.read<DeviceService>();
@@ -291,10 +333,25 @@ class _LinkDeviceScreenState extends State<LinkDeviceScreen> {
 
       String message;
       final statusCode = e.response?.statusCode;
-      if (statusCode == 401 || statusCode == 403) {
+      final body = e.response?.data;
+      // Detecta el caso específico: patientId vacío (400 del backend)
+      final isPatientIdError = body is Map && (body['message'] is List)
+          ? (body['message'] as List).any((m) => m.toString().contains('patientId'))
+          : body is Map && body['message'].toString().contains('patientId');
+      if (isPatientIdError) {
+        message = 'Necesitas crear un paciente antes de vincular el dispositivo.';
+      } else if (statusCode == 401 || statusCode == 403) {
         message = 'Sesión expirada. Inicia sesión de nuevo.';
       } else if (statusCode == 404) {
         message = 'Código de dispositivo no encontrado. Verifica el código.';
+      } else if (statusCode == 400) {
+        // muestra mensaje del backend si existe
+        if (body is Map && body['message'] != null) {
+          final m = body['message'];
+          message = m is List ? m.join(', ') : m.toString();
+        } else {
+          message = 'Solicitud inválida. Verifica los datos.';
+        }
       } else if (e.type == DioExceptionType.connectionTimeout ||
                  e.type == DioExceptionType.sendTimeout ||
                  e.type == DioExceptionType.receiveTimeout) {

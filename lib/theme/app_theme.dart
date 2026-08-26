@@ -7,64 +7,43 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get light => _build(Brightness.light);
-  static ThemeData get dark => _build(Brightness.dark);
-
-  static ThemeData _build(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
+  static ThemeData get light {
     return ThemeData(
       useMaterial3: true,
       fontFamily: GoogleFonts.inter().fontFamily,
-      brightness: brightness,
-      scaffoldBackgroundColor: isDark
-          ? const Color(0xFF0F1419)
-          : AppColors.bgSecondary,
-      colorScheme: isDark
-          ? const ColorScheme.dark(
-              primary: Color(0xFF6BA3E8),
-              onPrimary: Color(0xFF1A2B4C),
-              secondary: Color(0xFF4DD97C),
-              onSecondary: Color(0xFF1A2B4C),
-              surface: Color(0xFF1E293B),
-              onSurface: Color(0xFFE2E8F0),
-              error: Color(0xFFFF6B6B),
-              onError: Color(0xFF1A2B4C),
-            )
-          : const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              secondary: AppColors.accent,
-              onSecondary: Colors.white,
-              surface: Colors.white,
-              onSurface: AppColors.textPrimary,
-              error: AppColors.dangerDark,
-              onError: Colors.white,
-            ),
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.bgSecondary,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.primary,
+        onPrimary: Colors.white,
+        secondary: AppColors.accent,
+        onSecondary: Colors.white,
+        surface: Colors.white,
+        onSurface: AppColors.textPrimary,
+        error: AppColors.dangerDark,
+        onError: Colors.white,
+      ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: CupertinoPageTransitionsBuilder(),
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
         },
       ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        foregroundColor: isDark
-            ? const Color(0xFFE2E8F0)
-            : AppColors.textPrimary,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         centerTitle: true,
-        systemOverlayStyle: isDark
-            ? SystemUiOverlayStyle.light
-            : SystemUiOverlayStyle.dark,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: isDark ? const Color(0xFFE2E8F0) : AppColors.textPrimary,
+          color: AppColors.textPrimary,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: isDark ? const Color(0xFF6BA3E8) : AppColors.primary,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           minimumSize: const Size(double.infinity, 48),
@@ -76,13 +55,9 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: isDark
-              ? const Color(0xFF94A3B8)
-              : AppColors.textMuted,
+          foregroundColor: AppColors.textMuted,
           minimumSize: const Size(double.infinity, 48),
-          side: BorderSide(
-            color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
-          ),
+          side: const BorderSide(color: AppColors.borderLight),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -91,37 +66,31 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? const Color(0xFF1E293B) : AppColors.bg,
+        fillColor: AppColors.bg,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 12,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            width: 1.33,
-            color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
-          ),
+          borderSide: const BorderSide(width: 1.33, color: AppColors.borderLight),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            width: 1.33,
-            color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
-          ),
+          borderSide: const BorderSide(width: 1.33, color: AppColors.borderLight),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(width: 1.33, color: AppColors.primary),
         ),
-        hintStyle: TextStyle(
+        hintStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          color: isDark ? const Color(0xFF64748B) : AppColors.textPlaceholder,
+          color: AppColors.textPlaceholder,
         ),
       ),
-      dividerTheme: DividerThemeData(
-        color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+      dividerTheme: const DividerThemeData(
+        color: AppColors.borderLight,
         thickness: 1,
         space: 0,
       ),

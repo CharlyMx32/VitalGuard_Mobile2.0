@@ -7,7 +7,6 @@ import 'firebase_options.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/storage_service.dart';
-import 'services/theme_provider.dart';
 import 'services/patient_service.dart';
 import 'services/treatment_service.dart';
 import 'services/device_service.dart';
@@ -71,7 +70,6 @@ void main() async {
           update: (context, apiClient, storage, previous) =>
               previous ?? CaregiverService(apiClient, storage),
         ),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AvatarService()),
         ProxyProvider2<ApiClient, StorageService, MedicationService>(
           update: (context, apiClient, storage, previous) =>

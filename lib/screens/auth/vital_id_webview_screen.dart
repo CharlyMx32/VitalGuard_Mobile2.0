@@ -336,8 +336,11 @@ class _VitalIdWebViewScreenState extends State<VitalIdWebViewScreen> {
       debugPrint('[VitalID] _completeLogin: user HAS profile → navigating to dashboard');
       Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
     } else {
-      debugPrint('[VitalID] _completeLogin: user has NO profile → navigating to selectRole');
-      Navigator.pushReplacementNamed(context, AppRoutes.selectRole);
+      // Autocuidado deshabilitado: siempre se asume CAREGIVER, sin preguntar rol.
+      debugPrint('[VitalID] _completeLogin: user has NO profile → asumiendo CAREGIVER, navegando a completeProfile');
+      await auth.setRole('CAREGIVER');
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, AppRoutes.completeProfile);
     }
   }
 
