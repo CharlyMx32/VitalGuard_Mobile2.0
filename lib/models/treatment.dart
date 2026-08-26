@@ -144,7 +144,8 @@ class TreatmentDetail {
       medicationId: (json['medicationId'] as int?) ?? 0,
       doseInfo: json['doseInfo'] as String?,
       frequencyHours: json['frequencyHours'] as int?,
-      firstTakeTime: DateTime.parse(json['firstTakeTime'] as String),
+      // Mismo corrimiento de zona horaria que Schedule._parseTime (ver comentario ahí).
+      firstTakeTime: DateTime.parse(json['firstTakeTime'] as String).toLocal(),
       endDate: Treatment._parseDateOnly(json['endDate'] as String?),
       status: _medicationStatusFromApi(json['status'] as String),
       compartmentNumber: json['compartmentNumber'] as int?,
@@ -267,8 +268,12 @@ class Schedule {
   }
 
   static DateTime _parseTime(String value) {
+    // El backend guarda time_of_day con `new Date(1970,0,1,h,m)` en el proceso
+    // Node (TZ=America/Mexico_City), lo que corre la hora +6h al serializarla
+    // como ISO UTC. Aquí se revierte ese corrimiento (funciona porque el
+    // dispositivo del usuario está en la misma zona horaria que el backend).
     final parsed = DateTime.tryParse(value);
-    if (parsed != null) return parsed;
+    if (parsed != null) return parsed.toLocal();
     final parts = value.split(':');
     if (parts.length >= 2) {
       final hour = int.tryParse(parts[0]) ?? 0;
@@ -320,9 +325,10 @@ class MedicationLog {
     return MedicationLog(
       id: json['id'] as int,
       scheduleId: json['scheduleId'] as int,
-      scheduledDatetime: DateTime.parse(json['scheduledDatetime'] as String),
+      // Mismo corrimiento de zona horaria que Schedule._parseTime (ver comentario ahí).
+      scheduledDatetime: DateTime.parse(json['scheduledDatetime'] as String).toLocal(),
       actualTakenDatetime: json['actualTakenDatetime'] != null
-          ? DateTime.parse(json['actualTakenDatetime'] as String)
+          ? DateTime.parse(json['actualTakenDatetime'] as String).toLocal()
           : null,
       status: _logStatusFromApi(json['status'] as String),
       voiceConfirmed: json['voiceConfirmed'] as bool?,

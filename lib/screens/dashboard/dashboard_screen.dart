@@ -233,7 +233,6 @@ class _DashboardContentState extends State<DashboardContent> {
   Widget _buildContent(BuildContext context,
       {required _DashboardData data, required bool isSelfCare}) {
     final treatments = data.treatments;
-    final hasData = treatments.isNotEmpty;
     final nextDose = _computeNextDose(treatments);
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -244,7 +243,7 @@ class _DashboardContentState extends State<DashboardContent> {
         children: [
           const PatientSelectorHeader(),
           const SizedBox(height: 8),
-          hasData
+          nextDose.hasNext
               ? _NextDoseCard(nextDose: nextDose)
               : _EmptyNextDose(),
           const SizedBox(height: 12),
@@ -503,8 +502,10 @@ class _TreatmentPanel extends StatelessWidget {
     final treatments = data.treatments;
     final current = context.watch<PatientCurrentService>().current;
     final name = current?.fullName ?? '';
+    final activeTreatments =
+        treatments.where((t) => t.status != TreatmentStatus.finalizado).toList();
 
-    if (treatments.isEmpty) {
+    if (activeTreatments.isEmpty) {
       return VitalCard(
         borderRadius: 16,
         margin: EdgeInsets.zero,
@@ -575,7 +576,7 @@ class _TreatmentPanel extends StatelessWidget {
       );
     }
 
-    final treatment = _preferred(treatments.where((t) => t.status != TreatmentStatus.finalizado).toList());
+    final treatment = _preferred(activeTreatments);
     final details = treatment.details ?? [];
     final endDate = treatment.endDate;
     final paused = treatment.status == TreatmentStatus.pausado;

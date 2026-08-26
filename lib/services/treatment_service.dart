@@ -162,7 +162,9 @@ class TreatmentService {
     final base = DateTime(day.year, day.month, day.day);
 
     for (final treatment in treatments) {
+      if (treatment.status == TreatmentStatus.finalizado) continue;
       for (final detail in treatment.details ?? []) {
+        if (detail.status == MedicationStatus.finalizado) continue;
         for (final s in detail.schedules ?? []) {
           final time = s.timeOfDay;
           final scheduledAt =
@@ -190,7 +192,9 @@ class TreatmentService {
   }
 
   bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+    final la = a.toLocal();
+    final lb = b.toLocal();
+    return la.year == lb.year && la.month == lb.month && la.day == lb.day;
   }
 
   Future<List<MedicationLog>> getRecentLogs(int patientId) async {
