@@ -21,14 +21,26 @@ class Caregiver {
     this.displayName,
   });
 
-  /// Nombre para mostrar: prioriza displayName del backend (paciente autocuidado),
-  /// si no, usa kinship + id; el caller puede pasar isCurrent para mostrar "Tú"
+  /// Nombre para mostrar: prioriza el nombre real del backend; si no vino,
+  /// usa el parentesco (evita mostrar "Cuidador" repetido para cada persona);
+  /// si tampoco hay parentesco, cae a "Cuidador #id". El caller puede pasar
+  /// isCurrent para mostrar "Tú".
   String label({bool isCurrent = false}) {
     final kin = kinshipDisplay ?? kinship;
-    final base = displayName?.trim().isNotEmpty == true
-        ? displayName!
-        : 'Cuidador';
-    final kinPart = kin != null && kin.isNotEmpty ? ' ($kin)' : '';
+    final hasName = displayName != null && displayName!.trim().isNotEmpty;
+    final hasKin = kin != null && kin.isNotEmpty;
+    final String base;
+    final String kinPart;
+    if (hasName) {
+      base = displayName!;
+      kinPart = hasKin ? ' ($kin)' : '';
+    } else if (hasKin) {
+      base = kin;
+      kinPart = '';
+    } else {
+      base = 'Cuidador #$id';
+      kinPart = '';
+    }
     final prefix = isCurrent ? 'Tú · ' : '';
     return '$prefix$base$kinPart';
   }
@@ -54,8 +66,34 @@ class Caregiver {
       kinship: json['kinship'] as String?,
       kinshipDisplay: json['kinshipDisplay'] as String?,
       vitalId: json['vitalId'] as String?,
-      displayName: json['displayName'] as String?,
+      displayName: _extractName(json),
     );
+  }
+
+  /// El backend a veces manda el nombre directo (displayName/fullName/name) y a veces
+  /// solo manda el perfil relacionado (appProfile) con firstName/paternalLastName/
+  /// maternalLastName. Probamos varias formas antes de rendirnos y dejar el nombre en null
+  /// (en ese caso la UI cae a un fallback genérico, ver [label]).
+  static String? _extractName(Map<String, dynamic> json) {
+    String? fromFlat(Map<String, dynamic> src) {
+      for (final key in ['displayName', 'fullName', 'name']) {
+        final v = src[key];
+        if (v is String && v.trim().isNotEmpty) return v.trim();
+      }
+      final composed = [src['firstName'], src['paternalLastName'], src['maternalLastName']]
+          .whereType<String>()
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .join(' ');
+      return composed.isNotEmpty ? composed : null;
+    }
+
+    final direct = fromFlat(json);
+    if (direct != null) return direct;
+
+    final nested = json['appProfile'] ?? json['profile'] ?? json['user'];
+    if (nested is Map<String, dynamic>) return fromFlat(nested);
+    return null;
   }
 
   Map<String, dynamic> toJson() {

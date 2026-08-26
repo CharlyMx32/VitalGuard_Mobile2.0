@@ -269,7 +269,9 @@ class _DashboardContentState extends State<DashboardContent> {
     final now = DateTime.now();
     DateTime? bestTime;
     for (final t in treatments) {
+      if (t.status == TreatmentStatus.finalizado) continue;
       for (final d in (t.details ?? [])) {
+        if (d.status == MedicationStatus.finalizado) continue;
         for (final s in (d.schedules ?? [])) {
           final tTime = s.timeOfDay;
           var scheduled =
@@ -289,7 +291,9 @@ class _DashboardContentState extends State<DashboardContent> {
 
     final items = <_NextDoseItem>[];
     for (final t in treatments) {
+      if (t.status == TreatmentStatus.finalizado) continue;
       for (final d in (t.details ?? [])) {
+        if (d.status == MedicationStatus.finalizado) continue;
         for (final s in (d.schedules ?? [])) {
           final tTime = s.timeOfDay;
           var scheduled =
@@ -367,7 +371,9 @@ class _DashboardContentState extends State<DashboardContent> {
     final patientCount = data.patients.length;
     final adherencePct = (data.adherence * 100).round();
     final todaySchedules = data.treatments
+        .where((t) => t.status != TreatmentStatus.finalizado)
         .expand((t) => t.details ?? [])
+        .where((d) => d.status != MedicationStatus.finalizado)
         .expand((d) => d.schedules ?? [])
         .length;
     return Row(
@@ -399,7 +405,9 @@ class _DashboardContentState extends State<DashboardContent> {
       BuildContext context, List<Treatment> treatments,
       {bool isSelfCare = false}) {
     final items = treatments
+        .where((t) => t.status != TreatmentStatus.finalizado)
         .expand((t) => t.details ?? [])
+        .where((d) => d.status != MedicationStatus.finalizado)
         .expand((d) => (d.schedules ?? []).map((s) => (schedule: s, detail: d)))
         .toList();
     

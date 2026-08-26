@@ -137,8 +137,6 @@ class _MyVitalGuardScreenState extends State<MyVitalGuardScreen> {
           const SizedBox(height: 16),
           _buildResponsibleSection(),
           const SizedBox(height: 20),
-          _buildWiFiStatus(context),
-          const SizedBox(height: 20),
           _buildButton('Sincronizar ahora', AppColors.primary, Colors.white, onTap: _syncNow),
           const SizedBox(height: 12),
           _buildButton('Desconectar dispositivo', Colors.white, AppColors.textDark,
@@ -230,9 +228,10 @@ class _MyVitalGuardScreenState extends State<MyVitalGuardScreen> {
 
   String _formatSyncDate(DateTime? date) {
     if (date == null) return '---';
-    final h = date.hour.toString().padLeft(2, '0');
-    final m = date.minute.toString().padLeft(2, '0');
-    return '${date.day}/${date.month}/${date.year} $h:$m';
+    final local = date.toLocal();
+    final h = local.hour.toString().padLeft(2, '0');
+    final m = local.minute.toString().padLeft(2, '0');
+    return '${local.day}/${local.month}/${local.year} $h:$m';
   }
 
   Widget _buildResponsibleSection() {
@@ -402,25 +401,6 @@ class _MyVitalGuardScreenState extends State<MyVitalGuardScreen> {
       else if (msg.contains('403')) { title = 'Permiso denegado'; body = 'Solo el responsable actual (Cuidador #${device.responsibleCaregiverId}) puede cambiarlo.'; }
       VitalFeedback.info(context, code: 'RESPONSIBLE_ERROR', title: title, message: body);
     }
-  }
-
-  Widget _buildWiFiStatus(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppDimensions.cardShadow),
-      child: Row(
-        children: [
-          Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(10)), child: const Icon(LucideIcons.wifi, size: 18, color: AppColors.textMuted)),
-          const SizedBox(width: 12),
-          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('WiFi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
-            SizedBox(height: 2),
-            Text('No conectado', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-          ])),
-          Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.textMuted, shape: BoxShape.circle)),
-        ],
-      ),
-    );
   }
 
   Future<void> _syncNow() async {

@@ -14,6 +14,7 @@ import '../../widgets/vital_empty_state.dart';
 import '../../widgets/vital_header.dart';
 import '../../widgets/patient_selector_header.dart';
 import '../../models/treatment.dart';
+import '../../models/enums.dart';
 
 class DispenserScreen extends StatelessWidget {
   const DispenserScreen({super.key});
@@ -90,7 +91,11 @@ class _DispenserContentState extends State<DispenserContent> {
                         return const SkeletonList(itemCount: 3);
                       }
                       final treatments = snapshot.data ?? [];
-                      final details = treatments.expand((t) => t.details ?? []).toList();
+                      final details = treatments
+                          .where((t) => t.status != TreatmentStatus.finalizado)
+                          .expand((t) => t.details ?? [])
+                          .where((d) => d.status != MedicationStatus.finalizado)
+                          .toList();
                       final withCompartment = details.where((d) => d.compartmentNumber != null && d.compartmentNumber! > 0).toList();
                       final assigned = withCompartment.map((d) => d.compartmentNumber!).toSet();
                       return Column(

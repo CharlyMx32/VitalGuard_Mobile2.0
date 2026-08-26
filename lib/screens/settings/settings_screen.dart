@@ -253,16 +253,7 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
   }
 
   Widget _buildPreferencesSection(BuildContext context) {
-    final auth = context.watch<AuthService>();
     return _buildSection('Preferencias', AppColors.warning, [
-      _SettingsItem(
-        icon: LucideIcons.bell,
-        iconBg: AppColors.warningBg,
-        iconFg: AppColors.warning,
-        label: 'Notificaciones',
-        description: 'Alertas y recordatorios',
-        onTap: () => Navigator.pushNamed(context, AppRoutes.notificationsConfig),
-      ),
       _SettingsItem(
         icon: LucideIcons.mic,
         iconBg: AppColors.accentLight,
@@ -270,14 +261,6 @@ class _SettingsContentState extends State<SettingsContent> with SingleTickerProv
         label: 'Asistente de voz',
         description: 'Configurar Alexa',
         onTap: () => Navigator.pushNamed(context, AppRoutes.voiceAssistant),
-      ),
-      _SettingsItem(
-        icon: LucideIcons.alertTriangle,
-        iconBg: AppColors.dangerBg,
-        iconFg: AppColors.dangerDark,
-        label: 'Configurar SOS',
-        description: auth.isSelfCare ? 'Configurar emergencias' : 'Seleccionar paciente para configurar SOS',
-        onTap: () => Navigator.pushNamed(context, auth.isSelfCare ? AppRoutes.sosConfig : AppRoutes.sosPatient),
       ),
     ]);
   }

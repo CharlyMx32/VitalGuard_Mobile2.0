@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/treatment_service.dart';
 import '../../widgets/vital_header.dart';
 import '../../models/treatment.dart';
+import '../../models/enums.dart';
 
 class ConfigureDispenserScreen extends StatefulWidget {
   const ConfigureDispenserScreen({super.key});
@@ -54,8 +55,9 @@ class _ConfigureDispenserScreenState extends State<ConfigureDispenserScreen> {
         builder: (context, snapshot) {
           final treatments = snapshot.data ?? [];
           final allDetails = treatments
-              .where((t) => t.status.name != 'Finalizado')
+              .where((t) => t.status != TreatmentStatus.finalizado)
               .expand<TreatmentDetail>((t) => t.details ?? [])
+              .where((d) => d.status != MedicationStatus.finalizado)
               .toList();
 
           return Column(
