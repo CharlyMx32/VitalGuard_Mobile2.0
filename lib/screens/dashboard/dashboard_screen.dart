@@ -401,8 +401,13 @@ class _DashboardContentState extends State<DashboardContent> {
     final items = treatments
         .expand((t) => t.details ?? [])
         .expand((d) => (d.schedules ?? []).map((s) => (schedule: s, detail: d)))
-        .take(5)
         .toList();
+    
+    // Ordenar cronológicamente
+    items.sort((a, b) => a.schedule.timeOfDay.compareTo(b.schedule.timeOfDay));
+    
+    final displayItems = items.take(5).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -414,7 +419,7 @@ class _DashboardContentState extends State<DashboardContent> {
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textDark)),
-            if (items.isNotEmpty)
+            if (displayItems.isNotEmpty)
               GestureDetector(
                 onTap: () =>
                     Navigator.pushNamed(context, AppRoutes.schedule),
@@ -427,8 +432,8 @@ class _DashboardContentState extends State<DashboardContent> {
           ],
         ),
         const SizedBox(height: 12),
-        if (items.isNotEmpty)
-          ...items.map((e) => _TimelineItem(
+        if (displayItems.isNotEmpty)
+          ...displayItems.map((e) => _TimelineItem(
                 time: e.schedule.timeDisplay,
                 label: e.detail.medication?.name ?? e.schedule.medicationName ?? 'Dosis',
                 dose: e.detail.doseInfo ?? e.schedule.doseInfo ?? '',
@@ -562,7 +567,7 @@ class _TreatmentPanel extends StatelessWidget {
       );
     }
 
-    final treatment = _preferred(treatments);
+    final treatment = _preferred(treatments.where((t) => t.status != TreatmentStatus.finalizado).toList());
     final details = treatment.details ?? [];
     final endDate = treatment.endDate;
     final paused = treatment.status == TreatmentStatus.pausado;

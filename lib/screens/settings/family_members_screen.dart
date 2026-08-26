@@ -105,24 +105,53 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
     return Column(
       children: _caregivers.map((c) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: AppDimensions.cardShadow),
-          child: Row(children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(color: AppColors.primaryLight, shape: BoxShape.circle),
-              child: const Icon(LucideIcons.user, size: 20, color: AppColors.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Cuidador #${c.id}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-              const SizedBox(height: 2),
-              Text('Prioridad: ${c.emergencyCallPriority ?? 'Normal'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-            ])),
-          ]),
+        child: GestureDetector(
+          onTap: () => _showPriorityDialog(c),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: AppDimensions.cardShadow),
+            child: Row(children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: AppColors.primaryLight, shape: BoxShape.circle),
+                child: const Icon(LucideIcons.user, size: 20, color: AppColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Cuidador #${c.id}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+                const SizedBox(height: 2),
+                Text('Prioridad: ${c.emergencyCallPriority ?? 'Normal'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              ])),
+              const Icon(LucideIcons.edit2, size: 16, color: AppColors.textMuted),
+            ]),
+          ),
         ),
       )).toList(),
+    );
+  }
+
+  void _showPriorityDialog(Caregiver c) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cambiar Prioridad'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [1, 2, 3].map((p) => ListTile(
+            title: Text('Prioridad $p'),
+            onTap: () async {
+              Navigator.pop(context);
+              final service = context.read<CaregiverService>();
+              try {
+                await service.updateCaregiverPriority(c.id, p);
+                _loadCaregivers();
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al actualizar prioridad')));
+              }
+            },
+          )).toList(),
+        ),
+      ),
     );
   }
 

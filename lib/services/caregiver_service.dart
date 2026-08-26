@@ -29,6 +29,14 @@ class CaregiverService {
       return data;
     } on DioException {
       return _loadCache();
+  Future<void> updateCaregiverPriority(int caregiverId, int priority) async {
+    try {
+      await _client.patch('/caregivers/$caregiverId/priority', data: {'priority': priority});
+      _cached = null;
+    } on DioException {
+      rethrow;
     }
+  }
+}
   }
 }
