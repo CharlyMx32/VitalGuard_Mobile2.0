@@ -57,19 +57,46 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SingleChildScrollView(child: SkeletonDetail());
           }
-          final treatments = (snapshot.data ?? []).where((t) => t.status != TreatmentStatus.finalizado).toList();
-          // Mantener todos si solo hay finalizados, para no mostrar vacío engañoso
-          final list = treatments.isNotEmpty ? treatments : (snapshot.data ?? []);
+          final allData = snapshot.data ?? [];
+          final treatments = allData.where((t) => t.status != TreatmentStatus.finalizado).toList();
+          // Solo activos (Activo/Pausado = En curso). Finalizado nunca se muestra aquí, va a Historial.
+          final list = treatments;
+          final historyCount = allData.where((t) => t.status == TreatmentStatus.finalizado).length;
           if (list.isEmpty) {
             return Column(
               children: [
                 VitalHeader.white(title: 'Tratamientos', actions: [
+                  if (historyCount > 0)
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, AppRoutes.treatmentHistory),
+                      child: Container(width: 32, height: 32, decoration: const BoxDecoration(color: AppColors.bg, shape: BoxShape.circle), child: Stack(children: [const Center(child: Icon(LucideIcons.archive, size: 16, color: AppColors.textMuted)), if (historyCount > 0) Positioned(right: 4, top: 4, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)))])),
+                    ),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => Navigator.pushNamed(context, AppRoutes.addMedication).then((_) => _refresh()),
                     child: Container(width: 32, height: 32, decoration: const BoxDecoration(color: AppColors.primaryLight, shape: BoxShape.circle), child: const Icon(LucideIcons.plus, size: 16, color: AppColors.primary)),
                   ),
                 ]),
-                const Expanded(child: VitalEmptyState(icon: LucideIcons.heartPulse, title: 'Sin tratamientos', description: 'No hay tratamientos registrados para este paciente.\nToca + para crear uno.')),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingHorizontal),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const VitalEmptyState(icon: LucideIcons.heartPulse, title: 'Sin tratamientos activos', description: 'No hay tratamientos en curso para este paciente.\nToca + para crear uno.'),
+                        if (historyCount > 0) ...[
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: () => Navigator.pushNamed(context, AppRoutes.treatmentHistory),
+                            icon: const Icon(LucideIcons.archive, size: 16),
+                            label: Text('Ver historial ($historyCount finalizado${historyCount != 1 ? 's' : ''})'),
+                            style: OutlinedButton.styleFrom(foregroundColor: AppColors.textMuted, side: const BorderSide(color: AppColors.borderLight)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ],
             );
           }
@@ -82,6 +109,11 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
               VitalHeader.white(
                 title: list.length == 1 ? 'Detalle del Tratamiento' : 'Tratamientos',
                 actions: [
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, AppRoutes.treatmentHistory),
+                    child: Container(width: 32, height: 32, decoration: const BoxDecoration(color: AppColors.bg, shape: BoxShape.circle), child: Stack(children: [const Center(child: Icon(LucideIcons.history, size: 16, color: AppColors.textMuted)), if (historyCount > 0) Positioned(right: 3, top: 3, child: Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1.5))))])),
+                  ),
+                  const SizedBox(width: 6),
                   if (treatment.status != TreatmentStatus.finalizado)
                     PopupMenuButton<String>(
                       icon: Container(width: 32, height: 32, decoration: const BoxDecoration(color: AppColors.bg, shape: BoxShape.circle), child: const Icon(LucideIcons.ellipsisVertical, size: 16, color: AppColors.textMuted)),
@@ -195,6 +227,22 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> {
                             const SizedBox(width: 10),
                             const Expanded(child: Text('Desliza entre tratamientos. Cada uno puede tener varios medicamentos y compartimentos.', style: TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4))),
                           ]),
+                        ),
+                      ],
+                      if (historyCount > 0) ...[
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: () => Navigator.pushNamed(context, AppRoutes.treatmentHistory),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.borderLight), boxShadow: AppDimensions.cardShadow),
+                            child: Row(children: [
+                              Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(8)), child: const Icon(LucideIcons.history, size: 16, color: AppColors.textMuted)),
+                              const SizedBox(width: 10),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Historial de tratamientos', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)), Text('$historyCount finalizado${historyCount != 1 ? 's' : ''} para consulta', style: TextStyle(fontSize: 11, color: AppColors.textMuted))])),
+                              const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textLight),
+                            ]),
+                          ),
                         ),
                       ],
                     ],

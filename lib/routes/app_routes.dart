@@ -39,6 +39,7 @@ import '../screens/treatments/treatment_detail_screen.dart';
 import '../screens/treatments/add_medication_screen.dart';
 import '../screens/treatments/configure_dispenser_screen.dart';
 import '../screens/treatments/history_screen.dart';
+import '../screens/treatments/treatment_history_screen.dart';
 import '../screens/treatments/notifications_screen.dart';
 import '../screens/treatments/schedule_config_screen.dart';
 import '../screens/treatments/schedule_screen.dart';
@@ -108,6 +109,7 @@ class AppRoutes {
   static const String addMedication = '/medications/add';
   static const String configureDispenser = '/medications/dispenser';
   static const String history = '/medications/history';
+  static const String treatmentHistory = '/medications/history-treatments';
   static const String notifications = '/medications/notifications';
   static const String scheduleConfig = '/medications/schedule';
   static const String schedule = '/schedule';
@@ -168,6 +170,7 @@ class AppRoutes {
       case addMedication: page = const AddMedicationScreen(); break;
       case configureDispenser: page = const ConfigureDispenserScreen(); break;
       case history: page = const HistoryScreen(); break;
+      case treatmentHistory: page = const TreatmentHistoryScreen(); break;
       case notifications: page = const NotificationsScreen(); break;
       case scheduleConfig: page = const ScheduleConfigScreen(); break;
       case schedule: page = const ScheduleScreen(); break;
