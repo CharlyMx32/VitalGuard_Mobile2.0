@@ -9,6 +9,11 @@ class ApiClient {
   final AuthService _authService;
   final StreamController<void> _onUnauthorized = StreamController<void>.broadcast();
 
+  // Evita disparar varios refresh en paralelo si varias peticiones reciben
+  // 401 al mismo tiempo: solo la primera refresca, el resto espera el resultado.
+  bool _isRefreshing = false;
+  final List<Completer<bool>> _refreshWaiters = [];
+
   Stream<void> get onUnauthorized => _onUnauthorized.stream;
 
   ApiClient(this._authService) {
@@ -34,16 +39,58 @@ class ApiClient {
           debugPrint('[API] ${options.method} ${options.path}');
           handler.next(options);
         },
-        onError: (error, handler) {
+        onError: (error, handler) async {
           debugPrint('[API] Error ${error.response?.statusCode}: ${error.message}');
           debugPrint('[API] Response body: ${error.response?.data}');
-          if (error.response?.statusCode == 401 && !_onUnauthorized.isClosed) {
+
+          final isUnauthorized = error.response?.statusCode == 401;
+          final alreadyRetried = error.requestOptions.extra['retriedAfterRefresh'] == true;
+
+          if (isUnauthorized && !alreadyRetried && _authService.refreshToken != null) {
+            final refreshed = await _refreshTokenOnce();
+            if (refreshed) {
+              try {
+                final retryOptions = error.requestOptions;
+                retryOptions.extra['retriedAfterRefresh'] = true;
+                retryOptions.headers['Authorization'] = 'Bearer ${_authService.token}';
+                final response = await _dio.fetch(retryOptions);
+                return handler.resolve(response);
+              } catch (_) {
+                // Cae al manejo normal de error abajo
+              }
+            }
+          }
+
+          if (isUnauthorized && !_onUnauthorized.isClosed) {
             _onUnauthorized.add(null);
           }
           handler.next(error);
         },
       ),
     );
+  }
+
+  /// Refresca el access token una sola vez aunque varias peticiones 401 al
+  /// mismo tiempo lo disparen: la primera hace el refresh real, el resto
+  /// espera el mismo resultado.
+  Future<bool> _refreshTokenOnce() async {
+    if (_isRefreshing) {
+      final completer = Completer<bool>();
+      _refreshWaiters.add(completer);
+      return completer.future;
+    }
+    _isRefreshing = true;
+    try {
+      final newToken = await _authService.refreshAccessToken();
+      final success = newToken != null;
+      for (final waiter in _refreshWaiters) {
+        if (!waiter.isCompleted) waiter.complete(success);
+      }
+      return success;
+    } finally {
+      _isRefreshing = false;
+      _refreshWaiters.clear();
+    }
   }
 
   Future<Response<T>> get<T>(
